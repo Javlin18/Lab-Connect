@@ -1,0 +1,22 @@
+{
+  "name": "lab-app",
+  "private": true,
+  "packageManager": "pnpm@9.12.3",
+  "scripts": {
+    "build": "pnpm --filter @lab-app/api build && pnpm --filter @lab-app/web build",
+    "build:mobile": "pnpm --filter @lab-app/mobile build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "db:migrate": "prisma migrate dev --schema apps/api/prisma/schema.prisma",
+    "db:push": "prisma db push --schema apps/api/prisma/schema.prisma",
+    "prisma:generate": "prisma generate --schema apps/api/prisma/schema.prisma"
+  },
+  "prisma": {
+    "schema": "apps/api/prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0",
+    "turbo": "^2.0.14",
+    "typescript": "^5.5.4"
+  }
+}

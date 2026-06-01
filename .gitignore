@@ -1,0 +1,16 @@
+node_modules
+.turbo
+dist
+build
+.next
+.expo
+coverage
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.pnpm-store
+.vscode
+
+/generated/prisma
