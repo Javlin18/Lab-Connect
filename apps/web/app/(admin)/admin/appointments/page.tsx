@@ -87,7 +87,7 @@ export default function AppointmentsPage() {
     <div className="space-y-6">
       <PageHeader
         action={
-          <Link className={buttonVariants()} href="/appointments/new">
+          <Link className={buttonVariants()} href="/admin/appointments/new">
             + New Appointment
           </Link>
         }

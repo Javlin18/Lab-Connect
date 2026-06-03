@@ -10,8 +10,8 @@ config({
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = "admin@labapp.com";
-  const password = "admin123";
+  const email = "admin@labconnect.com";
+  const password = "Admin@123";
   const phone = "+10000000000";
 
   const admin = await prisma.user.upsert({
