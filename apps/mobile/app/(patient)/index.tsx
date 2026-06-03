@@ -1,104 +1,227 @@
-import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Text, TouchableOpacity, View } from "react-native";
+import { router } from "expo-router";
+import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { getMyAppointments } from "@/api/appointments";
-import { getEtaText, formatSlot } from "@/lib/format";
+import { getMyOrders, getPackages, getTests, type HealthPackage, type Test } from "@/api/patient";
 import { useAuthStore } from "@/store/auth-store";
+import { useCartStore } from "@/store/cartStore";
 
-import { Button } from "@/components/button";
-import { Card } from "@/components/card";
-import { ProgressTracker } from "@/components/progress-tracker";
-import { Screen } from "@/components/screen";
-import { StatusBadge } from "@/components/status-badge";
+const price = (item: { price: number; discountPrice?: number | null }) =>
+  item.discountPrice ?? item.price;
 
-function LogoutButton() {
-  const router = useRouter();
-  const logout = useAuthStore((s) => s.logout);
-
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          await logout();
-          router.replace("/(auth)/login");
-        },
-      },
-    ]);
-  };
-
+function TestCard({ test }: { test: Test }) {
+  const addItem = useCartStore((s) => s.addItem);
+  const inCart = useCartStore((s) => s.isInCart(test.id));
   return (
     <TouchableOpacity
-      onPress={handleLogout}
-      className="bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl"
+      onPress={() => router.push(`/(patient)/tests/${test.slug}`)}
+      className="w-44 bg-white rounded-2xl p-4 mr-3 border border-gray-100 shadow-sm"
     >
-      <Text className="text-red-600 text-xs font-bold">Logout</Text>
+      <Text className="font-bold text-[#1a1a1a] text-sm" numberOfLines={2}>
+        {test.name}
+      </Text>
+      <Text className="text-gray-400 text-xs mt-1">
+        {test.parameters?.length ?? 0} parameters
+      </Text>
+      {test.preparationInstructions?.toLowerCase().includes("fast") ? (
+        <Text className="bg-orange-100 text-orange-600 text-[10px] px-2 py-0.5 rounded-full self-start mt-2">
+          Fasting
+        </Text>
+      ) : null}
+      <View className="flex-row items-end gap-1 mt-3">
+        {test.discountPrice ? (
+          <Text className="text-gray-400 text-xs line-through">₹{test.price}</Text>
+        ) : null}
+        <Text className="text-[#C41E3A] text-base font-bold">₹{price(test)}</Text>
+      </View>
+      <TouchableOpacity
+        disabled={inCart}
+        onPress={() =>
+          addItem({
+            id: test.id,
+            type: "test",
+            name: test.name,
+            price: price(test),
+            originalPrice: test.price,
+            testId: test.id,
+          })
+        }
+        className={`mt-3 py-2 rounded-xl items-center ${inCart ? "bg-green-50" : "bg-[#0F6E56]"}`}
+      >
+        <Text className={`font-bold text-xs ${inCart ? "text-green-600" : "text-white"}`}>
+          {inCart ? "✓ Added" : "+ Add"}
+        </Text>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 }
 
-export default function PatientHomeScreen() {
-  const router = useRouter();
-  const query = useQuery({
-    queryFn: getMyAppointments,
-    queryKey: ["appointments", "mine"],
-    refetchInterval: 30000,
-  });
+function PackageCard({ item }: { item: HealthPackage }) {
+  const addItem = useCartStore((s) => s.addItem);
+  const inCart = useCartStore((s) => s.isInCart(item.id));
+  const currentPrice = price(item);
+  return (
+    <TouchableOpacity
+      onPress={() => router.push(`/(patient)/packages/${item.slug}`)}
+      className="bg-white rounded-2xl p-4 mb-3 border border-gray-100 flex-row items-center"
+    >
+      <View className="flex-1 pr-3">
+        <Text className="font-bold text-[#1a1a1a] text-sm" numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text className="text-gray-500 text-xs mt-0.5">
+          {item.tests?.length ?? 0} tests included
+        </Text>
+        <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>
+          {(item.tests ?? [])
+            .slice(0, 3)
+            .map((t) => t.name)
+            .join(", ")}
+        </Text>
+      </View>
+      <View className="items-end">
+        {item.discountPrice ? (
+          <Text className="text-gray-400 text-xs line-through">₹{item.price}</Text>
+        ) : null}
+        <Text className="text-[#C41E3A] text-base font-bold">₹{currentPrice}</Text>
+        <Text className="text-[#0F6E56] text-xs font-bold mt-1">View →</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
 
-  const activeAppointment = (query.data?.data ?? []).find(
-    (item) => item.status !== "completed"
+const QUICK_ACTIONS = [
+  { icon: "🧪", label: "Book a Test", href: "/(patient)/tests" },
+  { icon: "📦", label: "Health Packages", href: "/(patient)/packages" },
+  { icon: "📋", label: "My Reports", href: "/(patient)/orders" },
+  { icon: "📍", label: "Track Collection", href: "/(patient)/orders" },
+] as const;
+
+export default function PatientHomeScreen() {
+  const user = useAuthStore((s) => s.user);
+  const testsQuery = useQuery({
+    queryKey: ["patient-tests", "popular"],
+    queryFn: () => getTests({ popular: true, limit: 6 }),
+  });
+  const packagesQuery = useQuery({
+    queryKey: ["patient-packages", "home"],
+    queryFn: () => getPackages({ limit: 3 }),
+  });
+  const ordersQuery = useQuery({
+    queryKey: ["patient-orders", "active"],
+    queryFn: () => getMyOrders(),
+  });
+  const activeOrder = (ordersQuery.data?.data ?? []).find(
+    (o) => o.appointment && o.appointment.status !== "completed"
   );
 
-  if (!activeAppointment) {
-    return (
-      <Screen
-        title="Patient"
-        subtitle="No active appointment."
-        headerRight={<LogoutButton />}
-      >
-        <Card className="gap-3">
-          <Text className="text-base text-slate-600">Need a home collection?</Text>
-          <Button onPress={() => router.push("/(patient)/book")}>Book a test</Button>
-        </Card>
-      </Screen>
-    );
-  }
-
   return (
-    <Screen
-      title="Appointment"
-      subtitle="Live status tracker."
-      headerRight={<LogoutButton />}
-    >
-      <Card className="gap-4">
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1 gap-1">
-            <Text className="text-lg font-bold text-ink">
-              {activeAppointment.testTypes.join(", ")}
+    <SafeAreaView className="flex-1 bg-[#F5F5F5]" edges={["top"]}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Top Bar ── */}
+        <View className="flex-row justify-between items-start px-5 pt-4 pb-2">
+          <View>
+            <Text className="text-lg font-bold text-[#1a1a1a]">
+              Hi, {user?.name ?? "there"} 👋
             </Text>
-            <Text className="text-sm text-slate-500">
-              {formatSlot(activeAppointment.slot)}
+            <Text className="text-xs text-gray-500 mt-0.5">
+              Book a test from the comfort of your home
             </Text>
           </View>
-          <StatusBadge status={activeAppointment.status} />
+          <TouchableOpacity
+            onPress={() => router.push("/(patient)/notifications")}
+            className="relative mt-1"
+          >
+            <Text className="text-2xl">🔔</Text>
+            <View className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#C41E3A]" />
+          </TouchableOpacity>
         </View>
 
-        <ProgressTracker status={activeAppointment.status} />
+        {/* ── Search Bar ── */}
+        <TouchableOpacity
+          onPress={() => router.push("/(patient)/tests")}
+          className="mx-5 mt-3 bg-white rounded-2xl border border-gray-100 px-4 py-3.5 flex-row items-center shadow-sm"
+        >
+          <Text className="text-gray-400 mr-2">🔍</Text>
+          <Text className="text-gray-400 text-sm">Search tests, packages...</Text>
+        </TouchableOpacity>
 
-        {activeAppointment.status === "en_route" ? (
-          <View className="gap-1">
-            <Text className="text-sm font-medium text-ink">
-              Employee: {activeAppointment.employee?.name ?? "Assigned staff"}
+        {/* ── Quick Actions ── */}
+        <View className="flex-row flex-wrap gap-3 px-5 mt-5">
+          {QUICK_ACTIONS.map(({ icon, label, href }) => (
+            <TouchableOpacity
+              key={label}
+              onPress={() => router.push(href as any)}
+              className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm items-center justify-center"
+              style={{ width: "47%" }}
+            >
+              <Text className="text-4xl mb-2">{icon}</Text>
+              <Text className="font-bold text-[#1a1a1a] text-xs text-center">{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── Active Booking Banner ── */}
+        {activeOrder ? (
+          <View className="mx-5 mt-5 bg-[#0F6E56] rounded-2xl p-4">
+            <Text className="text-white font-bold text-sm">
+              Sample collection scheduled
             </Text>
-            <Text className="text-sm text-slate-500">
-              {getEtaText(activeAppointment.slot)}
+            <Text className="text-white/80 text-xs mt-1">
+              {activeOrder.items?.slot ?? "Slot booked"} •{" "}
+              {activeOrder.appointment?.employee?.name ?? "Collector assigned"}
             </Text>
+            <View className="flex-row items-center gap-2 mt-3">
+              <View className="bg-white/20 px-2 py-1 rounded-full">
+                <Text className="text-white text-xs font-bold capitalize">
+                  {activeOrder.appointment?.status ?? "Confirmed"}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push(`/(patient)/orders/${activeOrder.id}`)}
+                className="bg-white rounded-xl px-3 py-1.5"
+              >
+                <Text className="text-[#0F6E56] font-bold text-xs">Track Now →</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : null}
-      </Card>
-    </Screen>
+
+        {/* ── Popular Tests ── */}
+        <View className="flex-row justify-between items-center px-5 mt-7 mb-3">
+          <Text className="text-base font-bold text-[#1a1a1a]">Popular Tests</Text>
+          <TouchableOpacity onPress={() => router.push("/(patient)/tests")}>
+            <Text className="text-[#0F6E56] font-bold text-sm">View All →</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20 }}
+        >
+          {(testsQuery.data?.data ?? []).map((test) => (
+            <TestCard key={test.id} test={test} />
+          ))}
+        </ScrollView>
+
+        {/* ── Health Packages ── */}
+        <View className="flex-row justify-between items-center px-5 mt-7 mb-3">
+          <Text className="text-base font-bold text-[#1a1a1a]">Health Packages</Text>
+          <TouchableOpacity onPress={() => router.push("/(patient)/packages")}>
+            <Text className="text-[#0F6E56] font-bold text-sm">View All →</Text>
+          </TouchableOpacity>
+        </View>
+        <View className="px-5">
+          {(packagesQuery.data?.data ?? []).map((item) => (
+            <PackageCard key={item.id} item={item} />
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

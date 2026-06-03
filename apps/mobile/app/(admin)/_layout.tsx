@@ -1,19 +1,25 @@
 import { Tabs } from "expo-router";
 
 import { RoleGate } from "@/components/role-gate";
+import { TopMenu } from "@/components/top-menu";
+
+const adminMenu = [
+  { label: "Home", href: "/(admin)" },
+  { label: "Appointments", href: "/(admin)/appointments" },
+  { label: "Employees", href: "/(admin)/employees" },
+  { label: "New Appointment", href: "/(admin)/new-appointment" },
+];
 
 export default function AdminLayout() {
   return (
     <RoleGate allow={["admin"]}>
       <Tabs
         screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: "#0F766E",
-          tabBarStyle: {
-            height: 66,
-            paddingBottom: 8,
-            paddingTop: 8
-          }
+          headerShown: true,
+          headerTitleAlign: "center",
+          headerLeft: () => <TopMenu items={adminMenu} tintColor="#0F766E" />,
+          tabBarButton: () => null,
+          tabBarStyle: { display: "none" },
         }}
       >
         <Tabs.Screen

@@ -1,63 +1,37 @@
-import React from "react";
-import { Text } from "react-native";
 import { Tabs } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RoleGate } from "@/components/role-gate";
+import { TopMenu } from "@/components/top-menu";
+
+const employeeMenu = [
+  { label: "Tasks", href: "/(employee)" },
+  { label: "History", href: "/(employee)/history" },
+  { label: "Notifications", href: "/(employee)/notifications" },
+  { label: "Profile", href: "/(employee)/profile" },
+];
 
 export default function EmployeeLayout() {
-  const insets = useSafeAreaInsets();
-
   return (
     <RoleGate allow={["employee"]}>
       <Tabs
         screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: "#0F6E56",
-          tabBarInactiveTintColor: "#94a3b8",
-          tabBarStyle: {
-            height: 56 + insets.bottom,
-            paddingBottom: insets.bottom || 8,
-            paddingTop: 8,
-            backgroundColor: "#FFFFFF",
-            borderTopWidth: 1,
-            borderTopColor: "#F1F5F9",
-            elevation: 8,
-          },
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: "600",
-          },
+          headerShown: true,
+          headerTitleAlign: "center",
+          headerLeft: () => <TopMenu items={employeeMenu} tintColor="#0F6E56" />,
+          tabBarButton: () => null,
+          tabBarStyle: { display: "none" },
         }}
       >
         <Tabs.Screen
           name="index"
-          options={{
-            title: "Tasks",
-            tabBarLabel: "Tasks",
-            tabBarIcon: ({ color }) => (
-              <Text style={{ fontSize: 18, color }}>📋</Text>
-            ),
-          }}
+          options={{ title: "Tasks" }}
         />
         <Tabs.Screen
           name="history"
-          options={{
-            title: "History",
-            tabBarLabel: "History",
-            tabBarIcon: ({ color }) => (
-              <Text style={{ fontSize: 18, color }}>🕐</Text>
-            ),
-          }}
+          options={{ title: "History" }}
         />
         <Tabs.Screen
           name="profile"
-          options={{
-            title: "Profile",
-            tabBarLabel: "Profile",
-            tabBarIcon: ({ color }) => (
-              <Text style={{ fontSize: 18, color }}>👤</Text>
-            ),
-          }}
+          options={{ title: "Profile" }}
         />
         {/* Hidden screens — not shown in tab bar */}
         <Tabs.Screen name="notifications" options={{ href: null }} />
