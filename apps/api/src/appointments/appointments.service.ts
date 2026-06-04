@@ -4,6 +4,7 @@ import { toSharedAppointment } from "../common/mappers/entity.mappers";
 import type { AuthenticatedUser } from "../common/types/authenticated-user";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { AutoAssignService } from "./auto-assign.service";
 import { AssignAppointmentDto } from "./dto/assign-appointment.dto";
 import { CompleteAppointmentDto } from "./dto/complete-appointment.dto";
 import { CreateAppointmentDto } from "./dto/create-appointment.dto";
@@ -39,36 +40,37 @@ export class AppointmentsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService
+    private readonly notificationsService: NotificationsService,
+    private readonly autoAssignService: AutoAssignService
   ) {}
 
   async create(dto: CreateAppointmentDto, creator: AuthenticatedUser) {
     const patientId = creator.role === "patient" ? creator.sub : dto.patientId;
     const patient = await this.prisma.user.findFirst({
-      where: {
-        id: patientId,
-        role: "patient"
-      }
+      where: { id: patientId, role: "patient" }
     });
 
-    if (!patient) {
-      throw new NotFoundException("Patient not found");
-    }
+    if (!patient) throw new NotFoundException("Patient not found");
 
-    if (dto.employeeId) {
-      await this.ensureEmployeeExists(dto.employeeId);
+    // Auto-assign employee if not explicitly provided
+    let assignedEmployeeId = dto.employeeId ?? null;
+    if (!assignedEmployeeId) {
+      const slotDate = dto.slot.slice(0, 10);
+      assignedEmployeeId = await this.autoAssignService.findAvailableEmployee(slotDate, dto.slot);
+    } else {
+      await this.ensureEmployeeExists(assignedEmployeeId);
     }
 
     const appointment = await this.prisma.appointment.create({
       data: {
         patientId,
-        employeeId: dto.employeeId ?? null,
+        employeeId: assignedEmployeeId,
         adminId: creator.sub,
         testTypes: dto.testTypes,
         address: dto.address,
         slot: dto.slot,
         notes: dto.notes ?? "",
-        status: dto.employeeId ? "assigned" : "pending"
+        status: assignedEmployeeId ? "assigned" : "pending"
       },
       include: this.appointmentInclude
     });
@@ -80,19 +82,27 @@ export class AppointmentsService {
       "appointment_created"
     );
 
-    if (dto.employeeId) {
+    if (assignedEmployeeId) {
       await this.notificationsService.createNotification(
-        dto.employeeId,
+        assignedEmployeeId,
         "New assignment",
-        "A new appointment has been assigned to you.",
+        `New appointment: ${patient.name} at ${dto.slot}.`,
         "appointment_assigned"
       );
+    } else {
+      // Notify all admins that manual assignment is needed
+      const admins = await this.prisma.user.findMany({ where: { role: "admin" } });
+      for (const admin of admins) {
+        await this.notificationsService.createNotification(
+          admin.id,
+          "Manual assignment needed",
+          `No employee available for ${dto.slot}. Please assign manually.`,
+          "manual_assign_needed"
+        );
+      }
     }
 
-    return {
-      data: toSharedAppointment(appointment),
-      message: "Appointment created"
-    };
+    return { data: toSharedAppointment(appointment), message: "Appointment created" };
   }
 
   async findAll(query: ListAppointmentsDto) {
@@ -223,21 +233,16 @@ export class AppointmentsService {
     const appointment = await this.assertEmployeeOwnsAppointment(id, employeeId);
 
     let notes = appointment.notes;
-    if (dto.sampleId) {
-      notes += `\n[Sample Barcode: ${dto.sampleId}]`;
-    }
-    if (dto.collectionNotes) {
-      notes += `\n[Collection Notes: ${dto.collectionNotes}]`;
-    }
-    if (dto.collectedAt) {
-      notes += `\n[Collected At: ${dto.collectedAt}]`;
-    }
+    if (dto.sampleId) notes += `\n[Sample Barcode: ${dto.sampleId}]`;
+    if (dto.collectionNotes) notes += `\n[Collection Notes: ${dto.collectionNotes}]`;
+    if (dto.collectedAt) notes += `\n[Collected At: ${dto.collectedAt}]`;
 
     const updated = await this.prisma.appointment.update({
       where: { id: appointment.id },
       data: {
         status: dto.status,
-        notes
+        notes,
+        barcodes: dto.barcodes ? (dto.barcodes as any) : undefined
       },
       include: this.appointmentInclude
     });
@@ -249,10 +254,91 @@ export class AppointmentsService {
       "appointment_status"
     );
 
-    return {
-      data: toSharedAppointment(updated),
-      message: "Appointment status updated"
-    };
+    return { data: toSharedAppointment(updated), message: "Appointment status updated" };
+  }
+
+  async reassignRequest(
+    id: string,
+    employeeId: string,
+    reason: string,
+    note?: string
+  ) {
+    const appointment = await this.assertEmployeeOwnsAppointment(id, employeeId);
+
+    const request = await this.prisma.reassignRequest.create({
+      data: { appointmentId: id, requestedBy: employeeId, reason, note }
+    });
+
+    await this.prisma.appointment.update({
+      where: { id },
+      data: { status: "pending" }
+    });
+
+    // Notify all admins urgently
+    const admins = await this.prisma.user.findMany({ where: { role: "admin" } });
+    for (const admin of admins) {
+      await this.notificationsService.createNotification(
+        admin.id,
+        "⚠️ Reassign Needed",
+        `Employee cannot reach ${appointment.patient?.name ?? "patient"}. Reason: ${reason}`,
+        "reassign_request"
+      );
+    }
+
+    // Notify patient
+    await this.notificationsService.createNotification(
+      appointment.patientId,
+      "Collector delayed",
+      "We are arranging a new collector. Sorry for the delay.",
+      "reassign_patient"
+    );
+
+    return { data: request, message: "Reassignment request sent" };
+  }
+
+  async resolveReassign(requestId: string, adminId: string, newEmployeeId: string) {
+    const request = await this.prisma.reassignRequest.findUnique({ where: { id: requestId } });
+    if (!request) throw new NotFoundException("Request not found");
+
+    await this.ensureEmployeeExists(newEmployeeId);
+
+    const appointment = await this.prisma.appointment.update({
+      where: { id: request.appointmentId },
+      data: { employeeId: newEmployeeId, status: "assigned" },
+      include: this.appointmentInclude
+    });
+
+    await this.prisma.reassignRequest.update({
+      where: { id: requestId },
+      data: { status: "resolved", resolvedBy: adminId, newEmployeeId, resolvedAt: new Date() }
+    });
+
+    // Notify new employee
+    await this.notificationsService.createNotification(
+      newEmployeeId,
+      "Appointment assigned",
+      `Appointment #${request.appointmentId.slice(0, 8)} assigned to you.`,
+      "appointment_assigned"
+    );
+
+    // Notify patient
+    await this.notificationsService.createNotification(
+      appointment.patientId,
+      "New collector assigned",
+      "Your new collector will arrive soon.",
+      "reassign_resolved"
+    );
+
+    return { data: appointment, message: "Reassignment resolved" };
+  }
+
+  async getReassignRequests(status?: string) {
+    const requests = await this.prisma.reassignRequest.findMany({
+      where: status ? { status } : undefined,
+      include: { appointment: { include: this.appointmentInclude } },
+      orderBy: { createdAt: "desc" }
+    });
+    return { data: requests, message: "Reassign requests fetched" };
   }
 
   async complete(id: string, dto: CompleteAppointmentDto) {

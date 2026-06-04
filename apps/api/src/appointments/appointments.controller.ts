@@ -41,6 +41,12 @@ export class AppointmentsController {
     return this.appointmentsService.findAssigned(user.sub);
   }
 
+  @Roles("admin")
+  @Get("reassign-requests")
+  getReassignRequests(@Query("status") status?: string) {
+    return this.appointmentsService.getReassignRequests(status);
+  }
+
   @Roles("admin", "employee", "patient")
   @Get(":id")
   findOne(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
@@ -73,5 +79,25 @@ export class AppointmentsController {
   @Put(":id/complete")
   complete(@Param("id") id: string, @Body() dto: CompleteAppointmentDto) {
     return this.appointmentsService.complete(id, dto);
+  }
+
+  @Roles("employee")
+  @Post(":id/reassign-request")
+  reassignRequest(
+    @Param("id") id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { reason: string; note?: string }
+  ) {
+    return this.appointmentsService.reassignRequest(id, user.sub, body.reason, body.note);
+  }
+
+  @Roles("admin")
+  @Put("reassign-requests/:requestId/resolve")
+  resolveReassign(
+    @Param("requestId") requestId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { newEmployeeId: string }
+  ) {
+    return this.appointmentsService.resolveReassign(requestId, user.sub, body.newEmployeeId);
   }
 }

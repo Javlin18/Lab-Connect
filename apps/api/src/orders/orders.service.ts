@@ -68,16 +68,57 @@ export class OrdersService {
       }
     };
 
+    const paymentType = dto.paymentType ?? "online_prepaid";
+
     let order = await this.prisma.order.create({
       data: {
         patientId,
         totalAmount: total,
-        paymentStatus: "pending",
+        paymentStatus: paymentType === "pay_on_collection" ? "pending" : "pending",
+        paymentType,
         items: orderMetadata as any
       }
     });
 
-    // 4. Trigger Razorpay Order creation (or fallback to mock)
+    // For pay_on_collection: create appointment immediately without Razorpay
+    if (paymentType === "pay_on_collection") {
+      const defaultAdmin = await this.prisma.user.findFirst({ where: { role: "admin" } });
+      if (!defaultAdmin) throw new BadRequestException("No admin user found");
+
+      const appointment = await this.prisma.appointment.create({
+        data: {
+          patientId,
+          adminId: defaultAdmin.id,
+          address: orderMetadata.address,
+          slot: orderMetadata.slot,
+          testTypes: orderMetadata.testTypes || [],
+          status: "pending",
+          notes: `Pay on Collection Order: ${order.id}. Patient: ${orderMetadata.patientName}, Age: ${orderMetadata.patientAge}, Gender: ${orderMetadata.patientGender}`
+        }
+      });
+
+      order = await this.prisma.order.update({
+        where: { id: order.id },
+        data: { appointmentId: appointment.id, paymentId: `poc_${order.id}` }
+      });
+
+      await this.cartService.clearCart(patientId);
+
+      return {
+        success: true,
+        data: {
+          orderId: order.id,
+          paymentId: order.paymentId,
+          amount: total,
+          keyId: "",
+          paymentType,
+          patientDetails: dto
+        },
+        message: "Order created (pay on collection)"
+      };
+    }
+
+    // Normal online prepaid flow — Razorpay
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
     let rzpOrderId: string | null = null;
@@ -90,40 +131,30 @@ export class OrdersService {
             "Content-Type": "application/json",
             "Authorization": "Basic " + Buffer.from(`${keyId}:${keySecret}`).toString("base64")
           },
-          body: JSON.stringify({
-            amount: Math.round(total * 100),
-            currency: "INR",
-            receipt: order.id
-          })
+          body: JSON.stringify({ amount: Math.round(total * 100), currency: "INR", receipt: order.id })
         });
         const rzpData = await res.json();
-        if (rzpData && rzpData.id) {
-          rzpOrderId = rzpData.id;
-        }
+        if (rzpData?.id) rzpOrderId = rzpData.id;
       } catch (err) {
-        console.error("Failed to create Razorpay order, falling back to mock", err);
+        console.error("Razorpay fallback", err);
       }
     }
 
-    if (!rzpOrderId) {
-      rzpOrderId = `order_mock_${Math.random().toString(36).substring(7)}`;
-    }
+    if (!rzpOrderId) rzpOrderId = `order_mock_${Math.random().toString(36).substring(7)}`;
 
-    // Update order with paymentId (storing the Razorpay order ID)
     order = await this.prisma.order.update({
       where: { id: order.id },
-      data: {
-        paymentId: rzpOrderId
-      }
+      data: { paymentId: rzpOrderId }
     });
 
     return {
       success: true,
       data: {
         orderId: order.id,
-        paymentId: rzpOrderId, // Razorpay order ID
+        paymentId: rzpOrderId,
         amount: total,
         keyId: keyId ?? "rzp_test_mockkeyid123",
+        paymentType,
         patientDetails: dto
       },
       message: "Order initialized"

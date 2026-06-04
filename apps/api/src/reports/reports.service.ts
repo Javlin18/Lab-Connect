@@ -14,56 +14,54 @@ export class ReportsService {
     private readonly notificationsService: NotificationsService
   ) {}
 
-  async upload(appointmentId: string, file: Express.Multer.File | undefined, adminId: string) {
-    if (!file) {
-      throw new BadRequestException("PDF file required");
-    }
+  async upload(appointmentId: string, file: Express.Multer.File | undefined, uploaderId: string) {
+    if (!file) throw new BadRequestException("PDF file required");
 
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: appointmentId }
     });
+    if (!appointment) throw new NotFoundException("Appointment not found");
 
-    if (!appointment) {
-      throw new NotFoundException("Appointment not found");
+    // Validate employee owns this appointment
+    const uploader = await this.prisma.user.findUnique({ where: { id: uploaderId } });
+    if (uploader?.role === "employee" && appointment.employeeId !== uploaderId) {
+      throw new ForbiddenException("Not your appointment");
     }
 
     const objectKey = `reports/${appointmentId}-${Date.now()}.pdf`;
     await this.storageService.uploadPdf(objectKey, file.buffer, file.mimetype);
 
     const result = await this.prisma.testResult.upsert({
-      where: {
-        appointmentId
-      },
-      update: {
-        reportUrl: objectKey,
-        uploadedAt: new Date(),
-        uploadedBy: adminId
-      },
-      create: {
-        appointmentId,
-        reportUrl: objectKey,
-        uploadedBy: adminId
-      }
+      where: { appointmentId },
+      update: { reportUrl: objectKey, uploadedAt: new Date(), uploadedBy: uploaderId },
+      create: { appointmentId, reportUrl: objectKey, uploadedBy: uploaderId }
     });
 
     await this.prisma.appointment.update({
       where: { id: appointmentId },
-      data: {
-        status: "processing"
-      }
+      data: { status: "processing" }
     });
 
+    // Notify patient
     await this.notificationsService.createNotification(
       appointment.patientId,
-      "Report uploaded",
-      "Your report is available for download.",
+      "📋 Report Ready",
+      "Your test report is ready! Open the app to download it.",
       "report_uploaded"
     );
 
-    return {
-      data: toSharedTestResult(result),
-      message: "Report uploaded"
-    };
+    // Notify admins
+    const admins = await this.prisma.user.findMany({ where: { role: "admin" } });
+    for (const admin of admins) {
+      await this.notificationsService.createNotification(
+        admin.id,
+        "Report uploaded",
+        `Report uploaded for appointment #${appointmentId.slice(0, 8)}.`,
+        "report_uploaded_admin"
+      );
+    }
+
+    return { data: toSharedTestResult(result), message: "Report uploaded" };
   }
 
   async getByAppointment(appointmentId: string, user: AuthenticatedUser) {
@@ -84,7 +82,11 @@ export class ReportsService {
       throw new ForbiddenException("Forbidden");
     }
 
-    if (user.role !== "admin" && user.role !== "patient") {
+    if (user.role === "employee" && result.appointment.employeeId !== user.sub) {
+      throw new ForbiddenException("Forbidden");
+    }
+
+    if (!["admin", "patient", "employee"].includes(user.role)) {
       throw new ForbiddenException("Forbidden");
     }
 

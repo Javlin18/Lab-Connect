@@ -1,6 +1,6 @@
 "use client";
 
-import { Boxes, Coins, FlaskConical, LayoutDashboard, Menu, Receipt, Settings, Stethoscope, Users, UserSquare2, X } from "lucide-react";
+import { AlertTriangle, Boxes, Coins, FlaskConical, LayoutDashboard, Menu, Phone, Receipt, Settings, Stethoscope, Users, UserSquare2, X } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
@@ -20,6 +20,8 @@ const navItems = [
   { href: "/admin/pricing", icon: Coins, label: "Pricing" },
   { href: "/admin/employees", icon: Users, label: "Employees" },
   { href: "/admin/patients", icon: UserSquare2, label: "Patients" },
+  { href: "/admin/reassign-requests", icon: AlertTriangle, label: "Reassign Requests" },
+  { href: "/admin/call-logs", icon: Phone, label: "Call Logs" },
   { href: "/admin/settings", icon: Settings, label: "Settings" }
 ];
 

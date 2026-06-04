@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 import { assignAppointment, getAppointmentById } from "@/api/appointments";
 import { listEmployees } from "@/api/employees";
-import { getReport, uploadReport } from "@/api/reports";
+import { getReport } from "@/api/reports";
 import { listUsers } from "@/api/users";
 import { PageHeader } from "@/components/app/page-header";
 import { StatusBadge } from "@/components/app/status-badge";
@@ -23,7 +23,6 @@ export default function AppointmentDetailPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [employeeId, setEmployeeId] = useState("");
-  const [file, setFile] = useState<File | null>(null);
 
   const appointmentQuery = useQuery({
     queryKey: ["appointments", params.id],
@@ -46,23 +45,6 @@ export default function AppointmentDetailPage() {
     },
     onError: (error: Error) => {
       toast({ title: "Assign failed", description: error.message, variant: "destructive" });
-    }
-  });
-
-  const uploadMutation = useMutation({
-    mutationFn: () => {
-      if (!file) {
-        throw new Error("Pick PDF first");
-      }
-
-      return uploadReport(params.id, file);
-    },
-    onSuccess: () => {
-      toast({ title: "Report uploaded", description: "Patient can fetch PDF now." });
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
     }
   });
 
@@ -143,18 +125,25 @@ export default function AppointmentDetailPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Upload Report PDF</CardTitle>
+              <CardTitle>Report Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <input accept="application/pdf" onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" />
-              <Button disabled={!file || uploadMutation.isPending} onClick={() => uploadMutation.mutate()} type="button">
-                Upload Report
-              </Button>
               {reportQuery.data?.data.downloadUrl ? (
-                <a className="text-sm text-primary underline" href={reportQuery.data.data.downloadUrl} target="_blank">
-                  Open latest report
-                </a>
-              ) : null}
+                <div className="space-y-2">
+                  <p className="text-sm text-green-700 font-medium">✓ Report uploaded</p>
+                  <a
+                    className="text-sm text-primary underline"
+                    href={reportQuery.data.data.downloadUrl}
+                    target="_blank"
+                  >
+                    Download report PDF
+                  </a>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Report will be uploaded by the field collector via the mobile app.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

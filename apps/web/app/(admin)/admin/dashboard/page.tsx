@@ -1,10 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, CheckCircle2, Clock3, FlaskConical, Plus, type LucideIcon } from "lucide-react";
+import { AlertTriangle, CalendarDays, CheckCircle2, Clock3, FlaskConical, Plus, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
 import { listAppointments } from "@/api/appointments";
+import { getReassignRequests } from "@/api/reassign";
 import { PageHeader } from "@/components/app/page-header";
 import { StatusBadge } from "@/components/app/status-badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -40,11 +41,18 @@ export default function DashboardPage() {
     queryFn: () => listAppointments()
   });
 
+  const reassignQuery = useQuery({
+    queryKey: ["reassign-requests", "pending"],
+    queryFn: () => getReassignRequests("pending"),
+    refetchInterval: 30000,
+  });
+
   const appointments = appointmentsQuery.data?.data ?? [];
   const recentAppointments = [...appointments].slice(0, 10);
   const pendingAppointments = appointments.filter((item) => item.status === "pending");
   const assignedAppointments = appointments.filter((item) => item.status === "assigned");
   const completedAppointments = appointments.filter((item) => item.status === "completed");
+  const pendingReassigns = reassignQuery.data?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -90,6 +98,30 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle>Recent Appointments</CardTitle>
         </CardHeader>
+        {/* Urgent Reassign Requests */}
+        {pendingReassigns.length > 0 && (
+          <CardContent className="border-b border-red-100 bg-red-50/40 space-y-3 pb-4">
+            <p className="flex items-center gap-2 text-sm font-semibold text-red-700">
+              <AlertTriangle className="h-4 w-4" />
+              {pendingReassigns.length} Reassignment Request{pendingReassigns.length > 1 ? "s" : ""} Pending
+            </p>
+            {pendingReassigns.map((req) => (
+              <div key={req.id} className="flex items-center justify-between bg-white border border-red-200 rounded-xl px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold">
+                    {req.appointment.patient?.name ?? "Patient"} — {req.appointment.slot}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {req.appointment.employee?.name ?? "Employee"} · {req.reason.replace(/_/g, " ")}
+                  </p>
+                </div>
+                <Link href="/admin/reassign-requests" className={buttonVariants({ size: "sm", variant: "destructive" })}>
+                  Assign →
+                </Link>
+              </div>
+            ))}
+          </CardContent>
+        )}
         <CardContent>
           {appointmentsQuery.isLoading ? (
             <div className="space-y-3">
