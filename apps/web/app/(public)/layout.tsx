@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Activity, LogOut, MapPin, Search, ShoppingCart, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchVal, setSearchVal] = useState(searchParams.get("q") || "");
@@ -26,11 +27,16 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   });
 
   const cartItemsCount = cartQuery.data?.data?.items?.length || 0;
+  const isDashboardRoute = pathname.startsWith("/dashboard");
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     router.push(`/tests?q=${encodeURIComponent(searchVal)}`);
   };
+
+  if (isDashboardRoute) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50">

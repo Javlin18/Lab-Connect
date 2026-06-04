@@ -1,135 +1,206 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { Activity, Calendar, ChevronRight, FileText, FlaskConical, MapPin, User } from "lucide-react";
+import {
+  CalendarClock,
+  CheckCircle2,
+  ClipboardList,
+  Clock3,
+  Headphones,
+  MapPin,
+  MessageCircle,
+  Navigation,
+  Phone,
+  Plus,
+  TestTube2,
+  UserRound,
+  UsersRound
+} from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
-import { listMyOrders } from "@/api/orders";
-import { Button } from "@/components/ui/button";
+import { PatientDashboardShell } from "@/components/app/patient-dashboard-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+
+const stats = [
+  { icon: ClipboardList, label: "Total Bookings", value: "24", tone: "bg-blue-50 text-blue-600" },
+  { icon: Clock3, label: "Pending Tests", value: "03", tone: "bg-amber-50 text-amber-600" },
+  { icon: CheckCircle2, label: "Completed Tests", value: "18", tone: "bg-emerald-50 text-emerald-600" }
+];
+
+const activeBooking = {
+  id: "LC-2048",
+  testName: "Complete Blood Count",
+  bookingDate: "04 Jun 2026",
+  collectionDateTime: "04 Jun 2026, 10:30 AM",
+  status: "Assigned"
+};
 
 export default function PatientDashboardPage() {
   const { data: session } = useSession();
-
-  const ordersQuery = useQuery({
-    queryKey: ["orders", "mine"],
-    queryFn: () => listMyOrders()
-  });
-
-  const orders = ordersQuery.data?.data || [];
+  const patientName = session?.user?.name || "Aarav Sharma";
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-      <div className="space-y-8">
-        {/* Welcome Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-100 p-6 rounded-3xl shadow-sm">
+    <PatientDashboardShell>
+      <section className="dashboard-card-soft border-blue-100 p-5 sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-              Hello, {session?.user?.name || "Patient"}
-            </h1>
-            <p className="text-xs text-slate-400 mt-1">Manage your home blood test orders and download medical reports</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">Patient Home</p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+              Welcome Back, {patientName}
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">Manage your test bookings and sample collections</p>
           </div>
-          <div className="flex gap-2">
-            <Link href="/dashboard/reports">
-              <Button className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold" variant="outline">
-                <FileText className="h-4 w-4 mr-1.5" /> Download Reports
-              </Button>
-            </Link>
-            <Link href="/tests">
-              <Button className="rounded-xl bg-primary text-white hover:bg-primary/95 text-xs font-semibold shadow-sm shadow-primary/10">
-                Book New Test
-              </Button>
-            </Link>
-          </div>
+          <Link className={buttonVariants({ className: "h-11 rounded-xl bg-blue-600 px-5 text-white hover:bg-blue-700" })} href="/dashboard/book-test">
+            <Plus className="mr-2 h-4 w-4" />
+            Book New Test
+          </Link>
         </div>
+      </section>
 
-        {/* Orders Listing */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-1.5">
-            <Activity className="h-5 w-5 text-primary" /> Active & Past Bookings
-          </h2>
+      <section className="grid gap-4 md:grid-cols-3">
+        {stats.map((stat) => (
+          <Card className="dashboard-card group" key={stat.label}>
+            <CardContent className="flex items-center justify-between p-5">
+              <div>
+                <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+                <p className="mt-2 text-3xl font-bold text-slate-950">{stat.value}</p>
+              </div>
+              <div className={`flex h-12 w-12 items-center justify-center rounded-xl transition group-hover:scale-105 ${stat.tone}`}>
+                <stat.icon className="h-6 w-6" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
 
-          {ordersQuery.isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <Skeleton className="h-32 rounded-3xl" key={index} />
-              ))}
+      <section className="grid gap-3 sm:grid-cols-3">
+        <Link className={buttonVariants({ className: "h-12 rounded-xl bg-blue-600 text-white hover:bg-blue-700" })} href="/dashboard/book-test">
+          <TestTube2 className="mr-2 h-4 w-4" />
+          Book New Test
+        </Link>
+        <Link className={buttonVariants({ className: "h-12 rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700", variant: "outline" })} href="/dashboard/my-bookings">
+          <ClipboardList className="mr-2 h-4 w-4" />
+          View My Bookings
+        </Link>
+        <Link className={buttonVariants({ className: "h-12 rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-700", variant: "outline" })} href="/dashboard/track-collection">
+          <Navigation className="mr-2 h-4 w-4" />
+          Track Collection
+        </Link>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
+        <Card className="dashboard-card-soft overflow-hidden">
+          <CardHeader className="flex-row items-center justify-between space-y-0 p-5">
+            <CardTitle className="text-lg">Active Booking</CardTitle>
+            <Badge className="border-indigo-200 bg-indigo-50 text-indigo-700">{activeBooking.status}</Badge>
+          </CardHeader>
+          <CardContent className="space-y-5 p-5 pt-0">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Booking ID</p>
+                <p className="mt-1 font-bold text-slate-950">#{activeBooking.id}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Test Name</p>
+                <p className="mt-1 font-bold text-slate-950">{activeBooking.testName}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Booking Date</p>
+                <p className="mt-1 font-bold text-slate-950">{activeBooking.bookingDate}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Collection Date & Time</p>
+                <p className="mt-1 font-bold text-slate-950">{activeBooking.collectionDateTime}</p>
+              </div>
             </div>
-          ) : orders.length === 0 ? (
-            <div className="text-center py-20 bg-white border border-slate-100 rounded-3xl">
-              <FlaskConical className="h-12 w-12 text-slate-300 mx-auto" />
-              <h3 className="font-bold text-slate-700 mt-4">No Bookings Found</h3>
-              <p className="text-xs text-slate-400 mt-1">You haven't booked any diagnostics yet.</p>
-              <Link href="/tests">
-                <Button className="mt-6 rounded-xl bg-primary text-white">Find Blood Tests</Button>
-              </Link>
+            <Link className={buttonVariants({ className: "h-11 rounded-xl border-slate-200 text-slate-700", variant: "outline" })} href="/dashboard/my-bookings">
+              View Details
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="dashboard-card-soft">
+          <CardHeader className="p-5">
+            <CardTitle className="text-lg">Track Collection</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5 p-5 pt-0">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-blue-100 text-xl font-bold text-blue-700">RM</div>
+              <div>
+                <p className="font-bold text-slate-950">Rahul Mehra</p>
+                <p className="text-sm text-slate-500">Collection Executive</p>
+                <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-blue-700">
+                  <Phone className="h-4 w-4" />
+                  +91 98765 43210
+                </p>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {orders.map((order) => {
-                const meta = order.items as any;
-                const statusColor = order.paymentStatus === "paid" ? "text-emerald-600 bg-emerald-50" : "text-amber-600 bg-amber-50";
-
-                return (
-                  <div
-                    className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-                    key={order.id}
-                  >
-                    <div className="space-y-3 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight">
-                          Order Reference: #{order.id.slice(0, 8)}
-                        </span>
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${statusColor}`}>
-                          {order.paymentStatus === "paid" ? "Paid" : "Pending Payment"}
-                        </span>
-                        {order.appointment && (
-                          <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-2.5 py-0.5 rounded-full">
-                            Appointment: {order.appointment.status}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-slate-700 font-bold text-sm">
-                        {meta.testTypes?.join(", ") || "Health Checkup"}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1.5 text-xs text-slate-500">
-                        <div className="flex items-center gap-1.5">
-                          <User className="h-3.5 w-3.5 text-slate-400" />
-                          <span>Patient: {meta.patientName} ({meta.patientAge}y, {meta.patientGender})</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                          <span>Slot: {meta.slot}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 col-span-1 sm:col-span-2 md:col-span-1">
-                          <MapPin className="h-3.5 w-3.5 text-slate-400" />
-                          <span className="line-clamp-1">Address: {meta.address}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-6 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100">
-                      <div>
-                        <p className="text-[10px] text-slate-400">Total Price</p>
-                        <p className="text-lg font-black text-slate-800">₹{order.totalAmount}</p>
-                      </div>
-                      <Link href={`/dashboard/order/${order.id}`}>
-                        <Button className="rounded-xl flex items-center gap-1 hover:bg-slate-50 text-xs font-semibold border-slate-200 text-slate-600" variant="outline">
-                          Track Status <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Estimated Arrival</p>
+                <p className="mt-1 font-bold text-slate-950">10:30 AM</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Status</p>
+                <p className="mt-1 font-bold text-emerald-600">On the way</p>
+              </div>
             </div>
-          )}
-        </div>
-      </div>
-    </div>
+            <p className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm font-medium text-slate-700">
+              <MapPin className="h-5 w-5 text-blue-600" />
+              Collector is near your saved address.
+            </p>
+            <Link className={buttonVariants({ className: "h-11 w-full rounded-xl bg-blue-600 text-white hover:bg-blue-700" })} href="/dashboard/track-collection">
+              <Navigation className="mr-2 h-4 w-4" />
+              Track Collection
+            </Link>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card className="dashboard-card-soft">
+          <CardHeader className="p-5">
+            <CardTitle className="text-lg">Family Members Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 p-5 pt-0 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="dashboard-icon h-12 w-12">
+                <UsersRound className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Total Family Members</p>
+                <p className="text-2xl font-bold text-slate-950">03</p>
+              </div>
+            </div>
+            <Button className="h-11 rounded-xl bg-blue-600 text-white hover:bg-blue-700">
+              <UserRound className="mr-2 h-4 w-4" />
+              Add New Member
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="dashboard-card-soft">
+          <CardHeader className="p-5">
+            <CardTitle className="text-lg">Support</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 p-5 pt-0 sm:grid-cols-3">
+            <Button className="h-11 rounded-xl border-slate-200 text-slate-700" variant="outline">
+              <Headphones className="mr-2 h-4 w-4" />
+              Ticket
+            </Button>
+            <Button className="h-11 rounded-xl border-slate-200 text-slate-700" variant="outline">
+              <MessageCircle className="mr-2 h-4 w-4" />
+              WhatsApp
+            </Button>
+            <Button className="h-11 rounded-xl border-slate-200 text-slate-700" variant="outline">
+              <Phone className="mr-2 h-4 w-4" />
+              Call
+            </Button>
+          </CardContent>
+        </Card>
+      </section>
+    </PatientDashboardShell>
   );
 }
