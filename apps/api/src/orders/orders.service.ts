@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import * as crypto from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { CartService } from "../cart/cart.service";
+import { AutoAssignService } from "../appointments/auto-assign.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { VerifyPaymentDto } from "./dto/verify-payment.dto";
 
@@ -9,7 +10,8 @@ import { VerifyPaymentDto } from "./dto/verify-payment.dto";
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cartService: CartService
+    private readonly cartService: CartService,
+    private readonly autoAssignService: AutoAssignService
   ) {}
 
   async create(patientId: string, dto: CreateOrderDto) {
@@ -85,14 +87,19 @@ export class OrdersService {
       const defaultAdmin = await this.prisma.user.findFirst({ where: { role: "admin" } });
       if (!defaultAdmin) throw new BadRequestException("No admin user found");
 
+      // Auto-assign employee
+      const slotDate = orderMetadata.slot?.slice(0, 10) ?? "";
+      const assignedEmployeeId = await this.autoAssignService.findAvailableEmployee(slotDate, orderMetadata.slot ?? "");
+
       const appointment = await this.prisma.appointment.create({
         data: {
           patientId,
           adminId: defaultAdmin.id,
+          employeeId: assignedEmployeeId,
           address: orderMetadata.address,
           slot: orderMetadata.slot,
           testTypes: orderMetadata.testTypes || [],
-          status: "pending",
+          status: assignedEmployeeId ? "assigned" : "pending",
           notes: `Pay on Collection Order: ${order.id}. Patient: ${orderMetadata.patientName}, Age: ${orderMetadata.patientAge}, Gender: ${orderMetadata.patientGender}`
         }
       });
@@ -214,15 +221,20 @@ export class OrdersService {
 
     const metadata = order.items as any;
 
+    // Auto-assign employee
+    const slotDate = metadata.slot?.slice(0, 10) ?? "";
+    const assignedEmployeeId = await this.autoAssignService.findAvailableEmployee(slotDate, metadata.slot ?? "");
+
     // Create Appointment
     const appointment = await this.prisma.appointment.create({
       data: {
         patientId: order.patientId,
         adminId: defaultAdmin.id,
+        employeeId: assignedEmployeeId,
         address: metadata.address,
         slot: metadata.slot,
         testTypes: metadata.testTypes || [],
-        status: "pending",
+        status: assignedEmployeeId ? "assigned" : "pending",
         notes: `Website Order: ${order.id}. Patient: ${metadata.patientName}, Age: ${metadata.patientAge}, Gender: ${metadata.patientGender}`
       }
     });

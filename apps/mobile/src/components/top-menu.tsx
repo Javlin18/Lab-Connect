@@ -55,9 +55,9 @@ export function TopMenu({ items, tintColor = "#111827" }: TopMenuProps) {
       </Pressable>
 
       <Modal transparent visible={open} animationType="none" onRequestClose={hide}>
-        <View className="flex-1 flex-row bg-black/30">
+        <View className="flex-1 flex-row" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
           <Animated.View
-            className="h-full bg-white px-3 pt-16 shadow-lg"
+            className="h-full bg-white px-3 pt-16"
             style={{
               width: panelWidth,
               transform: [{ translateX: slide }],

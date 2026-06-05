@@ -4,6 +4,7 @@ import * as Linking from "expo-linking";
 import { Text } from "react-native";
 
 import { getReport } from "@/api/reports";
+import { resolveAssetUrl } from "@/lib/env";
 
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -35,7 +36,7 @@ export default function PatientReportDetailScreen() {
       <Card className="gap-3">
         <Text className="text-base font-semibold text-ink">PDF ready</Text>
         <Text className="text-sm text-slate-500">{payload.report.uploadedAt}</Text>
-        <Button onPress={() => Linking.openURL(payload.downloadUrl)}>Open PDF</Button>
+        <Button onPress={() => Linking.openURL(resolveAssetUrl(payload.downloadUrl))}>Open PDF</Button>
       </Card>
     </Screen>
   );

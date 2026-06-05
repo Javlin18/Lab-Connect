@@ -27,7 +27,7 @@ export function CollectionChecklist({ tests, onAllChecked }: CollectionChecklist
           <TouchableOpacity
             className={`flex-row items-center justify-between p-3.5 rounded-xl border ${
               isChecked
-                ? "bg-emerald-50/50 border-emerald-300"
+                ? "bg-emerald-50 border-emerald-300"
                 : "bg-slate-50 border-slate-100"
             }`}
             key={test}

@@ -7,10 +7,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
 
 import { getAppointment } from "@/api/appointments";
 import { useAuthStore } from "@/store/auth-store";
@@ -19,7 +18,7 @@ import { Screen } from "@/components/screen";
 
 export default function UploadReportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+
   const token = useAuthStore((s) => s.token);
 
   const [file, setFile] = useState<{
@@ -60,20 +59,23 @@ export default function UploadReportScreen() {
     setUploading(true);
     setProgress(20);
     try {
-      const uploadResult = await FileSystem.uploadAsync(
-        `${API_URL}/reports/${id}/upload`,
-        file.uri,
-        {
-          httpMethod: "POST",
-          uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-          fieldName: "file",
-          mimeType: "application/pdf",
-          headers: { Authorization: `Bearer ${token ?? ""}` },
-        }
-      );
+      const formData = new FormData();
+      formData.append("file", {
+        uri: file.uri,
+        name: file.name,
+        type: "application/pdf",
+      } as any);
+
+      setProgress(50);
+      const response = await fetch(`${API_URL}/reports/${id}/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token ?? ""}` },
+        body: formData,
+      });
+
       setProgress(100);
-      const json = JSON.parse(uploadResult.body);
-      if (uploadResult.status >= 400 || !json?.success) {
+      const json = await response.json();
+      if (!response.ok || !json?.success) {
         throw new Error(json?.message ?? "Upload failed");
       }
       setDone(true);
@@ -95,7 +97,7 @@ export default function UploadReportScreen() {
           <Text className="text-xs text-slate-400 mt-1 text-center">Patient has been notified</Text>
           <TouchableOpacity
             className="w-full bg-emerald-800 rounded-2xl py-4 items-center mt-8"
-            onPress={() => router.replace("/(employee)")}
+            onPress={() => router.replace("/(employee)" as never)}
           >
             <Text className="text-white font-black text-sm">Back to Tasks</Text>
           </TouchableOpacity>
@@ -174,8 +176,9 @@ export default function UploadReportScreen() {
 
         <TouchableOpacity
           className={`w-full rounded-2xl py-4 items-center justify-center mb-8 ${
-            file && !uploading ? "bg-emerald-800 shadow-lg" : "bg-slate-200"
+            file && !uploading ? "bg-emerald-800" : "bg-slate-200"
           }`}
+          style={file && !uploading ? { shadowColor: '#065f46', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 } : undefined}
           disabled={!file || uploading}
           onPress={uploadReport}
         >

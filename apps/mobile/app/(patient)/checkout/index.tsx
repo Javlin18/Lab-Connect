@@ -1,9 +1,8 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
 import {
   Alert,
-  FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
@@ -52,10 +51,17 @@ function Drum({
   onSelect: (v: number) => void;
   label: (v: number) => string;
 }) {
-  const ref = useRef<FlatList>(null);
+  const ref = useRef<ScrollView>(null);
   const VISIBLE = 5;
   const PAD = Math.floor(VISIBLE / 2);
   const padded = [...Array(PAD).fill(-1), ...items, ...Array(PAD).fill(-1)];
+
+  useEffect(() => {
+    const idx = items.indexOf(selected);
+    if (idx >= 0) {
+      ref.current?.scrollTo({ y: ITEM_H * idx, animated: false });
+    }
+  }, []);
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
@@ -80,22 +86,17 @@ function Drum({
           borderColor: "#0F6E5640",
         }}
       />
-      <FlatList
+      <ScrollView
         ref={ref}
-        data={padded}
-        keyExtractor={(_, i) => String(i)}
+        nestedScrollEnabled
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_H}
         decelerationRate="fast"
         onMomentumScrollEnd={onMomentumEnd}
-        initialScrollIndex={items.indexOf(selected)}
-        getItemLayout={(_, index) => ({
-          length: ITEM_H,
-          offset: ITEM_H * index,
-          index,
-        })}
-        renderItem={({ item }) => (
+      >
+        {padded.map((item, i) => (
           <View
+            key={i}
             style={{
               height: ITEM_H,
               alignItems: "center",
@@ -114,8 +115,8 @@ function Drum({
               </Text>
             ) : null}
           </View>
-        )}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
 }

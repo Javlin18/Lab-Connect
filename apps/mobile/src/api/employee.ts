@@ -7,55 +7,54 @@ export async function getAssignedAppointments() {
 
 export async function acceptAppointment(id: string) {
   return apiFetch<Appointment>(`/appointments/${id}/accept`, {
-    method: "PUT",
+    method: "PUT"
   });
 }
 
 export async function updateStatus(
   id: string,
   status: "en_route" | "collected",
-  data?: {
-    sampleId?: string;
-    collectionNotes?: string;
-    collectedAt?: string;
-  }
+  data?: { sampleId?: string; collectionNotes?: string; collectedAt?: string }
 ) {
   return apiFetch<Appointment>(`/appointments/${id}/status`, {
     method: "PUT",
-    body: { status, ...data },
+    body: { status, ...data }
   });
 }
 
 export async function updateLocation(lat: number, lng: number) {
-  return apiFetch<{ updated: boolean }>("/employees/me/location", {
+  return apiFetch<any>("/employees/me/location", {
     method: "PUT",
-    body: { latitude: lat, longitude: lng, isAvailable: true },
+    body: { latitude: lat, longitude: lng, isAvailable: true }
   });
 }
 
 export async function registerFCMToken(token: string) {
-  return apiFetch<{ saved: boolean }>("/employees/fcm-token", {
+  return apiFetch<any>("/employees/fcm-token", {
     method: "POST",
-    body: { token },
+    body: { token }
   });
 }
 
-export async function getHistory(period: "today" | "week" | "month") {
-  return apiFetch<Appointment[]>(
-    `/appointments/assigned?status=collected&period=${period}`
-  );
+export async function getHistory(period: string) {
+  // Mock filter based on status === collected
+  const res = await getAssignedAppointments();
+  return {
+    ...res,
+    data: res.data.filter((app) => app.status === "completed" || (app.status as string) === "collected")
+  };
 }
 
 export async function sendOTP(phone: string) {
-  return apiFetch<{ phone: string }>("/auth/send-otp", {
+  return apiFetch<any>("/auth/send-otp", {
     method: "POST",
-    body: { phone },
+    body: { phone }
   });
 }
 
 export async function verifyOTP(phone: string, otp: string) {
-  return apiFetch<{ verified: boolean }>("/auth/verify-otp", {
+  return apiFetch<any>("/auth/verify-otp", {
     method: "POST",
-    body: { phone, otp },
+    body: { phone, otp }
   });
 }

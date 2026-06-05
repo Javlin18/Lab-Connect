@@ -3,8 +3,9 @@ import "reflect-metadata";
 import { config } from "dotenv";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 config({
   path: resolve(process.cwd(), "../../.env")
@@ -13,8 +14,9 @@ config({
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  app.useStaticAssets(join(process.cwd(), "uploads"), { prefix: "/uploads/" });
   app.enableCors();
   app.setGlobalPrefix("api");
   app.useGlobalPipes(
