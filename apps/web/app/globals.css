@@ -10,7 +10,7 @@
     --card-foreground: 222.2 47.4% 11.2%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47.4% 11.2%;
-    --primary: 350 73% 44%;
+    --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -80,5 +80,27 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  .dashboard-card {
+    @apply rounded-xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/70 transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg hover:shadow-slate-200/80;
+  }
+
+  .dashboard-card-soft {
+    @apply rounded-xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/70;
+  }
+
+  .dashboard-card-accent {
+    @apply relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/70 transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg hover:shadow-slate-200/80;
+  }
+
+  .dashboard-card-accent::before {
+    @apply absolute inset-x-0 top-0 h-1 bg-blue-600 content-[''];
+  }
+
+  .dashboard-icon {
+    @apply flex items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 shadow-inner shadow-white;
   }
 }
