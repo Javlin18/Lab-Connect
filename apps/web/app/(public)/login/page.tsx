@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { Loader2, Lock, Mail, Smartphone, User, UserPlus } from "lucide-react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -19,7 +19,11 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  const [isAdmin, setIsAdmin] = useState(searchParams.get("admin") === "true");
+  const [loginRole, setLoginRole] = useState<"patient" | "admin" | "employee">(
+    searchParams.get("admin") === "true" ? "admin" : "patient"
+  );
+  const isAdmin = loginRole === "admin";
+  const isEmployee = loginRole === "employee";
 
   // Form Fields
   const [email, setEmail] = useState("");
@@ -91,16 +95,17 @@ export default function LoginPage() {
       description: "Session initialized successfully."
     });
 
-    // Check role from session by forcing router reload / push
     router.refresh();
-    setTimeout(() => {
-      // Direct redirect check or default push
-      if (isAdmin) {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/dashboard");
-      }
-    }, 500);
+    const session = await getSession();
+
+    if (session?.user?.role === "admin") {
+      router.push("/admin/dashboard");
+    } else if (session?.user?.role === "employee") {
+      router.push("/employee/dashboard");
+    } else {
+      // Patient stays on homepage — sidebar menu opens from header
+      router.push("/");
+    }
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
@@ -121,15 +126,19 @@ export default function LoginPage() {
       <Card className="w-full max-w-md border-slate-100 shadow-xl shadow-slate-200/50 rounded-3xl bg-white">
         <CardHeader className="text-center pb-2">
           <CardTitle className="text-2xl font-black text-slate-800">
-            {isAdmin ? "Admin Console" : "Patient Portal"}
+            {isAdmin ? "Admin Console" : isEmployee ? "Employee Portal" : "Patient Portal"}
           </CardTitle>
           <CardDescription>
-            {isAdmin ? "Access laboratory admin commands" : "Book home tests and download certified reports"}
+            {isAdmin
+              ? "Access laboratory admin commands"
+              : isEmployee
+                ? "View assigned patient bookings and collection details"
+                : "Book home tests and download certified reports"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Tabs selector */}
-          {!isAdmin && (
+          {!isAdmin && !isEmployee && (
             <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-50 border border-slate-100">
               <button
                 className={`py-2 text-xs font-bold rounded-xl transition ${
@@ -164,7 +173,7 @@ export default function LoginPage() {
                     className="pl-9 rounded-xl"
                     id="email"
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={isAdmin ? "admin@labapp.com" : "patient@example.com"}
+                    placeholder={isAdmin ? "admin@labapp.com" : isEmployee ? "employee@example.com" : "patient@example.com"}
                     required
                     type="email"
                     value={email}
@@ -270,13 +279,26 @@ export default function LoginPage() {
           )}
 
           {/* Toggle admin login */}
-          <div className="text-center pt-2 border-t border-slate-100">
+          <div className="grid gap-2 text-center pt-2 border-t border-slate-100">
             <button
               className="text-xs text-slate-400 hover:text-primary transition font-semibold"
-              onClick={() => setIsAdmin(!isAdmin)}
+              onClick={() => {
+                setLoginRole(isAdmin ? "patient" : "admin");
+                setActiveTab("login");
+              }}
               type="button"
             >
               {isAdmin ? "Switch to Patient Login" : "Are you an Admin? Enter Admin console"}
+            </button>
+            <button
+              className="text-xs text-slate-400 hover:text-primary transition font-semibold"
+              onClick={() => {
+                setLoginRole(isEmployee ? "patient" : "employee");
+                setActiveTab("login");
+              }}
+              type="button"
+            >
+              {isEmployee ? "Switch to Patient Login" : "Employee Login"}
             </button>
           </div>
         </CardContent>

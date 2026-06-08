@@ -1,130 +1,226 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, CheckCircle2, Clock3, FlaskConical, Plus, type LucideIcon } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  FlaskConical,
+  IndianRupee,
+  TrendingUp,
+  Users,
+  Zap
+} from "lucide-react";
 import Link from "next/link";
 
 import { listAppointments } from "@/api/appointments";
-import { PageHeader } from "@/components/app/page-header";
+import { listAllOrders } from "@/api/orders";
+import { listUsers } from "@/api/users";
 import { StatusBadge } from "@/components/app/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-function StatCard({
-  icon: Icon,
-  label,
-  value
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-}) {
-  return (
-    <Card className="border-slate-200">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-        <Icon className="h-4 w-4 text-slate-500" />
-      </CardHeader>
-      <CardContent>
-        <p className="text-3xl font-semibold">{value}</p>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function DashboardPage() {
-  const appointmentsQuery = useQuery({
-    queryKey: ["appointments", "dashboard"],
-    queryFn: () => listAppointments()
-  });
+  const appointmentsQ = useQuery({ queryKey: ["appointments", "dashboard"], queryFn: () => listAppointments() });
+  const ordersQ        = useQuery({ queryKey: ["admin-orders"],              queryFn: listAllOrders });
+  const patientsQ      = useQuery({ queryKey: ["users", "patients"],         queryFn: () => listUsers("patient") });
+  const employeesQ     = useQuery({ queryKey: ["users", "employees"],        queryFn: () => listUsers("employee") });
 
-  const appointments = appointmentsQuery.data?.data ?? [];
-  const recentAppointments = [...appointments].slice(0, 10);
-  const pendingAppointments = appointments.filter((item) => item.status === "pending");
-  const assignedAppointments = appointments.filter((item) => item.status === "assigned");
-  const completedAppointments = appointments.filter((item) => item.status === "completed");
+  const appointments = appointmentsQ.data?.data ?? [];
+  const orders       = ordersQ.data?.data ?? [];
+  const patients     = patientsQ.data?.data ?? [];
+  const employees    = employeesQ.data?.data ?? [];
+
+  const pending    = appointments.filter((a) => a.status === "pending").length;
+  const assigned   = appointments.filter((a) => a.status === "assigned").length;
+  const processing = appointments.filter((a) => a.status === "processing").length;
+  const completed  = appointments.filter((a) => a.status === "completed").length;
+  const revenue    = orders.filter((o) => o.paymentStatus === "paid").reduce((s, o) => s + o.totalAmount, 0);
+
+  const stats = [
+    { label: "Total Appointments", value: appointments.length, icon: CalendarDays,  color: "bg-blue-50 text-blue-600",    trend: "All time" },
+    { label: "Pending",            value: pending,             icon: Clock3,         color: "bg-amber-50 text-amber-600",  trend: "Need action" },
+    { label: "Assigned",           value: assigned,            icon: Zap,            color: "bg-indigo-50 text-indigo-600",trend: "In progress" },
+    { label: "Completed",          value: completed,           icon: CheckCircle2,   color: "bg-emerald-50 text-emerald-600", trend: "Done" },
+    { label: "Revenue",            value: `₹${revenue.toLocaleString("en-IN")}`, icon: IndianRupee, color: "bg-green-50 text-green-600", trend: "Paid orders" },
+    { label: "Patients",           value: patients.length,     icon: Users,          color: "bg-purple-50 text-purple-600",trend: "Registered" },
+    { label: "Employees",          value: employees.length,    icon: Activity,       color: "bg-rose-50 text-rose-600",   trend: "Active staff" },
+    { label: "Processing",         value: processing,          icon: FlaskConical,   color: "bg-cyan-50 text-cyan-600",   trend: "At lab" },
+  ];
+
+  const recent = [...appointments].reverse().slice(0, 8);
+
+  // Status distribution for mini chart
+  const statusDist = [
+    { label: "Pending",    count: pending,    color: "bg-amber-400",   w: (pending / (appointments.length || 1)) * 100 },
+    { label: "Assigned",   count: assigned,   color: "bg-indigo-500",  w: (assigned / (appointments.length || 1)) * 100 },
+    { label: "Processing", count: processing, color: "bg-cyan-500",    w: (processing / (appointments.length || 1)) * 100 },
+    { label: "Completed",  count: completed,  color: "bg-emerald-500", w: (completed / (appointments.length || 1)) * 100 },
+  ];
+
+  const loading = appointmentsQ.isLoading || ordersQ.isLoading;
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        action={
-          <Link className={buttonVariants({ className: "gap-2" })} href="/appointments/new">
-            <Plus className="h-4 w-4" />
-            New Appointment
-          </Link>
-        }
-        description="Quick cave view of today and fresh activity."
-        title="Dashboard"
-      />
+      {/* Page title */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-black text-slate-900">Dashboard</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Lab Connect — Admin Overview</p>
+        </div>
+        <Link
+          className={buttonVariants({ className: "h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 gap-1.5" })}
+          href="/admin/appointments/new"
+        >
+          + New Appointment
+        </Link>
+      </div>
 
-      {appointmentsQuery.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton className="h-32" key={index} />
-          ))}
+      {/* Stats grid */}
+      {loading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => <Skeleton className="h-28 rounded-2xl" key={i} />)}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard icon={CalendarDays} label="Total Appointments" value={appointments.length} />
-          <StatCard
-            icon={Clock3}
-            label="Pending Appointments"
-            value={pendingAppointments.length}
-          />
-          <StatCard
-            icon={FlaskConical}
-            label="Assigned Appointments"
-            value={assignedAppointments.length}
-          />
-          <StatCard
-            icon={CheckCircle2}
-            label="Completed Appointments"
-            value={completedAppointments.length}
-          />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((s) => (
+            <Card className="rounded-2xl border-slate-200 shadow-sm hover:shadow-md transition" key={s.label}>
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500 font-medium">{s.label}</p>
+                    <p className="text-2xl font-black text-slate-900 mt-1">{s.value}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{s.trend}</p>
+                  </div>
+                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${s.color}`}>
+                    <s.icon className="h-5 w-5" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Appointments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {appointmentsQuery.isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <Skeleton className="h-10" key={index} />
+      {/* Status distribution bar */}
+      {!loading && appointments.length > 0 && (
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
+          <CardHeader className="px-5 py-4 border-b border-slate-50">
+            <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-blue-500" /> Appointment Status Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-5">
+            <div className="flex h-3 rounded-full overflow-hidden gap-0.5">
+              {statusDist.map((s) => (
+                s.count > 0 ? (
+                  <div
+                    className={`${s.color} rounded-full transition-all`}
+                    key={s.label}
+                    style={{ width: `${s.w}%` }}
+                    title={`${s.label}: ${s.count}`}
+                  />
+                ) : null
               ))}
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Tests</TableHead>
-                    <TableHead>Slot</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentAppointments.map((appointment) => (
-                    <TableRow key={appointment.id}>
-                      <TableCell className="font-medium">{appointment.id.slice(0, 8)}</TableCell>
-                      <TableCell>{appointment.testTypes.join(", ")}</TableCell>
-                      <TableCell>{appointment.slot}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={appointment.status} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="flex flex-wrap gap-4 mt-4">
+              {statusDist.map((s) => (
+                <div className="flex items-center gap-1.5" key={s.label}>
+                  <div className={`h-2.5 w-2.5 rounded-full ${s.color}`} />
+                  <span className="text-xs text-slate-600 font-medium">{s.label}</span>
+                  <span className="text-xs text-slate-400 font-bold">({s.count})</span>
+                </div>
+              ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent activity + Quick links */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent appointments */}
+        <div className="lg:col-span-2">
+          <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden">
+            <CardHeader className="px-5 py-4 border-b border-slate-50 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-bold text-slate-800">Recent Appointments</CardTitle>
+              <Link className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1" href="/admin/appointments">
+                View all <ArrowRight className="h-3 w-3" />
+              </Link>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="space-y-3 p-5">
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton className="h-10" key={i} />)}
+                </div>
+              ) : recent.length === 0 ? (
+                <div className="flex items-center justify-center py-12 text-sm text-slate-400">
+                  No appointments yet
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-50">
+                  {recent.map((a) => (
+                    <div className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition" key={a.id}>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 font-mono">{a.id.slice(0, 10)}…</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{a.testTypes.slice(0, 2).join(", ")}{a.testTypes.length > 2 ? "…" : ""}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="text-[10px] text-slate-400 hidden sm:block">{a.slot?.split(" ")[0]}</p>
+                        <StatusBadge status={a.status} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick actions */}
+        <div className="space-y-4">
+          <Card className="rounded-2xl border-slate-200 shadow-sm">
+            <CardHeader className="px-5 py-4 border-b border-slate-50">
+              <CardTitle className="text-sm font-bold text-slate-800">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-2">
+              {[
+                { label: "New Appointment",  href: "/admin/appointments/new", color: "bg-blue-600 hover:bg-blue-700 text-white" },
+                { label: "Manage Employees", href: "/admin/employees",        color: "bg-slate-800 hover:bg-slate-900 text-white" },
+                { label: "Upload Report",    href: "/admin/reports",          color: "bg-emerald-600 hover:bg-emerald-700 text-white" },
+                { label: "View Orders",      href: "/admin/orders",           color: "bg-purple-600 hover:bg-purple-700 text-white" },
+                { label: "Send Notification",href: "/admin/notifications",    color: "bg-amber-500 hover:bg-amber-600 text-white" },
+              ].map((action) => (
+                <Link
+                  className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-xs font-bold transition ${action.color}`}
+                  href={action.href}
+                  key={action.label}
+                >
+                  {action.label}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Revenue card */}
+          <Card className="rounded-2xl border-slate-200 shadow-sm bg-gradient-to-br from-blue-600 to-blue-700 text-white overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <IndianRupee className="h-4 w-4 text-blue-200" />
+                <p className="text-xs font-semibold text-blue-200">Total Revenue</p>
+              </div>
+              <p className="text-3xl font-black">₹{revenue.toLocaleString("en-IN")}</p>
+              <p className="text-xs text-blue-200 mt-1">{orders.filter((o) => o.paymentStatus === "paid").length} paid orders</p>
+              <Link className="mt-4 flex items-center gap-1 text-xs font-bold text-blue-200 hover:text-white transition" href="/admin/orders">
+                View Orders <ArrowRight className="h-3 w-3" />
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

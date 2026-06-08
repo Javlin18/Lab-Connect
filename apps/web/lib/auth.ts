@@ -61,7 +61,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error(payload.message ?? "Login failed");
         }
 
-        if (payload.data.user.role !== "admin" && payload.data.user.role !== "patient") {
+        if (
+          payload.data.user.role !== "admin" &&
+          payload.data.user.role !== "employee" &&
+          payload.data.user.role !== "patient"
+        ) {
           throw new Error("Unauthorized role");
         }
 

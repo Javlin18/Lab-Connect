@@ -3,19 +3,12 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
-  ChevronDown,
-  ClipboardList,
-  Headphones,
-  Home,
-  LogOut,
   MapPin,
-  Navigation,
+  Menu,
   Phone,
   Search,
   ShoppingCart,
-  TestTube2,
   User,
-  UserRound
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -23,61 +16,47 @@ import { signOut, useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 
 import { getCart } from "@/api/cart";
+import { PatientSidebar } from "@/components/app/patient-sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const patientNavItems = [
-  { icon: Home,          label: "Home",             href: "/dashboard" },
-  { icon: TestTube2,     label: "Book Test",        href: "/dashboard/book-test" },
-  { icon: ClipboardList, label: "My Bookings",      href: "/dashboard/my-bookings" },
-  { icon: Navigation,    label: "Track Collection", href: "/dashboard/track-collection" },
-  { icon: UserRound,     label: "My Profile",       href: "/dashboard/my-profile" },
-  { icon: Headphones,    label: "Support",          href: "/dashboard/support" },
-];
-
 const NAV_LINKS = [
-  { label: "Tests",    href: "/tests" },
-  { label: "Packages", href: "/packages" },
+  { label: "Tests",           href: "/tests" },
+  { label: "Packages",        href: "/packages" },
   { label: "Home Collection", href: "/tests" },
-  { label: "Reports",  href: "/dashboard/my-bookings" },
 ];
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
-  const pathname = usePathname();
-  const router = useRouter();
+  const pathname    = usePathname();
+  const router      = useRouter();
   const searchParams = useSearchParams();
-  const [searchVal, setSearchVal] = useState(searchParams.get("q") || "");
-  const [location, setLocation] = useState("New Delhi");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [searchVal, setSearchVal]     = useState(searchParams.get("q") || "");
+  const [location, setLocation]       = useState("New Delhi");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isPatient = session?.user?.role === "patient";
   const isAdmin   = session?.user?.role === "admin";
 
   const cartQuery = useQuery({
     queryKey: ["cart"],
-    queryFn: () => getCart(),
-    enabled: status === "authenticated",
-    retry: false,
+    queryFn:  () => getCart(),
+    enabled:  status === "authenticated",
+    retry:    false,
   });
 
   const cartItemsCount = cartQuery.data?.data?.items?.length || 0;
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchVal.trim()) router.push(`/tests?q=${encodeURIComponent(searchVal)}`);
   };
+
+  // Initials for avatar
+  const initials = session?.user?.name
+    ? session.user.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()
+    : "P";
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -89,30 +68,28 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <a className="flex items-center gap-1 hover:text-red-200 transition" href="tel:+911800200456">
               <Phone className="h-3 w-3" /> 1800-200-4567
             </a>
-            <span className="text-red-400">|</span>
+            <span className="text-red-400 hidden sm:inline">|</span>
             <span className="hidden sm:inline text-red-200">Mon–Sat: 7 AM – 9 PM</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 text-red-200">
-              <MapPin className="h-3 w-3 text-red-300" />
-              <select
-                className="bg-transparent border-none text-red-100 focus:ring-0 cursor-pointer outline-none text-xs"
-                onChange={(e) => setLocation(e.target.value)}
-                value={location}
-              >
-                <option value="New Delhi">New Delhi</option>
-                <option value="Mumbai">Mumbai</option>
-                <option value="Bengaluru">Bengaluru</option>
-                <option value="Kolkata">Kolkata</option>
-                <option value="Hyderabad">Hyderabad</option>
-              </select>
-            </div>
+          <div className="flex items-center gap-1.5 text-red-200">
+            <MapPin className="h-3 w-3 text-red-300" />
+            <select
+              className="bg-transparent border-none text-red-100 focus:ring-0 cursor-pointer outline-none text-xs"
+              onChange={(e) => setLocation(e.target.value)}
+              value={location}
+            >
+              <option value="New Delhi">New Delhi</option>
+              <option value="Mumbai">Mumbai</option>
+              <option value="Bengaluru">Bengaluru</option>
+              <option value="Kolkata">Kolkata</option>
+              <option value="Hyderabad">Hyderabad</option>
+            </select>
           </div>
         </div>
       </div>
 
       {/* ── MAIN HEADER ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-sm">
+      <header className="sticky top-0 z-30 bg-white border-b border-slate-100 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center gap-4">
 
@@ -134,7 +111,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 <Input
                   className="w-full pl-10 h-10 rounded-xl border-slate-200 bg-slate-50 focus:bg-white text-sm transition"
                   onChange={(e) => setSearchVal(e.target.value)}
-                  placeholder="Search tests, e.g. CBC, Thyroid, Vitamin D..."
+                  placeholder="Search tests, e.g. CBC, Thyroid…"
                   type="search"
                   value={searchVal}
                 />
@@ -143,10 +120,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
             {/* Right actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
+
               {/* Cart */}
               <Link
                 className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition"
                 href="/cart"
+                aria-label="Cart"
               >
                 <ShoppingCart className="h-5 w-5" />
                 {cartItemsCount > 0 && (
@@ -156,122 +135,122 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 )}
               </Link>
 
-              {status === "authenticated" ? (
+              {status === "loading" ? (
+                <div className="h-10 w-10 rounded-xl bg-slate-100 animate-pulse" />
+              ) : status === "authenticated" ? (
                 <>
-                  {/* Admin */}
+                  {/* Admin link */}
                   {isAdmin && (
-                    <div className="flex items-center gap-1.5">
-                      <Link href="/admin/dashboard">
-                        <Button className="rounded-xl h-9 text-xs border-slate-200" variant="outline">
-                          <User className="h-3.5 w-3.5 mr-1" /> Admin
-                        </Button>
-                      </Link>
-                      <Button
-                        className="rounded-xl h-9"
-                        onClick={() => signOut({ callbackUrl: "/" })}
-                        size="icon"
-                        variant="ghost"
-                      >
-                        <LogOut className="h-4 w-4 text-slate-500" />
-                      </Button>
-                    </div>
+                    <Link
+                      className="hidden sm:flex items-center gap-1.5 h-9 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                      href="/admin/dashboard"
+                    >
+                      <User className="h-3.5 w-3.5" /> Admin
+                    </Link>
                   )}
 
-                  {/* Patient dropdown */}
+                  {/* Patient avatar + hamburger */}
                   {isPatient && (
-                    <div className="relative" ref={dropdownRef}>
-                      <button
-                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 h-10 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-red-200 transition"
-                        onClick={() => setDropdownOpen((v) => !v)}
-                        type="button"
-                      >
-                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-600 text-white text-[10px] font-bold">
-                          {session.user.name?.charAt(0).toUpperCase() ?? "P"}
-                        </div>
-                        <span className="hidden sm:inline max-w-[80px] truncate text-xs">{session.user.name}</span>
-                        <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
-                      </button>
+                    <button
+                      aria-label="Open patient menu"
+                      className="flex items-center gap-2 h-10 pl-1 pr-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-red-200 transition shadow-sm"
+                      onClick={() => setSidebarOpen(true)}
+                      type="button"
+                    >
+                      {/* Avatar */}
+                      <div className="h-7 w-7 rounded-lg bg-red-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0">
+                        {initials}
+                      </div>
+                      {/* Name — hidden on very small screens */}
+                      <span className="hidden sm:inline text-xs font-semibold text-slate-700 max-w-[80px] truncate">
+                        {session.user.name}
+                      </span>
+                      {/* Hamburger lines */}
+                      <div className="flex flex-col gap-[3px] ml-1">
+                        <span className="block h-0.5 w-4 bg-slate-400 rounded-full" />
+                        <span className="block h-0.5 w-4 bg-slate-400 rounded-full" />
+                        <span className="block h-0.5 w-3 bg-slate-400 rounded-full" />
+                      </div>
+                    </button>
+                  )}
 
-                      {dropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-slate-100 bg-white shadow-xl py-2 z-50">
-                          <div className="px-4 py-3 border-b border-slate-50">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-600 text-white font-bold text-sm">
-                                {session.user.name?.charAt(0).toUpperCase() ?? "P"}
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-slate-800 truncate">{session.user.name}</p>
-                                <p className="text-xs text-slate-400">Patient</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="py-1">
-                            {patientNavItems.map((item) => {
-                              const active = item.href === "/dashboard"
-                                ? pathname === item.href
-                                : pathname.startsWith(item.href);
-                              return (
-                                <Link
-                                  className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 transition ${active ? "text-red-600 bg-red-50/50" : "text-slate-700"}`}
-                                  href={item.href}
-                                  key={item.href}
-                                  onClick={() => setDropdownOpen(false)}
-                                >
-                                  <item.icon className={`h-4 w-4 ${active ? "text-red-600" : "text-slate-400"}`} />
-                                  {item.label}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                          <div className="border-t border-slate-50 pt-1">
-                            <button
-                              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition"
-                              onClick={() => signOut({ callbackUrl: "/" })}
-                              type="button"
-                            >
-                              <LogOut className="h-4 w-4" /> Logout
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                  {/* Employee link */}
+                  {session?.user?.role === "employee" && (
+                    <Link
+                      className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                      href="/employee/dashboard"
+                    >
+                      <User className="h-3.5 w-3.5" /> My Tasks
+                    </Link>
                   )}
                 </>
               ) : (
-                <Link href="/login">
-                  <Button className="rounded-xl h-9 bg-red-600 hover:bg-red-700 text-white font-bold shadow-sm shadow-red-200 text-xs px-4">
-                    <User className="h-3.5 w-3.5 mr-1.5" /> Login / Register
-                  </Button>
-                </Link>
+                /* Not logged in */
+                <div className="flex items-center gap-2">
+                  <Link
+                    className="hidden sm:flex h-9 px-4 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 items-center hover:bg-slate-50 transition"
+                    href="/login"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    className="flex h-9 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold items-center gap-1.5 shadow-sm shadow-red-200 transition"
+                    href="/login"
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Register / Login</span>
+                    <span className="sm:hidden">Login</span>
+                  </Link>
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* ── NAV LINKS BAR ───────────────────────────────────────────────────── */}
+        {/* ── NAV LINKS BAR ─────────────────────────────────────────────────── */}
         <div className="border-t border-slate-100 bg-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-6 h-10 overflow-x-auto scrollbar-hide">
               {NAV_LINKS.map((link) => {
-                const active = pathname === link.href || pathname.startsWith(link.href + "/");
+                const active = pathname === link.href;
                 return (
                   <Link
+                    key={`${link.label}-${link.href}`}
                     className={`text-xs font-semibold whitespace-nowrap transition border-b-2 h-full flex items-center ${
                       active
                         ? "text-red-600 border-red-600"
                         : "text-slate-600 border-transparent hover:text-red-600 hover:border-red-300"
                     }`}
                     href={link.href}
-                    key={link.label}
                   >
                     {link.label}
                   </Link>
                 );
               })}
+              {/* Show "My Bookings" in nav when logged in as patient */}
+              {isPatient && (
+                <button
+                  className="text-xs font-semibold whitespace-nowrap text-slate-600 border-b-2 border-transparent hover:text-red-600 hover:border-red-300 h-full transition"
+                  onClick={() => setSidebarOpen(true)}
+                  type="button"
+                >
+                  My Account ▾
+                </button>
+              )}
             </div>
           </div>
         </div>
       </header>
+
+      {/* Patient sidebar */}
+      {isPatient && (
+        <PatientSidebar
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          userName={session?.user?.name}
+          userEmail={session?.user?.email}
+        />
+      )}
 
       {/* Main Content */}
       <main className="flex-grow">{children}</main>
@@ -288,7 +267,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 <span className="text-base font-black">Labconnect</span>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                NABL accredited diagnostics. Trusted by 5 Crore+ patients across 500+ cities for accurate, swift lab reports.
+                NABL accredited diagnostics. Trusted by 5 Crore+ patients across 500+ cities.
               </p>
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <Phone className="h-3.5 w-3.5 text-red-400" />

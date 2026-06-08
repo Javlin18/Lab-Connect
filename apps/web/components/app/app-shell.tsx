@@ -1,61 +1,116 @@
 "use client";
 
-import { Boxes, Coins, FlaskConical, LayoutDashboard, Menu, Receipt, Settings, Stethoscope, Users, UserSquare2, X } from "lucide-react";
+import {
+  Bell,
+  Boxes,
+  ChevronDown,
+  Coins,
+  FileText,
+  FlaskConical,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Receipt,
+  Settings,
+  Stethoscope,
+  Users,
+  UserSquare2,
+  X,
+  Activity
+} from "lucide-react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 
 const navItems = [
-  { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/appointments", icon: Stethoscope, label: "Appointments" },
-  { href: "/admin/orders", icon: Receipt, label: "Orders" },
-  { href: "/admin/tests", icon: FlaskConical, label: "Tests" },
-  { href: "/admin/packages", icon: Boxes, label: "Packages" },
-  { href: "/admin/pricing", icon: Coins, label: "Pricing" },
-  { href: "/admin/employees", icon: Users, label: "Employees" },
-  { href: "/admin/patients", icon: UserSquare2, label: "Patients" },
-  { href: "/admin/settings", icon: Settings, label: "Settings" }
+  { href: "/admin/dashboard",    icon: LayoutDashboard, label: "Dashboard",    group: "main" },
+  { href: "/admin/appointments", icon: Stethoscope,     label: "Appointments", group: "main" },
+  { href: "/admin/orders",       icon: Receipt,         label: "Orders",       group: "main" },
+  { href: "/admin/reports",      icon: FileText,        label: "Reports",      group: "main" },
+  { href: "/admin/notifications",icon: Bell,            label: "Notifications",group: "main" },
+  { href: "/admin/tests",        icon: FlaskConical,    label: "Tests",        group: "catalog" },
+  { href: "/admin/packages",     icon: Boxes,           label: "Packages",     group: "catalog" },
+  { href: "/admin/pricing",      icon: Coins,           label: "Pricing",      group: "catalog" },
+  { href: "/admin/employees",    icon: Users,           label: "Employees",    group: "people" },
+  { href: "/admin/patients",     icon: UserSquare2,     label: "Patients",     group: "people" },
+  { href: "/admin/settings",     icon: Settings,        label: "Settings",     group: "system" },
+];
+
+const groups = [
+  { key: "main",    label: "Operations" },
+  { key: "catalog", label: "Catalog" },
+  { key: "people",  label: "People" },
+  { key: "system",  label: "System" },
 ];
 
 function Sidebar({ close }: { close?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-full w-72 flex-col bg-[hsl(var(--sidebar-background))] px-4 py-6 text-[hsl(var(--sidebar-foreground))]">
-      <div className="px-2">
-        <p className="text-xs uppercase tracking-[0.3em] text-[hsl(var(--sidebar-ring))]">Labconnect</p>
-        <h2 className="mt-2 text-2xl font-semibold">Admin Cave</h2>
+    <aside className="flex h-full w-64 flex-col bg-slate-900 text-white overflow-y-auto">
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-800">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-600/30">
+          <Activity className="h-5 w-5 text-white" />
+        </div>
+        <div>
+          <p className="font-black text-sm tracking-tight">Lab Connect</p>
+          <p className="text-[10px] text-slate-400 font-medium">Admin Panel</p>
+        </div>
       </div>
-      <Separator className="my-6 bg-[hsl(var(--sidebar-border))]" />
-      <nav className="space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
+      {/* Nav groups */}
+      <nav className="flex-1 px-3 py-4 space-y-5">
+        {groups.map((group) => {
+          const items = navItems.filter((n) => n.group === group.key);
           return (
-            <Link
-              key={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition",
-                active
-                  ? "bg-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary-foreground))]"
-                  : "text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]"
-              )}
-              href={item.href}
-              onClick={close}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </Link>
+            <div key={group.key}>
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 px-3 mb-2">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {items.map((item) => {
+                  const Icon = item.icon;
+                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  return (
+                    <Link
+                      key={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+                        active
+                          ? "bg-blue-600 text-white shadow-sm shadow-blue-600/30"
+                          : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                      )}
+                      href={item.href}
+                      onClick={close}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>
+
+      {/* Bottom logout */}
+      <div className="px-3 py-4 border-t border-slate-800">
+        <button
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition"
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          type="button"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign Out
+        </button>
+      </div>
     </aside>
   );
 }
@@ -63,17 +118,24 @@ function Sidebar({ close }: { close?: () => void }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
+  const pathname = usePathname();
+
+  // Get current page label
+  const currentItem = navItems.find((n) => pathname === n.href || pathname.startsWith(`${n.href}/`));
 
   return (
-    <div className="min-h-screen bg-slate-100/70">
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex">
+    <div className="min-h-screen bg-slate-50">
+      {/* Desktop sidebar */}
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:z-40">
         <Sidebar />
       </div>
-      {open ? (
+
+      {/* Mobile sidebar overlay */}
+      {open && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <button
             aria-label="Close sidebar"
-            className="absolute inset-0 bg-slate-950/40"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
             onClick={() => setOpen(false)}
             type="button"
           />
@@ -81,40 +143,55 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Sidebar close={() => setOpen(false)} />
           </div>
         </div>
-      ) : null}
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
-          <div className="flex items-center justify-between px-4 py-4 sm:px-6">
+      )}
+
+      {/* Main content */}
+      <div className="lg:pl-64">
+        {/* Top header */}
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between px-4 sm:px-6 h-16">
             <div className="flex items-center gap-3">
-              <Button className="lg:hidden" onClick={() => setOpen(true)} size="icon" type="button" variant="outline">
-                <Menu className="h-4 w-4" />
-              </Button>
-              <div>
-                <p className="text-sm text-muted-foreground">Administrator</p>
-                <p className="font-semibold">{user?.name ?? "Admin"}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
               <Button
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="lg:hidden border-slate-200"
+                onClick={() => setOpen(true)}
+                size="icon"
                 type="button"
                 variant="outline"
               >
-                Logout
+                <Menu className="h-4 w-4" />
               </Button>
-              <Button
-                className="lg:hidden"
-                onClick={() => setOpen(false)}
-                size="icon"
-                type="button"
-                variant="ghost"
+              <div>
+                <p className="text-xs text-slate-400 font-medium">Admin Panel</p>
+                <p className="font-bold text-slate-900 text-sm">{currentItem?.label ?? "Lab Connect"}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Notification bell */}
+              <Link
+                className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 transition"
+                href="/admin/notifications"
               >
-                <X className="h-4 w-4" />
-              </Button>
+                <Bell className="h-4 w-4" />
+              </Link>
+
+              {/* Admin profile chip */}
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white text-xs font-black">
+                  {(user?.name ?? "A").charAt(0).toUpperCase()}
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-xs font-bold text-slate-800 leading-none">{user?.name ?? "Admin"}</p>
+                  <p className="text-[10px] text-slate-400 leading-none mt-0.5">Administrator</p>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5 text-slate-400 hidden sm:block" />
+              </div>
             </div>
           </div>
         </header>
-        <main className="px-4 py-6 sm:px-6">{children}</main>
+
+        {/* Page content */}
+        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
   );
