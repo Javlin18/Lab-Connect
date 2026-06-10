@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Clipboard, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Clipboard,
+  Linking,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
@@ -7,30 +17,164 @@ import MapView, { Marker } from "react-native-maps";
 
 import { getAppointment } from "@/api/appointments";
 import { acceptAppointment, updateStatus } from "@/api/employee";
+import { apiFetch } from "@/api/client";
 import { Screen } from "@/components/screen";
 import { StatusBadge } from "@/components/employee/StatusBadge";
+
+const REASSIGN_REASONS = [
+  "patient_not_home",
+  "wrong_address",
+  "patient_cancelled",
+  "emergency",
+  "vehicle_breakdown",
+  "other",
+] as const;
+
+const REASON_LABELS: Record<string, string> = {
+  patient_not_home: "Patient not home",
+  wrong_address: "Wrong address / Cannot find location",
+  patient_cancelled: "Patient cancelled",
+  emergency: "Personal emergency",
+  vehicle_breakdown: "Vehicle breakdown",
+  other: "Other",
+};
+
+function ReassignModal({
+  visible,
+  onClose,
+  appointmentId,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  appointmentId: string;
+}) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [reason, setReason] = useState<string>("");
+  const [note, setNote] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      apiFetch(`/appointments/${appointmentId}/reassign-request`, {
+        method: "POST",
+        body: { reason, note: note || undefined },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments", "assigned"] });
+      onClose();
+      Alert.alert("Request Sent", "Reassignment request sent to admin.");
+      router.replace("/(employee)");
+    },
+    onError: (err: Error) => Alert.alert("Failed", err.message),
+  });
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View className="flex-1 justify-end bg-black/40">
+        <View className="bg-white rounded-t-3xl p-6">
+          <Text className="text-base font-black text-slate-800 mb-1">
+            Request Reassignment
+          </Text>
+          <Text className="text-xs text-slate-400 mb-5">
+            This will notify admin to assign another collector
+          </Text>
+
+          <Text className="text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">
+            Reason (required)
+          </Text>
+          <View className="gap-2 mb-4">
+            {REASSIGN_REASONS.map((r) => (
+              <TouchableOpacity
+                key={r}
+                onPress={() => setReason(r)}
+                className={`flex-row items-center p-3 rounded-xl border ${
+                  reason === r
+                    ? "bg-red-50 border-red-300"
+                    : "bg-slate-50 border-slate-100"
+                }`}
+              >
+                <View
+                  className={`h-4 w-4 rounded-full border-2 mr-3 ${
+                    reason === r ? "border-red-500 bg-red-500" : "border-slate-300"
+                  }`}
+                />
+                <Text
+                  className={`text-xs font-semibold ${
+                    reason === r ? "text-red-700" : "text-slate-600"
+                  }`}
+                >
+                  {REASON_LABELS[r]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text className="text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">
+            Additional Note (optional)
+          </Text>
+          <TextInput
+            className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 mb-5 min-h-[72px]"
+            multiline
+            maxLength={200}
+            onChangeText={setNote}
+            placeholder="Any details that will help admin..."
+            placeholderTextColor="#94a3b8"
+            textAlignVertical="top"
+            value={note}
+          />
+
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              className="flex-1 bg-slate-100 rounded-2xl py-3.5 items-center"
+              onPress={onClose}
+            >
+              <Text className="font-bold text-slate-600 text-sm">Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className={`flex-1 rounded-2xl py-3.5 items-center ${
+                reason && !mutation.isPending
+                  ? "bg-red-500"
+                  : "bg-slate-200"
+              }`}
+              disabled={!reason || mutation.isPending}
+              onPress={() => mutation.mutate()}
+            >
+              <Text
+                className={`font-black text-sm ${
+                  reason ? "text-white" : "text-slate-400"
+                }`}
+              >
+                {mutation.isPending ? "Sending..." : "Submit Request"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 export default function EmployeeTaskDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [showReassign, setShowReassign] = useState(false);
 
   const [region, setRegion] = useState({
     latitude: 23.2599,
     longitude: 77.4126,
     latitudeDelta: 0.015,
-    longitudeDelta: 0.015
+    longitudeDelta: 0.015,
   });
 
   const query = useQuery({
     enabled: Boolean(id),
     queryKey: ["appointment", id],
-    queryFn: () => getAppointment(id as string)
+    queryFn: () => getAppointment(id as string),
   });
 
   const appointment = query.data?.data;
 
-  // Geocode address
   useEffect(() => {
     if (appointment?.address) {
       void (async () => {
@@ -39,24 +183,21 @@ export default function EmployeeTaskDetailScreen() {
           setRegion((prev) => ({
             ...prev,
             latitude: geocoded[0].latitude,
-            longitude: geocoded[0].longitude
+            longitude: geocoded[0].longitude,
           }));
         }
       })();
     }
   }, [appointment?.address]);
 
-  // Mutations
   const acceptMutation = useMutation({
     mutationFn: () => acceptAppointment(id as string),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointment", id] });
       queryClient.invalidateQueries({ queryKey: ["appointments", "assigned"] });
-      toast("Task Accepted", "You have accepted this task.");
+      Alert.alert("Accepted", "Task accepted successfully.");
     },
-    onError: (err: any) => {
-      toast("Error", err.message);
-    }
+    onError: (err: any) => Alert.alert("Error", err.message),
   });
 
   const enRouteMutation = useMutation({
@@ -65,12 +206,8 @@ export default function EmployeeTaskDetailScreen() {
       queryClient.invalidateQueries({ queryKey: ["appointment", id] });
       queryClient.invalidateQueries({ queryKey: ["appointments", "assigned"] });
       router.push(`/(employee)/task/navigate/${id}`);
-    }
+    },
   });
-
-  const toast = (title: string, msg: string) => {
-    Alert.alert(title, msg);
-  };
 
   if (query.isLoading) {
     return (
@@ -92,72 +229,60 @@ export default function EmployeeTaskDetailScreen() {
     );
   }
 
-  const handleCopyAddress = () => {
-    Clipboard.setString(appointment.address);
-    toast("Copied", "Address copied to clipboard!");
-  };
-
-  const handleCallPatient = () => {
-    const phone = appointment.patient?.phone;
-    if (phone) {
-      Linking.openURL(`tel:${phone}`);
-    } else {
-      toast("Unavailable", "No patient phone number found.");
-    }
-  };
-
   const isAssigned = appointment.status === "assigned";
   const isAccepted = appointment.status === "accepted";
   const isEnRoute = appointment.status === "en_route";
-  const isCollected = appointment.status === "completed" || (appointment.status as string) === "collected";
+  const isCollected =
+    appointment.status === "completed" ||
+    (appointment.status as string) === "collected";
+  const canReassign = isAssigned || isAccepted || isEnRoute;
 
   return (
     <Screen title={`Task #A-${id.slice(0, 8).toUpperCase()}`}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Large Status Badge Banner */}
+        {/* Status Banner */}
         <View className="w-full bg-slate-100 border border-slate-200/50 rounded-2xl p-4 flex-row justify-between items-center mb-6">
           <Text className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Current Booking Status
+            Status
           </Text>
           <StatusBadge status={appointment.status} />
         </View>
 
-        {/* Patient Info Card */}
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm space-y-4">
-          <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+        {/* Patient Info */}
+        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm">
+          <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
             Patient Information
           </Text>
-          <View>
-            <Text className="text-base font-black text-slate-800">
-              {appointment.patient?.name ?? "Patient"}
-            </Text>
-            <Text className="text-xs text-slate-500 mt-1">
-              Age: 32 | Gender: Male
-            </Text>
-          </View>
+          <Text className="text-base font-black text-slate-800">
+            {appointment.patient?.name ?? "Patient"}
+          </Text>
 
-          {/* Action Row */}
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-3 mt-3">
             <TouchableOpacity
               className="flex-1 bg-slate-50 border border-slate-100 rounded-xl p-2.5 items-center flex-row justify-center gap-1.5"
-              onPress={handleCallPatient}
+              onPress={() => {
+                const phone = appointment.patient?.phone;
+                if (phone) Linking.openURL(`tel:${phone}`);
+              }}
             >
               <Text className="text-slate-600 font-bold text-xs">📞 Call Patient</Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-1 bg-slate-50 border border-slate-100 rounded-xl p-2.5 items-center flex-row justify-center gap-1.5"
-              onPress={handleCopyAddress}
+              onPress={() => {
+                Clipboard.setString(appointment.address);
+                Alert.alert("Copied", "Address copied!");
+              }}
             >
               <Text className="text-slate-600 font-bold text-xs">📋 Copy Address</Text>
             </TouchableOpacity>
           </View>
 
-          <Text className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100/50">
+          <Text className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100/50 mt-3">
             📍 {appointment.address}
           </Text>
 
-          {/* Map Preview */}
-          <View className="h-40 w-full overflow-hidden rounded-2xl border border-slate-100">
+          <View className="h-40 w-full overflow-hidden rounded-2xl border border-slate-100 mt-3">
             <MapView
               initialRegion={region}
               region={region}
@@ -167,49 +292,51 @@ export default function EmployeeTaskDetailScreen() {
             >
               <Marker
                 coordinate={{ latitude: region.latitude, longitude: region.longitude }}
-                title={appointment.patient?.name ?? "Patient Location"}
+                title={appointment.patient?.name ?? "Patient"}
               />
             </MapView>
           </View>
         </View>
 
-        {/* Tests Required Card */}
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm space-y-4">
-          <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+        {/* Tests */}
+        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm">
+          <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
             Tests Required
           </Text>
-          <View className="space-y-2">
-            {appointment.testTypes.map((test) => (
-              <View className="flex-row items-center justify-between p-3.5 rounded-xl border bg-slate-50 border-slate-100" key={test}>
-                <Text className="text-xs font-bold text-slate-700">✓ {test}</Text>
-                <Text className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
-                  Blood
-                </Text>
-              </View>
-            ))}
-          </View>
+          {appointment.testTypes.map((test) => (
+            <View
+              className="flex-row items-center justify-between p-3.5 rounded-xl border bg-slate-50 border-slate-100 mb-2"
+              key={test}
+            >
+              <Text className="text-xs font-bold text-slate-700">✓ {test}</Text>
+              <Text className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
+                Blood
+              </Text>
+            </View>
+          ))}
         </View>
 
-        {/* Appointment details */}
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-8 shadow-sm space-y-3">
-          <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+        {/* Visit Details */}
+        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm">
+          <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
             Visit Details
           </Text>
-          <View className="text-xs text-slate-600 space-y-1.5 pt-1">
-            <Text className="font-semibold text-slate-700">
-              Slot: <Text className="font-normal text-slate-500">{appointment.slot}</Text>
+          <Text className="text-xs font-semibold text-slate-700">
+            Slot: <Text className="font-normal text-slate-500">{appointment.slot}</Text>
+          </Text>
+          <Text className="text-xs font-semibold text-slate-700 mt-1.5">
+            Notes:{" "}
+            <Text className="font-normal text-slate-500">
+              {appointment.notes || "No special instructions."}
             </Text>
-            <Text className="font-semibold text-slate-700">
-              Admin Notes: <Text className="font-normal text-slate-500">{appointment.notes || "No special instructions."}</Text>
-            </Text>
-          </View>
+          </Text>
         </View>
 
-        {/* Footer actions based on status */}
-        <View className="mb-8">
+        {/* Actions */}
+        <View className="mb-4 gap-3">
           {isAssigned && (
             <TouchableOpacity
-              className="w-full bg-blue-500 rounded-2xl py-4 items-center justify-center shadow-lg shadow-blue-200"
+              className="w-full bg-blue-500 rounded-2xl py-4 items-center justify-center"
               onPress={() => acceptMutation.mutate()}
             >
               <Text className="text-white font-black text-sm">ACCEPT TASK</Text>
@@ -217,43 +344,67 @@ export default function EmployeeTaskDetailScreen() {
           )}
 
           {isAccepted && (
-            <View className="space-y-3">
-              <TouchableOpacity
-                className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center shadow-lg shadow-emerald-700/25"
-                onPress={() => enRouteMutation.mutate()}
-              >
-                <Text className="text-white font-black text-sm">START NAVIGATION</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center"
+              onPress={() => enRouteMutation.mutate()}
+            >
+              <Text className="text-white font-black text-sm">START NAVIGATION</Text>
+            </TouchableOpacity>
           )}
 
           {isEnRoute && (
-            <View className="space-y-3">
-              <Text className="text-center text-xs font-bold text-orange-600 animate-pulse">
+            <>
+              <Text className="text-center text-xs font-bold text-orange-600">
                 🚗 Currently navigating to patient home...
               </Text>
               <TouchableOpacity
-                className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center shadow-lg shadow-emerald-700/25"
+                className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center"
                 onPress={() => router.push(`/(employee)/task/collect/${id}`)}
               >
-                <Text className="text-white font-black text-sm">I HAVE ARRIVED — START COLLECTION</Text>
+                <Text className="text-white font-black text-sm">
+                  I HAVE ARRIVED — START COLLECTION
+                </Text>
               </TouchableOpacity>
-            </View>
+            </>
           )}
 
           {isCollected && (
-            <View className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 items-center">
-              <Text className="text-xl">🎉</Text>
-              <Text className="text-sm font-bold text-emerald-800 mt-2">
-                Sample Collected Successfully
-              </Text>
-              <Text className="text-xs text-slate-400 mt-1">
-                Completed today at {new Date(appointment.updatedAt).toLocaleTimeString()}
-              </Text>
-            </View>
+            <>
+              <View className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 items-center">
+                <Text className="text-xl">🎉</Text>
+                <Text className="text-sm font-bold text-emerald-800 mt-2">
+                  Sample Collected Successfully
+                </Text>
+              </View>
+              {/* Upload Report button */}
+              <TouchableOpacity
+                className="w-full bg-orange-500 rounded-2xl py-4 items-center justify-center"
+                onPress={() => router.push(`/(employee)/task/upload-report/${id}`)}
+              >
+                <Text className="text-white font-black text-sm">📋 Upload Report</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
+
+        {/* Cannot Complete — Reassign Request */}
+        {canReassign && (
+          <TouchableOpacity
+            className="w-full bg-white border border-red-300 rounded-2xl py-3.5 items-center justify-center mb-8"
+            onPress={() => setShowReassign(true)}
+          >
+            <Text className="text-red-600 font-bold text-xs">
+              ⚠️ I Cannot Complete This Task
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
+
+      <ReassignModal
+        visible={showReassign}
+        onClose={() => setShowReassign(false)}
+        appointmentId={id as string}
+      />
     </Screen>
   );
 }

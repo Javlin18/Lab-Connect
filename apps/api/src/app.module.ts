@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { AppController } from "./app.controller";
 import { AppointmentsModule } from "./appointments/appointments.module";
 import { AuthModule } from "./auth/auth.module";
+import { CallsModule } from "./calls/calls.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
@@ -30,26 +31,15 @@ import { OrdersModule } from "./orders/orders.module";
     TestsModule,
     PackagesModule,
     CartModule,
-    OrdersModule
+    OrdersModule,
+    CallsModule
   ],
   controllers: [AppController],
   providers: [
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard
-    },
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: ResponseInterceptor
-    },
-    {
-      provide: APP_FILTER,
-      useClass: HttpExceptionFilter
-    }
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
+    { provide: APP_FILTER, useClass: HttpExceptionFilter }
   ]
 })
 export class AppModule {}

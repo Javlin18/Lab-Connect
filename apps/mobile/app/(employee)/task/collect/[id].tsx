@@ -27,7 +27,8 @@ export default function CollectScreen() {
 
   const [step, setStep] = useState(1);
   const [allChecked, setAllChecked] = useState(false);
-  const [barcode, setBarcode] = useState("");
+  // Per-test barcodes keyed by test name
+  const [barcodes, setBarcodes] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -35,7 +36,6 @@ export default function CollectScreen() {
   const [resendCountdown, setResendCountdown] = useState(0);
   const [collectedAt, setCollectedAt] = useState("");
 
-  // Confetti / success animation
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -51,38 +51,31 @@ export default function CollectScreen() {
     ? patientPhone.slice(0, 3) + "XXXXXX" + patientPhone.slice(-4)
     : "XXXXXXXXXX";
 
-  // Resend countdown timer
+  const primaryBarcode = appointment?.testTypes[0]
+    ? (barcodes[appointment.testTypes[0]] ?? "")
+    : Object.values(barcodes)[0] ?? "";
+
+  const allBarcodesEntered =
+    (appointment?.testTypes ?? []).every((t) => (barcodes[t] ?? "").trim().length > 0);
+
   useEffect(() => {
     if (resendCountdown <= 0) return;
     const t = setTimeout(() => setResendCountdown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [resendCountdown]);
 
-  // Success animation on step 4
   useEffect(() => {
     if (step === 4) {
       Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 4,
-          tension: 60,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
+        Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 60, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
       ]).start();
     }
   }, [step]);
 
   const sendOtpMutation = useMutation({
     mutationFn: () => sendOtp(patientPhone),
-    onSuccess: () => {
-      setOtpSent(true);
-      setResendCountdown(30);
-    },
+    onSuccess: () => { setOtpSent(true); setResendCountdown(30); },
     onError: (err: Error) => Alert.alert("Failed", err.message),
   });
 
@@ -93,15 +86,13 @@ export default function CollectScreen() {
       setCollectedAt(ts);
       confirmMutation.mutate(ts);
     },
-    onError: () => {
-      setOtpError("Incorrect OTP, please try again");
-    },
+    onError: () => setOtpError("Incorrect OTP, please try again"),
   });
 
   const confirmMutation = useMutation({
     mutationFn: (ts: string) =>
       updateStatus(id as string, "collected", {
-        sampleId: barcode,
+        sampleId: primaryBarcode,
         collectionNotes: notes,
         collectedAt: ts,
       }),
@@ -128,7 +119,6 @@ export default function CollectScreen() {
     return (
       <Screen title="Sample Collection">
         <StepIndicator currentStep={1} totalSteps={4} />
-
         <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm">
           <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
             Patient Details
@@ -136,22 +126,16 @@ export default function CollectScreen() {
           <Text className="text-lg font-black text-slate-800">
             {appointment.patient?.name ?? "Patient"}
           </Text>
-          <Text className="text-xs text-slate-500 mt-1">
-            Phone: {patientPhone}
-          </Text>
-          <Text className="text-xs text-slate-500 mt-0.5">
-            Address: {appointment.address}
-          </Text>
+          <Text className="text-xs text-slate-500 mt-1">Phone: {patientPhone}</Text>
+          <Text className="text-xs text-slate-500 mt-0.5">Address: {appointment.address}</Text>
         </View>
-
         <View className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-8">
           <Text className="text-xs font-bold text-amber-800 text-center leading-relaxed">
             ⚠️ Confirm you are at the correct patient's home before proceeding
           </Text>
         </View>
-
         <TouchableOpacity
-          className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center shadow-lg shadow-emerald-700/25"
+          className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center"
           onPress={() => setStep(2)}
         >
           <Text className="text-white font-black text-sm">
@@ -162,7 +146,7 @@ export default function CollectScreen() {
     );
   }
 
-  // ─── STEP 2 — Collect Samples ──────────────────────────────────────────────
+  // ─── STEP 2 — Collect Samples + Barcodes ─────────────────────────────────
   if (step === 2) {
     return (
       <Screen title="Sample Collection">
@@ -179,18 +163,27 @@ export default function CollectScreen() {
             />
           </View>
 
+          {/* Per-test barcode inputs */}
           <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4 shadow-sm">
-            <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
-              Sample Barcode / Tube ID
+            <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
+              Sample Barcodes / Tube IDs
             </Text>
-            <TextInput
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium"
-              keyboardType="default"
-              onChangeText={setBarcode}
-              placeholder="Enter barcode or tube ID"
-              placeholderTextColor="#94a3b8"
-              value={barcode}
-            />
+            {appointment.testTypes.map((test) => (
+              <View key={test} className="mb-3">
+                <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  {test}
+                </Text>
+                <TextInput
+                  className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium"
+                  onChangeText={(val) =>
+                    setBarcodes((prev) => ({ ...prev, [test]: val }))
+                  }
+                  placeholder="Enter barcode or tube ID"
+                  placeholderTextColor="#94a3b8"
+                  value={barcodes[test] ?? ""}
+                />
+              </View>
+            ))}
           </View>
 
           <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-8 shadow-sm">
@@ -211,16 +204,16 @@ export default function CollectScreen() {
 
           <TouchableOpacity
             className={`w-full rounded-2xl py-4 items-center justify-center mb-8 ${
-              allChecked && barcode.length > 0
+              allChecked && allBarcodesEntered
                 ? "bg-emerald-800 shadow-lg shadow-emerald-700/25"
                 : "bg-slate-200"
             }`}
-            disabled={!allChecked || barcode.length === 0}
+            disabled={!allChecked || !allBarcodesEntered}
             onPress={() => setStep(3)}
           >
             <Text
               className={`font-black text-sm ${
-                allChecked && barcode.length > 0 ? "text-white" : "text-slate-400"
+                allChecked && allBarcodesEntered ? "text-white" : "text-slate-400"
               }`}
             >
               Proceed to Confirmation →
@@ -234,27 +227,24 @@ export default function CollectScreen() {
   // ─── STEP 3 — OTP Verification ─────────────────────────────────────────────
   if (step === 3) {
     const isVerifying = verifyMutation.isPending || confirmMutation.isPending;
-
     return (
       <Screen title="Sample Collection">
         <StepIndicator currentStep={3} totalSteps={4} />
-
         <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm">
           <Text className="text-base font-black text-slate-800 mb-2">
             Confirm with Patient OTP
           </Text>
           <Text className="text-xs text-slate-500 leading-relaxed">
-            We will send a 4-digit OTP to the patient's phone number{" "}
+            We will send a 4-digit OTP to{" "}
             <Text className="font-bold text-slate-700">+91 {maskedPhone}</Text>
           </Text>
         </View>
 
-        {/* Send OTP Button */}
         <TouchableOpacity
           className={`w-full rounded-2xl py-4 items-center justify-center mb-4 border ${
             otpSent
               ? "bg-emerald-50 border-emerald-200"
-              : "bg-emerald-800 border-emerald-800 shadow-lg shadow-emerald-700/25"
+              : "bg-emerald-800 border-emerald-800"
           }`}
           disabled={sendOtpMutation.isPending}
           onPress={() => sendOtpMutation.mutate()}
@@ -262,24 +252,18 @@ export default function CollectScreen() {
           {sendOtpMutation.isPending ? (
             <ActivityIndicator color={otpSent ? "#0F6E56" : "#fff"} />
           ) : (
-            <Text
-              className={`font-black text-sm ${otpSent ? "text-emerald-700" : "text-white"}`}
-            >
+            <Text className={`font-black text-sm ${otpSent ? "text-emerald-700" : "text-white"}`}>
               {otpSent ? "✓ OTP Sent Successfully" : "Send OTP to Patient"}
             </Text>
           )}
         </TouchableOpacity>
 
-        {/* OTP Input */}
         <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4 shadow-sm items-center">
           <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
             Enter 4-Digit OTP
           </Text>
           <OTPTextInput
-            handleTextChange={(text) => {
-              setOtp(text);
-              setOtpError("");
-            }}
+            handleTextChange={(text) => { setOtp(text); setOtpError(""); }}
             inputCount={4}
             keyboardType="numeric"
             tintColor="#0F6E56"
@@ -299,12 +283,9 @@ export default function CollectScreen() {
           ) : null}
         </View>
 
-        {/* Verify Button */}
         <TouchableOpacity
           className={`w-full rounded-2xl py-4 items-center justify-center mb-4 ${
-            otp.length === 4 && !isVerifying
-              ? "bg-emerald-800 shadow-lg shadow-emerald-700/25"
-              : "bg-slate-200"
+            otp.length === 4 && !isVerifying ? "bg-emerald-800" : "bg-slate-200"
           }`}
           disabled={otp.length !== 4 || isVerifying}
           onPress={() => verifyMutation.mutate()}
@@ -312,17 +293,12 @@ export default function CollectScreen() {
           {isVerifying ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text
-              className={`font-black text-sm ${
-                otp.length === 4 ? "text-white" : "text-slate-400"
-              }`}
-            >
+            <Text className={`font-black text-sm ${otp.length === 4 ? "text-white" : "text-slate-400"}`}>
               Verify & Confirm Collection
             </Text>
           )}
         </TouchableOpacity>
 
-        {/* Resend */}
         {otpSent && (
           <View className="items-center">
             {resendCountdown > 0 ? (
@@ -347,7 +323,6 @@ export default function CollectScreen() {
   return (
     <Screen title="">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Animated checkmark */}
         <Animated.View
           className="items-center py-8"
           style={{ opacity: opacityAnim, transform: [{ scale: scaleAnim }] }}
@@ -355,41 +330,30 @@ export default function CollectScreen() {
           <View className="h-24 w-24 bg-emerald-100 rounded-full items-center justify-center border-4 border-emerald-300 mb-4">
             <Text className="text-5xl">✓</Text>
           </View>
-          <Text className="text-2xl font-black text-emerald-800">
-            Collection Confirmed!
-          </Text>
+          <Text className="text-2xl font-black text-emerald-800">Collection Confirmed!</Text>
           <Text className="text-xs text-slate-400 mt-1">
             {new Date(collectedAt || Date.now()).toLocaleString()}
           </Text>
         </Animated.View>
 
-        {/* Summary Card */}
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm space-y-3">
-          <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm">
+          <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
             Collection Summary
           </Text>
-
           <View className="flex-row justify-between py-2 border-b border-slate-50">
             <Text className="text-xs text-slate-500 font-semibold">Patient</Text>
             <Text className="text-xs font-bold text-slate-800">
               {appointment.patient?.name}
             </Text>
           </View>
-
-          <View className="flex-row justify-between py-2 border-b border-slate-50">
-            <Text className="text-xs text-slate-500 font-semibold">Sample ID</Text>
-            <Text className="text-xs font-bold text-slate-800">{barcode}</Text>
-          </View>
-
           <View className="py-2 border-b border-slate-50">
-            <Text className="text-xs text-slate-500 font-semibold mb-2">Tests Collected</Text>
+            <Text className="text-xs text-slate-500 font-semibold mb-2">Tests & Barcodes</Text>
             {appointment.testTypes.map((t) => (
               <Text className="text-xs text-emerald-700 font-bold" key={t}>
-                ✓ {t}
+                ✓ {t} — {barcodes[t] ?? "—"}
               </Text>
             ))}
           </View>
-
           {notes ? (
             <View className="py-2">
               <Text className="text-xs text-slate-500 font-semibold mb-1">Notes</Text>
@@ -398,17 +362,14 @@ export default function CollectScreen() {
           ) : null}
         </View>
 
-        {/* Confetti dots (simple animated) */}
         <View className="flex-row justify-center gap-2 mb-6">
           {["bg-emerald-400", "bg-blue-400", "bg-amber-400", "bg-pink-400", "bg-purple-400"].map(
-            (c, i) => (
-              <View className={`h-3 w-3 rounded-full ${c}`} key={i} />
-            )
+            (c, i) => <View className={`h-3 w-3 rounded-full ${c}`} key={i} />
           )}
         </View>
 
         <TouchableOpacity
-          className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center shadow-lg shadow-emerald-700/25 mb-8"
+          className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center mb-8"
           onPress={() => router.replace("/(employee)")}
         >
           <Text className="text-white font-black text-sm">← Back to Tasks</Text>

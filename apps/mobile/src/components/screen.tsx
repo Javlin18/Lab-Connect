@@ -1,5 +1,7 @@
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Platform, ScrollView, StatusBar, Text, View } from "react-native";
+
+const STATUS_BAR_HEIGHT =
+  Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) : 44;
 
 export function Screen({
   children,
@@ -15,21 +17,48 @@ export function Screen({
   headerRight?: React.ReactNode;
 }) {
   const content = (
-    <View className="flex-1 gap-4 px-5 pb-8">
-      <View className="flex-row items-start justify-between pt-3">
-        <View className="gap-1 flex-1">
-          <Text className="text-3xl font-bold text-ink">{title}</Text>
-          {subtitle ? <Text className="text-sm text-slate-500">{subtitle}</Text> : null}
+    <View style={{ flex: 1, gap: 16, paddingHorizontal: 20, paddingBottom: 32 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          paddingTop: 12,
+        }}
+      >
+        <View style={{ flex: 1, gap: 4 }}>
+          {title ? (
+            <Text
+              style={{ fontSize: 30, fontWeight: "700", color: "#101828" }}
+            >
+              {title}
+            </Text>
+          ) : null}
+          {subtitle ? (
+            <Text style={{ fontSize: 14, color: "#64748b" }}>{subtitle}</Text>
+          ) : null}
         </View>
-        {headerRight ? <View className="mt-1">{headerRight}</View> : null}
+        {headerRight ? (
+          <View style={{ marginTop: 4 }}>{headerRight}</View>
+        ) : null}
       </View>
       {children}
     </View>
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-mist" edges={["top"]}>
-      {scroll ? <ScrollView showsVerticalScrollIndicator={false}>{content}</ScrollView> : content}
-    </SafeAreaView>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#F2F4F7",
+        paddingTop: STATUS_BAR_HEIGHT,
+      }}
+    >
+      {scroll ? (
+        <ScrollView showsVerticalScrollIndicator={false}>{content}</ScrollView>
+      ) : (
+        content
+      )}
+    </View>
   );
 }

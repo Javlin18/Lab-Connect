@@ -53,6 +53,7 @@ model Appointment {
   slot       String
   status     AppointmentStatus @default(pending)
   notes      String            @default("")
+  barcodes   Json?
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
   patient    User              @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Restrict)
@@ -60,6 +61,7 @@ model Appointment {
   admin      User              @relation("AdminAppointments", fields: [adminId], references: [id], onDelete: Restrict)
   testResult TestResult?
   order      Order?
+  reassignRequests ReassignRequest[]
 
   @@index([patientId])
   @@index([employeeId])
@@ -160,6 +162,7 @@ model Order {
   totalAmount   Float
   paymentId     String?
   paymentStatus String       @default("pending")
+  paymentType   String       @default("online_prepaid")
   appointmentId String?      @unique
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   createdAt     DateTime     @default(now())
@@ -168,4 +171,36 @@ model Order {
 model SystemSetting {
   key   String @id
   value String
+}
+
+model CallLog {
+  id         String   @id @default(cuid())
+  callSid    String   @unique
+  fromPhone  String
+  toPhone    String
+  patientId  String?
+  employeeId String?
+  duration   Int?
+  status     String
+  createdAt  DateTime @default(now())
+
+  @@index([patientId])
+}
+
+model ReassignRequest {
+  id            String    @id @default(cuid())
+  appointmentId String
+  requestedBy   String
+  reason        String
+  note          String?
+  status        String    @default("pending")
+  resolvedBy    String?
+  newEmployeeId String?
+  createdAt     DateTime  @default(now())
+  resolvedAt    DateTime?
+
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId])
+  @@index([status])
 }

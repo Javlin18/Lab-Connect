@@ -73,12 +73,27 @@ export default function HistoryScreen() {
         ) : (
           <View>
             {historyList.map((app) => (
-              <TaskCard
-                key={app.id}
-                appointment={app}
-                onPress={() => router.push(`/(employee)/task/${app.id}`)}
-                showDistance={false}
-              />
+              <View key={app.id}>
+                <TaskCard
+                  appointment={app}
+                  onPress={() => router.push(`/(employee)/task/${app.id}`)}
+                  showDistance={false}
+                />
+                {/* If collected but no report uploaded */}
+                {(app.status as string) === "collected" && !app.report && (
+                  <TouchableOpacity
+                    className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-2.5 flex-row items-center gap-2 -mt-1 mb-3 mx-0.5"
+                    onPress={() => router.push(`/(employee)/task/upload-report/${app.id}`)}
+                  >
+                    <Text className="text-orange-600 text-xs font-bold">
+                      ⚠️ Report pending upload
+                    </Text>
+                    <Text className="text-orange-500 text-xs font-semibold ml-auto">
+                      Upload →
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             ))}
           </View>
         )}

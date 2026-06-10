@@ -1,5 +1,4 @@
-import { IsIn, IsOptional, IsString } from "class-validator";
-
+import { IsArray, IsIn, IsOptional, IsString } from "class-validator";
 import { EMPLOYEE_STATUS_UPDATES } from "../../common/constants/domain.constants";
 
 export class UpdateAppointmentStatusDto {
@@ -17,4 +16,8 @@ export class UpdateAppointmentStatusDto {
   @IsString()
   @IsOptional()
   collectedAt?: string;
+
+  @IsArray()
+  @IsOptional()
+  barcodes?: Array<{ testName: string; barcodeId: string }>;
 }
