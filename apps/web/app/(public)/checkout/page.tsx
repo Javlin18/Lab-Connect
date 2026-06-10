@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { CreditCard, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { CheckCircle, CreditCard, Loader2, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -14,169 +14,139 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const orderId = searchParams.get("orderId");
-  const paymentId = searchParams.get("paymentId"); // Razorpay Order ID
-  const amount = parseFloat(searchParams.get("amount") || "0");
-  const keyId = searchParams.get("keyId");
+  const orderId   = searchParams.get("orderId");
+  const paymentId = searchParams.get("paymentId");
+  const amount    = parseFloat(searchParams.get("amount") || "0");
+  const keyId     = searchParams.get("keyId");
 
   const [loading, setLoading] = useState(true);
   const [scriptLoaded, setScriptLoaded] = useState(false);
 
-  // Verification Mutation
   const verifyMutation = useMutation({
-    mutationFn: (data: {
-      razorpay_order_id?: string;
-      razorpay_payment_id?: string;
-      razorpay_signature?: string;
-      orderId?: string;
-      status?: string;
-    }) => verifyPayment(data),
+    mutationFn: (data: any) => verifyPayment(data),
     onSuccess: () => {
-      toast({
-        title: "Payment Confirmed",
-        description: "Your health test has been booked successfully!"
-      });
+      toast({ title: "Payment Confirmed!", description: "Your test has been booked successfully." });
       router.push(`/order-success?id=${orderId}`);
     },
     onError: (err: any) => {
-      toast({
-        title: "Verification failed",
-        description: err.message,
-        variant: "destructive"
-      });
-    }
+      toast({ title: "Verification failed", description: err.message, variant: "destructive" });
+    },
   });
 
-  // Load Razorpay Script
   useEffect(() => {
-    if (!orderId || !paymentId) {
-      router.push("/cart");
-      return;
-    }
-
+    if (!orderId || !paymentId) { router.push("/cart"); return; }
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
-    script.onload = () => {
-      setScriptLoaded(true);
-      setLoading(false);
-    };
-    script.onerror = () => {
-      setLoading(false);
-    };
+    script.onload  = () => { setScriptLoaded(true); setLoading(false); };
+    script.onerror = () => setLoading(false);
     document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
+    return () => { document.body.removeChild(script); };
   }, [orderId, paymentId, router]);
 
-  // Open Razorpay Popup
   const handlePay = () => {
     if (!scriptLoaded || !paymentId || !keyId) {
-      toast({
-        title: "Razorpay script missing",
-        description: "Failed to initialize payment gateway. Use simulation below."
-      });
+      toast({ title: "Gateway not ready", description: "Use sandbox simulation below.", variant: "destructive" });
       return;
     }
-
     try {
-      const options = {
+      const rzp = new (window as any).Razorpay({
         key: keyId,
         amount: Math.round(amount * 100),
         currency: "INR",
         name: "Labconnect Diagnostics",
-        description: "Secure Home Laboratory Test Booking",
+        description: "Home Sample Collection Booking",
         order_id: paymentId,
-        handler: function (response: any) {
-          verifyMutation.mutate({
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature
-          });
-        },
-        theme: {
-          color: "#C41E3A"
-        }
-      };
-
-      const rzp = new (window as any).Razorpay(options);
+        handler: (response: any) => verifyMutation.mutate({
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+        }),
+        theme: { color: "#dc2626" },
+      });
       rzp.open();
     } catch (e: any) {
-      toast({
-        title: "Checkout Error",
-        description: e.message,
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
 
-  // Mock Sandbox verification helper
-  const handleSimulateSuccess = () => {
-    if (!paymentId) return;
-    verifyMutation.mutate({
-      orderId: paymentId,
-      status: "paid"
-    });
-  };
-
   return (
-    <div className="mx-auto max-w-md px-4 py-20 text-center space-y-8">
-      <div className="bg-white border border-slate-100 p-8 rounded-3xl shadow-xl space-y-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-primary mx-auto">
-          <CreditCard className="h-8 w-8" />
-        </div>
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-slate-50">
+      <div className="w-full max-w-md space-y-4">
 
-        <div>
-          <h1 className="text-2xl font-black text-slate-800">Secure Payment</h1>
-          <p className="text-xs text-slate-400 mt-1">Complete your transaction to finalize booking</p>
-        </div>
-
-        <div className="bg-slate-50 p-4 rounded-2xl space-y-1">
-          <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Amount to Pay</p>
-          <p className="text-3xl font-black text-slate-800">₹{amount}</p>
-          <p className="text-[9px] text-slate-400">Order ID: {orderId?.slice(0, 8)}</p>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 text-sm text-slate-400 py-4">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            Loading Payment Gateway...
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <Button
-              className="w-full rounded-2xl bg-primary hover:bg-primary/95 text-white py-6 font-bold shadow-lg shadow-primary/20 transition hover:scale-102 flex items-center justify-center gap-2"
-              disabled={verifyMutation.isPending}
-              onClick={handlePay}
-            >
-              Pay Now (Razorpay)
-            </Button>
-
-            <div className="relative my-6 flex items-center justify-center">
-              <span className="absolute inset-x-0 h-px bg-slate-100" />
-              <span className="relative bg-white px-3 text-[10px] text-slate-400 uppercase font-bold">Or Testing sandbox</span>
+        {/* Main checkout card */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden">
+          {/* Header strip */}
+          <div className="bg-gradient-to-r from-red-600 to-red-500 px-8 py-6 text-white text-center">
+            <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-3">
+              <CreditCard className="h-7 w-7" />
             </div>
-
-            <Button
-              className="w-full rounded-2xl border-slate-200 text-slate-600 py-6 hover:bg-slate-50 font-bold transition hover:scale-102 flex items-center justify-center gap-2"
-              disabled={verifyMutation.isPending}
-              onClick={handleSimulateSuccess}
-              variant="outline"
-            >
-              {verifyMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4 text-amber-500" />
-              )}
-              Simulate Sandbox Success
-            </Button>
+            <h1 className="text-xl font-black">Secure Checkout</h1>
+            <p className="text-xs text-red-100 mt-1">Complete payment to confirm your booking</p>
           </div>
-        )}
 
-        <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 pt-4">
-          <ShieldCheck className="h-4 w-4 text-emerald-500" /> Secure 256-bit SSL encrypted checkout
+          {/* Order summary */}
+          <div className="px-8 py-6 border-b border-slate-50">
+            <div className="bg-slate-50 rounded-2xl p-5 text-center space-y-1">
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Amount to Pay</p>
+              <p className="text-4xl font-black text-slate-900">₹{amount}</p>
+              <p className="text-[10px] text-slate-400">Order #{orderId?.slice(0, 8)}…</p>
+            </div>
+          </div>
+
+          {/* Payment buttons */}
+          <div className="px-8 py-6 space-y-4">
+            {loading ? (
+              <div className="flex items-center justify-center gap-3 text-sm text-slate-400 py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-red-500" />
+                Loading payment gateway...
+              </div>
+            ) : (
+              <>
+                <Button
+                  className="w-full h-13 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-200 flex items-center justify-center gap-2 py-4"
+                  disabled={verifyMutation.isPending}
+                  onClick={handlePay}
+                >
+                  <Zap className="h-4 w-4" />
+                  Pay ₹{amount} via Razorpay
+                </Button>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-slate-100" />
+                  <span className="text-[10px] text-slate-400 uppercase font-bold">or sandbox test</span>
+                  <div className="flex-1 h-px bg-slate-100" />
+                </div>
+
+                <Button
+                  className="w-full h-12 rounded-2xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 flex items-center justify-center gap-2"
+                  disabled={verifyMutation.isPending}
+                  onClick={() => verifyMutation.mutate({ orderId: paymentId, status: "paid" })}
+                  variant="outline"
+                >
+                  {verifyMutation.isPending
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Sparkles className="h-4 w-4 text-amber-500" />
+                  }
+                  Simulate Sandbox Payment
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Trust badges */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { icon: ShieldCheck, label: "SSL Encrypted" },
+            { icon: CheckCircle, label: "NABL Certified" },
+            { icon: CreditCard, label: "Secure Gateway" },
+          ].map((b) => (
+            <div className="bg-white rounded-2xl border border-slate-100 p-3 text-center shadow-sm" key={b.label}>
+              <b.icon className="h-5 w-5 text-emerald-500 mx-auto mb-1" />
+              <p className="text-[10px] text-slate-500 font-medium">{b.label}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

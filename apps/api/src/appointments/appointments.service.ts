@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 
 import { toSharedAppointment } from "../common/mappers/entity.mappers";
 import type { AuthenticatedUser } from "../common/types/authenticated-user";
@@ -162,6 +162,33 @@ export class AppointmentsService {
     };
   }
 
+  async findAvailableForEmployee(employeeId: string) {
+    const employee = await this.ensureEmployeeProfile(employeeId);
+
+    if (!employee.isAvailable) {
+      return {
+        data: [],
+        message: "Employee is busy"
+      };
+    }
+
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        employeeId: null,
+        status: "pending"
+      },
+      include: this.appointmentInclude,
+      orderBy: {
+        createdAt: "asc"
+      }
+    });
+
+    return {
+      data: appointments.map(toSharedAppointment),
+      message: "Available appointments fetched"
+    };
+  }
+
   async findOne(id: string, user: AuthenticatedUser) {
     const appointment = await this.prisma.appointment.findUnique({
       where: { id },
@@ -212,6 +239,56 @@ export class AppointmentsService {
     };
   }
 
+  async claim(id: string, employeeId: string) {
+    await this.ensureAvailableEmployee(employeeId);
+
+    const result = await this.prisma.appointment.updateMany({
+      where: {
+        id,
+        employeeId: null,
+        status: "pending"
+      },
+      data: {
+        employeeId,
+        status: "assigned"
+      }
+    });
+
+    if (result.count === 0) {
+      const appointment = await this.prisma.appointment.findUnique({
+        where: { id }
+      });
+
+      if (!appointment) {
+        throw new NotFoundException("Appointment not found");
+      }
+
+      throw new ConflictException("This booking has already been selected by another employee");
+    }
+
+    await this.prisma.employee.update({
+      where: { userId: employeeId },
+      data: { isAvailable: false }
+    });
+
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id },
+      include: this.appointmentInclude
+    });
+
+    await this.notificationsService.createNotification(
+      employeeId,
+      "Booking selected",
+      "You selected a patient collection booking.",
+      "appointment_assigned"
+    );
+
+    return {
+      data: toSharedAppointment(appointment!),
+      message: "Appointment selected"
+    };
+  }
+
   async accept(id: string, employeeId: string) {
     const appointment = await this.assertEmployeeOwnsAppointment(id, employeeId);
 
@@ -254,91 +331,17 @@ export class AppointmentsService {
       "appointment_status"
     );
 
-    return { data: toSharedAppointment(updated), message: "Appointment status updated" };
-  }
-
-  async reassignRequest(
-    id: string,
-    employeeId: string,
-    reason: string,
-    note?: string
-  ) {
-    const appointment = await this.assertEmployeeOwnsAppointment(id, employeeId);
-
-    const request = await this.prisma.reassignRequest.create({
-      data: { appointmentId: id, requestedBy: employeeId, reason, note }
-    });
-
-    await this.prisma.appointment.update({
-      where: { id },
-      data: { status: "pending" }
-    });
-
-    // Notify all admins urgently
-    const admins = await this.prisma.user.findMany({ where: { role: "admin" } });
-    for (const admin of admins) {
-      await this.notificationsService.createNotification(
-        admin.id,
-        "⚠️ Reassign Needed",
-        `Employee cannot reach ${appointment.patient?.name ?? "patient"}. Reason: ${reason}`,
-        "reassign_request"
-      );
+    if (dto.status === "collected" || dto.status === "completed") {
+      await this.prisma.employee.update({
+        where: { userId: employeeId },
+        data: { isAvailable: true }
+      });
     }
 
-    // Notify patient
-    await this.notificationsService.createNotification(
-      appointment.patientId,
-      "Collector delayed",
-      "We are arranging a new collector. Sorry for the delay.",
-      "reassign_patient"
-    );
-
-    return { data: request, message: "Reassignment request sent" };
-  }
-
-  async resolveReassign(requestId: string, adminId: string, newEmployeeId: string) {
-    const request = await this.prisma.reassignRequest.findUnique({ where: { id: requestId } });
-    if (!request) throw new NotFoundException("Request not found");
-
-    await this.ensureEmployeeExists(newEmployeeId);
-
-    const appointment = await this.prisma.appointment.update({
-      where: { id: request.appointmentId },
-      data: { employeeId: newEmployeeId, status: "assigned" },
-      include: this.appointmentInclude
-    });
-
-    await this.prisma.reassignRequest.update({
-      where: { id: requestId },
-      data: { status: "resolved", resolvedBy: adminId, newEmployeeId, resolvedAt: new Date() }
-    });
-
-    // Notify new employee
-    await this.notificationsService.createNotification(
-      newEmployeeId,
-      "Appointment assigned",
-      `Appointment #${request.appointmentId.slice(0, 8)} assigned to you.`,
-      "appointment_assigned"
-    );
-
-    // Notify patient
-    await this.notificationsService.createNotification(
-      appointment.patientId,
-      "New collector assigned",
-      "Your new collector will arrive soon.",
-      "reassign_resolved"
-    );
-
-    return { data: appointment, message: "Reassignment resolved" };
-  }
-
-  async getReassignRequests(status?: string) {
-    const requests = await this.prisma.reassignRequest.findMany({
-      where: status ? { status } : undefined,
-      include: { appointment: { include: this.appointmentInclude } },
-      orderBy: { createdAt: "desc" }
-    });
-    return { data: requests, message: "Reassign requests fetched" };
+    return {
+      data: toSharedAppointment(updated),
+      message: "Appointment status updated"
+    };
   }
 
   async complete(id: string, dto: CompleteAppointmentDto) {
@@ -406,5 +409,32 @@ export class AppointmentsService {
     }
 
     return appointment;
+  }
+
+  private async ensureAvailableEmployee(employeeId: string) {
+    const employee = await this.ensureEmployeeProfile(employeeId);
+
+    if (!employee.isAvailable) {
+      throw new BadRequestException("Employee is currently busy");
+    }
+
+    return employee;
+  }
+
+  private async ensureEmployeeProfile(employeeId: string) {
+    const employee = await this.prisma.employee.findUnique({
+      where: {
+        userId: employeeId
+      },
+      include: {
+        user: true
+      }
+    });
+
+    if (!employee || employee.user.role !== "employee") {
+      throw new NotFoundException("Employee not found");
+    }
+
+    return employee;
   }
 }

@@ -41,10 +41,10 @@ export class AppointmentsController {
     return this.appointmentsService.findAssigned(user.sub);
   }
 
-  @Roles("admin")
-  @Get("reassign-requests")
-  getReassignRequests(@Query("status") status?: string) {
-    return this.appointmentsService.getReassignRequests(status);
+  @Roles("employee")
+  @Get("available")
+  findAvailable(@CurrentUser() user: AuthenticatedUser) {
+    return this.appointmentsService.findAvailableForEmployee(user.sub);
   }
 
   @Roles("admin", "employee", "patient")
@@ -63,6 +63,12 @@ export class AppointmentsController {
   @Put(":id/accept")
   accept(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.appointmentsService.accept(id, user.sub);
+  }
+
+  @Roles("employee")
+  @Put(":id/claim")
+  claim(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.appointmentsService.claim(id, user.sub);
   }
 
   @Roles("employee")

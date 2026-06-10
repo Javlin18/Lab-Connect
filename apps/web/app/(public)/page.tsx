@@ -86,7 +86,7 @@ export default function HomePage() {
       toast({ title: "Added to cart", description: "Item added to your cart." });
     },
     onError: (err: any) => {
-      if (err.message?.includes("Unauthorized") || err.message?.includes("JWT")) {
+      if (err.message?.includes("Unauthorized") || err.message?.includes("JWT") || err.message?.includes("token")) {
         toast({ title: "Login required", description: "Please login as a patient.", variant: "destructive" });
         router.push("/login");
       } else {
@@ -95,12 +95,29 @@ export default function HomePage() {
     },
   });
 
-  const handleAdd = (id: string, isPackage = false) => {
-    if (session?.user?.role === "admin") {
-      toast({ title: "Admin cannot buy tests" });
+  // Add to cart — only works with real DB IDs
+  const handleAdd = (item: any, isPackage = false) => {
+    if (!session) { toast({ title: "Login required", description: "Please login as a patient.", variant: "destructive" }); router.push("/login"); return; }
+    if (session?.user?.role === "admin") { toast({ title: "Admin cannot purchase tests" }); return; }
+    // Fallback items don't have real DB IDs — redirect to test page instead
+    if (!item.id || item.id.startsWith("t") || item.id.startsWith("p")) {
+      router.push(isPackage ? `/packages` : `/tests/${item.slug}`);
       return;
     }
-    addMutation.mutate(isPackage ? { packageId: id } : { testId: id });
+    addMutation.mutate(isPackage ? { packageId: item.id } : { testId: item.id });
+  };
+
+  // Buy Now — add to cart then go to cart page
+  const handleBuyNow = (item: any, isPackage = false) => {
+    if (!session) { toast({ title: "Login required", description: "Please login as a patient.", variant: "destructive" }); router.push("/login"); return; }
+    if (session?.user?.role === "admin") { toast({ title: "Admin cannot purchase tests" }); return; }
+    if (!item.id || item.id.startsWith("t") || item.id.startsWith("p")) {
+      router.push(isPackage ? `/packages` : `/tests/${item.slug}`);
+      return;
+    }
+    addMutation.mutate(isPackage ? { packageId: item.id } : { testId: item.id }, {
+      onSuccess: () => router.push("/cart"),
+    });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -280,17 +297,28 @@ export default function HomePage() {
                       <span className="text-[10px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded font-medium">⏱ {t.turnaroundHours}h report</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-50">
-                    <div>
-                      <p className="text-base font-black text-slate-800">₹{t.discountPrice ?? t.price}</p>
-                      {t.discountPrice && <p className="text-[10px] text-slate-400 line-through">₹{t.price}</p>}
+                  <div className="mt-5 pt-4 border-t border-slate-50">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-base font-black text-slate-800">₹{t.discountPrice ?? t.price}</p>
+                        {t.discountPrice && <p className="text-[10px] text-slate-400 line-through">₹{t.price}</p>}
+                      </div>
                     </div>
-                    <Button
-                      className="h-8 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm"
-                      onClick={() => handleAdd(t.id || t.slug)}
-                    >
-                      Add to Cart
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1 h-8 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-bold"
+                        onClick={() => handleAdd(t, false)}
+                        variant="ghost"
+                      >
+                        + Cart
+                      </Button>
+                      <Button
+                        className="flex-1 h-8 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm"
+                        onClick={() => handleBuyNow(t, false)}
+                      >
+                        Buy Now
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
@@ -344,17 +372,24 @@ export default function HomePage() {
                     </div>
 
                     <div className="mt-5 pt-4 border-t border-slate-50">
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <p className="text-[10px] text-slate-400">Offer Price</p>
-                          <p className="text-lg font-black text-slate-800">₹{pkg.discountPrice ?? pkg.price}</p>
-                          {pkg.discountPrice && <p className="text-[10px] text-slate-400 line-through">₹{pkg.price}</p>}
-                        </div>
+                      <div className="mb-3">
+                        <p className="text-[10px] text-slate-400">Offer Price</p>
+                        <p className="text-lg font-black text-slate-800">₹{pkg.discountPrice ?? pkg.price}</p>
+                        {pkg.discountPrice && <p className="text-[10px] text-slate-400 line-through">₹{pkg.price}</p>}
+                      </div>
+                      <div className="flex gap-2">
                         <Button
-                          className="h-8 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold"
-                          onClick={() => handleAdd(pkg.id || pkg.slug, true)}
+                          className="flex-1 h-8 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-bold"
+                          onClick={() => handleAdd(pkg, true)}
+                          variant="ghost"
                         >
-                          Book Now
+                          + Cart
+                        </Button>
+                        <Button
+                          className="flex-1 h-8 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold"
+                          onClick={() => handleBuyNow(pkg, true)}
+                        >
+                          Buy Now
                         </Button>
                       </div>
                     </div>
