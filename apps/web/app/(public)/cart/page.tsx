@@ -84,7 +84,7 @@ export default function CartPage() {
   const checkoutMutation = useMutation({
     mutationFn: (data: any) => createOrder(data),
     onSuccess: (res) => {
-      router.push(`/checkout?orderId=${res.data.orderId}&paymentId=${res.data.paymentId}&amount=${res.data.amount}&keyId=${res.data.keyId}`);
+      router.push(`/checkout?orderId=${res.data.orderId}&amount=${res.data.amount}`);
     },
     onError: (err: any) => {
       toast({ title: "Checkout failed", description: err.message, variant: "destructive" });

@@ -9,6 +9,12 @@ export const API_URL =
 
 export const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
 
+export const UPI_VPA =
+  process.env.EXPO_PUBLIC_UPI_VPA ?? "labconnect@upi";
+
+export const RAZORPAY_KEY_ID =
+  process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID ?? "";
+
 export function resolveAssetUrl(path: string) {
   if (/^https?:\/\//i.test(path)) return path;
   return `${API_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;

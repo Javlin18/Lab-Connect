@@ -19,6 +19,7 @@ import { getAppointment } from "@/api/appointments";
 import { acceptAppointment, updateStatus } from "@/api/employee";
 import { apiFetch } from "@/api/client";
 import { Screen } from "@/components/screen";
+import { PaymentQrCard } from "@/components/employee/PaymentQrCard";
 import { StatusBadge } from "@/components/employee/StatusBadge";
 
 const REASSIGN_REASONS = [
@@ -303,17 +304,18 @@ export default function EmployeeTaskDetailScreen() {
           <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
             Tests Required
           </Text>
-          {appointment.testTypes.map((test) => (
-            <View
-              className="flex-row items-center justify-between p-3.5 rounded-xl border bg-slate-50 border-slate-100 mb-2"
-              key={test}
-            >
-              <Text className="text-xs font-bold text-slate-700">✓ {test}</Text>
-              <Text className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
-                Blood
-              </Text>
-            </View>
-          ))}
+          {(appointment.testTypes ?? []).length ? (
+            appointment.testTypes.map((test) => (
+              <View
+                className="flex-row items-center justify-between p-3.5 rounded-xl border bg-slate-50 border-slate-100 mb-2"
+                key={test}
+              >
+                <Text className="text-xs font-bold text-slate-700">✓ {test}</Text>
+              </View>
+            ))
+          ) : (
+            <Text className="text-xs text-slate-400">No tests listed for this booking.</Text>
+          )}
         </View>
 
         {/* Visit Details */}
@@ -370,6 +372,12 @@ export default function EmployeeTaskDetailScreen() {
 
           {isCollected && (
             <>
+              {appointment.payment ? (
+                <PaymentQrCard
+                  payment={appointment.payment}
+                  patientName={appointment.patient?.name}
+                />
+              ) : null}
               <View className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 items-center">
                 <Text className="text-xl">🎉</Text>
                 <Text className="text-sm font-bold text-emerald-800 mt-2">

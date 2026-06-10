@@ -3,7 +3,8 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 export type CartItem = {
-  id: string;
+  id: string;          // test or package id — used for isInCart dedup
+  cartItemId?: string; // DB CartItem.id — used for DELETE /cart/:itemId
   type: "test" | "package";
   name: string;
   price: number;

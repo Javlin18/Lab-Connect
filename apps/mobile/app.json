@@ -10,7 +10,14 @@
     ],
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Labconnect to access your location to auto-fill your collection address.",
+          "locationWhenInUsePermission": "Allow Labconnect to access your location to auto-fill your collection address."
+        }
+      ]
     ],
     "android": {
       "package": "com.yourlab.app",

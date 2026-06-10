@@ -40,7 +40,13 @@ export class OrdersService {
         const dp = item.package.discountPrice ?? p;
         subtotal += p;
         discount += (p - dp);
-        testTypes.push(item.package.name);
+        if (item.package.tests?.length) {
+          for (const test of item.package.tests) {
+            testTypes.push(test.name);
+          }
+        } else {
+          testTypes.push(item.package.name);
+        }
       }
     }
 
@@ -51,6 +57,7 @@ export class OrdersService {
     const homeCollectionCharges = chargeSetting ? parseFloat(chargeSetting.value) : 150;
 
     const total = subtotal - discount + homeCollectionCharges;
+    const uniqueTestTypes = [...new Set(testTypes)];
 
     // 3. Create pending Order in DB
     const orderMetadata = {
@@ -61,7 +68,7 @@ export class OrdersService {
       address: dto.address,
       pincode: dto.pincode,
       slot: dto.slot,
-      testTypes,
+      testTypes: uniqueTestTypes,
       breakdown: {
         subtotal,
         discount,
@@ -297,4 +304,61 @@ export class OrdersService {
       message: "All orders retrieved"
     };
   }
+
+  // --- Payment helpers used by PaymentsController ---
+
+  async findById(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { appointment: true }
+    });
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+    const employeeId = (order.appointment as any)?.employeeId ?? null;
+    return { ...order, employeeId } as typeof order & { employeeId: string | null };
+  }
+
+  async markAsPaid(
+    orderId: string,
+    data: {
+      razorpayOrderId?: string;
+      razorpayPaymentId?: string;
+      razorpaySignature?: string;
+      paidAt?: Date;
+      paymentStatus?: string;
+    }
+  ) {
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        paymentStatus: data.paymentStatus ?? "paid",
+        razorpayOrderId: data.razorpayOrderId,
+        razorpayPaymentId: data.razorpayPaymentId,
+        razorpaySignature: data.razorpaySignature,
+        paidAt: data.paidAt
+      }
+    });
+  }
+
+  async savePaymentLink(
+    orderId: string,
+    data: { paymentLinkId: string; paymentLinkUrl: string }
+  ) {
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        paymentLinkId: data.paymentLinkId,
+        paymentLinkUrl: data.paymentLinkUrl
+      }
+    });
+  }
+
+  async updatePaymentStatus(orderId: string, status: string) {
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { paymentStatus: status }
+    });
+  }
 }
+

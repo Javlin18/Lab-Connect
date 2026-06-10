@@ -82,6 +82,13 @@ export function toSharedAppointment(appointment: {
     uploadedAt: Date | string;
     uploadedBy: string;
   } | null;
+  order?: {
+    id: string;
+    totalAmount: number;
+    paymentStatus: string;
+    paymentType: string;
+    items?: unknown;
+  } | null;
 }): SharedAppointment {
   return {
     id: appointment.id,
@@ -98,7 +105,15 @@ export function toSharedAppointment(appointment: {
     patient: appointment.patient ? toAppointmentParty(appointment.patient) : undefined,
     employee: appointment.employee ? toAppointmentParty(appointment.employee) : null,
     admin: appointment.admin ? toAppointmentParty(appointment.admin) : undefined,
-    report: appointment.testResult ? toSharedTestResult(appointment.testResult) : null
+    report: appointment.testResult ? toSharedTestResult(appointment.testResult) : null,
+    payment: appointment.order
+      ? {
+          orderId: appointment.order.id,
+          totalAmount: appointment.order.totalAmount,
+          paymentStatus: appointment.order.paymentStatus,
+          paymentType: appointment.order.paymentType
+        }
+      : null
   };
 }
 

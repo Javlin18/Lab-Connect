@@ -83,7 +83,13 @@ export function getAvailableSlots(date: string) {
 }
 
 export function createOrder(orderData: Record<string, unknown>) {
-  return apiFetch<{ orderId: string; paymentId: string; amount: number; keyId: string }>("/orders", {
+  return apiFetch<{
+    orderId: string;
+    paymentId: string;
+    amount: number;
+    keyId: string;
+    paymentType: string;
+  }>("/orders", {
     method: "POST",
     body: orderData
   });

@@ -4,14 +4,14 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import { getTests, type Test } from "@/api/patient";
-import { useCartStore } from "@/store/cartStore";
+import { useServerCart } from "@/hooks/useServerCart";
 
 const categories = ["All", "Blood Test", "Thyroid", "Diabetes", "Heart", "Vitamins", "Liver", "Kidney", "Allergy"];
 const price = (test: Test) => test.discountPrice ?? test.price;
 
 function Row({ test }: { test: Test }) {
-  const addItem = useCartStore((state) => state.addItem);
-  const inCart = useCartStore((state) => state.isInCart(test.id));
+  const { addItem, isInCart, isAddingItem } = useServerCart();
+  const inCart = isInCart(test.id);
   return (
     <TouchableOpacity onPress={() => router.push(`/(patient)/tests/${test.slug}`)} className="bg-white rounded-2xl p-4 mb-3 shadow-sm border border-gray-100">
       <View className="flex-row gap-3">
@@ -27,8 +27,8 @@ function Row({ test }: { test: Test }) {
           {test.discountPrice ? <Text className="text-gray-400 text-sm line-through">₹{test.price}</Text> : null}
           <Text className="text-[#C41E3A] text-xl font-bold">₹{price(test)}</Text>
           <TouchableOpacity
-            disabled={inCart}
-            onPress={() => addItem({ id: test.id, type: "test", name: test.name, price: price(test), originalPrice: test.price, testId: test.id })}
+            disabled={inCart || isAddingItem}
+            onPress={() => addItem({ testId: test.id })}
             className={`px-4 py-2 rounded-xl mt-3 ${inCart ? "bg-green-50" : "bg-[#0F6E56]"}`}
           >
             <Text className={`font-bold text-xs ${inCart ? "text-green-600" : "text-white"}`}>{inCart ? "ADDED ✓" : "ADD"}</Text>

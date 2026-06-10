@@ -155,17 +155,23 @@ model CartItem {
 }
 
 model Order {
-  id            String       @id @default(cuid())
-  patientId     String
-  patient       User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  items         Json
-  totalAmount   Float
-  paymentId     String?
-  paymentStatus String       @default("pending")
-  paymentType   String       @default("online_prepaid")
-  appointmentId String?      @unique
-  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  createdAt     DateTime     @default(now())
+  id                 String       @id @default(cuid())
+  patientId          String
+  patient            User         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  items              Json
+  totalAmount        Float
+  paymentId          String?
+  paymentType        String       @default("online_prepaid")  // 'online_prepaid' | 'pay_on_collection'
+  paymentStatus      String       @default("pending")          // 'pending' | 'paid' | 'failed' | 'refunded'
+  razorpayOrderId    String?
+  razorpayPaymentId  String?
+  razorpaySignature  String?
+  paymentLinkId      String?
+  paymentLinkUrl     String?
+  paidAt             DateTime?
+  appointmentId      String?      @unique
+  appointment        Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdAt          DateTime     @default(now())
 }
 
 model SystemSetting {

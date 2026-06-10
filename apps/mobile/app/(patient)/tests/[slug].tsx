@@ -3,13 +3,13 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 import { getTestBySlug } from "@/api/patient";
-import { useCartStore } from "@/store/cartStore";
+import { useServerCart } from "@/hooks/useServerCart";
 
 export default function TestDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const query = useQuery({ queryKey: ["patient-test", slug], queryFn: () => getTestBySlug(slug) });
-  const addItem = useCartStore((state) => state.addItem);
-  const isInCart = useCartStore((state) => state.isInCart);
+  const { addItem, isInCart, isAddingItem } = useServerCart();
+  const isInCartFn = isInCart;
   const test = query.data?.data;
 
   if (query.isLoading || !test) {
@@ -17,7 +17,7 @@ export default function TestDetailScreen() {
   }
 
   const currentPrice = test.discountPrice ?? test.price;
-  const inCart = isInCart(test.id);
+  const inCart = isInCartFn(test.id);
 
   return (
     <View className="flex-1 bg-[#F5F5F5]">
@@ -51,8 +51,12 @@ export default function TestDetailScreen() {
       </ScrollView>
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 flex-row items-center gap-3">
         <Text className="text-[#C41E3A] text-xl font-black">₹{currentPrice}</Text>
-        <TouchableOpacity onPress={() => inCart ? router.push("/(patient)/cart") : addItem({ id: test.id, type: "test", name: test.name, price: currentPrice, originalPrice: test.price, testId: test.id })} className="flex-1 bg-[#0F6E56] rounded-xl py-4">
-          <Text className="text-white text-center font-bold">{inCart ? "Go to Cart →" : "Add to Cart"}</Text>
+        <TouchableOpacity
+          onPress={() => inCart ? router.push("/(patient)/cart") : addItem({ testId: test.id })}
+          disabled={isAddingItem && !inCart}
+          className="flex-1 bg-[#0F6E56] rounded-xl py-4"
+        >
+          <Text className="text-white text-center font-bold">{inCart ? "Go to Cart →" : isAddingItem ? "Adding…" : "Add to Cart"}</Text>
         </TouchableOpacity>
       </View>
     </View>

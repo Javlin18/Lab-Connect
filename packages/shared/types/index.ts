@@ -13,6 +13,13 @@ export interface AppointmentParty {
   phone: string;
 }
 
+export interface AppointmentPayment {
+  orderId: string;
+  totalAmount: number;
+  paymentStatus: string;
+  paymentType: string;
+}
+
 export interface Appointment {
   id: string;
   patientId: string;
@@ -36,6 +43,7 @@ export interface Appointment {
   employee?: AppointmentParty | null;
   admin?: AppointmentParty | null;
   report?: TestResult | null;
+  payment?: AppointmentPayment | null;
 }
 
 export interface TestResult {

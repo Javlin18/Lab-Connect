@@ -19,6 +19,7 @@ import { sendOtp, verifyOtp } from "@/api/auth";
 import { Screen } from "@/components/screen";
 import { StepIndicator } from "@/components/employee/StepIndicator";
 import { CollectionChecklist } from "@/components/employee/CollectionChecklist";
+import { PaymentQrCard } from "@/components/employee/PaymentQrCard";
 
 export default function CollectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -336,6 +337,13 @@ export default function CollectScreen() {
             {new Date(collectedAt || Date.now()).toLocaleString()}
           </Text>
         </Animated.View>
+
+        {appointment.payment ? (
+          <PaymentQrCard
+            payment={appointment.payment}
+            patientName={appointment.patient?.name}
+          />
+        ) : null}
 
         <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
           <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">

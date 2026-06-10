@@ -5,14 +5,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getMyOrders, getPackages, getTests, type HealthPackage, type Test } from "@/api/patient";
 import { useAuthStore } from "@/store/auth-store";
-import { useCartStore } from "@/store/cartStore";
+import { useServerCart } from "@/hooks/useServerCart";
 
 const price = (item: { price: number; discountPrice?: number | null }) =>
   item.discountPrice ?? item.price;
 
 function TestCard({ test }: { test: Test }) {
-  const addItem = useCartStore((s) => s.addItem);
-  const inCart = useCartStore((s) => s.isInCart(test.id));
+  const { addItem, isInCart, isAddingItem } = useServerCart();
+  const inCart = isInCart(test.id);
   return (
     <TouchableOpacity
       onPress={() => router.push(`/(patient)/tests/${test.slug}`)}
@@ -36,21 +36,12 @@ function TestCard({ test }: { test: Test }) {
         <Text className="text-[#C41E3A] text-base font-bold">₹{price(test)}</Text>
       </View>
       <TouchableOpacity
-        disabled={inCart}
-        onPress={() =>
-          addItem({
-            id: test.id,
-            type: "test",
-            name: test.name,
-            price: price(test),
-            originalPrice: test.price,
-            testId: test.id,
-          })
-        }
+        disabled={inCart || isAddingItem}
+        onPress={() => addItem({ testId: test.id })}
         className={`mt-3 py-2 rounded-xl items-center ${inCart ? "bg-green-50" : "bg-[#0F6E56]"}`}
       >
         <Text className={`font-bold text-xs ${inCart ? "text-green-600" : "text-white"}`}>
-          {inCart ? "✓ Added" : "+ Add"}
+          {inCart ? "✓ Added" : isAddingItem ? "…" : "+ Add"}
         </Text>
       </TouchableOpacity>
     </TouchableOpacity>
@@ -58,8 +49,8 @@ function TestCard({ test }: { test: Test }) {
 }
 
 function PackageCard({ item }: { item: HealthPackage }) {
-  const addItem = useCartStore((s) => s.addItem);
-  const inCart = useCartStore((s) => s.isInCart(item.id));
+  const { addItem, isInCart, isAddingItem } = useServerCart();
+  const inCart = isInCart(item.id);
   const currentPrice = price(item);
   return (
     <TouchableOpacity

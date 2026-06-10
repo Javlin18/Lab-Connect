@@ -12,7 +12,8 @@ interface TaskCardProps {
 
 export function TaskCard({ appointment, onPress, showDistance = true, distanceText }: TaskCardProps) {
   const firstLineAddress = appointment.address.split(",")[0];
-  const testsJoined = appointment.testTypes.join(", ");
+  const tests = appointment.testTypes ?? [];
+  const testsJoined = tests.length ? tests.join(", ") : "No tests listed";
   const mockDistance = distanceText ?? `${(Math.random() * 5 + 0.5).toFixed(1)} km away`;
 
   return (

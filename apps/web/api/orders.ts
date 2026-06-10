@@ -9,12 +9,14 @@ export async function createOrder(data: {
   address: string;
   pincode: string;
   slot: string;
+  paymentType?: "online_prepaid" | "pay_on_collection";
 }) {
   return apiFetch<{
     orderId: string;
     paymentId: string;
     amount: number;
     keyId: string;
+    paymentType: string;
     patientDetails: typeof data;
   }>("/orders", {
     method: "POST",

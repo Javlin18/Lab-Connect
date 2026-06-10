@@ -3,13 +3,13 @@ import { router } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 import { getPackages, type HealthPackage } from "@/api/patient";
-import { useCartStore } from "@/store/cartStore";
+import { useServerCart } from "@/hooks/useServerCart";
 
 const price = (item: HealthPackage) => item.discountPrice ?? item.price;
 
 export default function PackagesScreen() {
   const query = useQuery({ queryKey: ["patient-packages"], queryFn: () => getPackages() });
-  const addItem = useCartStore((state) => state.addItem);
+  const { addItem, isInCart, isAddingItem } = useServerCart();
 
   return (
     <ScrollView className="flex-1 bg-[#F5F5F5]" contentContainerClassName="p-5 pb-28">
@@ -30,8 +30,14 @@ export default function PackagesScreen() {
             <TouchableOpacity onPress={() => router.push(`/(patient)/packages/${item.slug}`)} className="flex-1 border border-[#0F6E56] rounded-xl py-3">
               <Text className="text-[#0F6E56] font-bold text-center">View Details</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => addItem({ id: item.id, type: "package", name: item.name, price: price(item), originalPrice: item.price, packageId: item.id, count: item.tests?.length ?? 0 })} className="flex-1 bg-[#0F6E56] rounded-xl py-3">
-              <Text className="text-white font-bold text-center">Add to Cart</Text>
+            <TouchableOpacity
+              disabled={isInCart(item.id) || isAddingItem}
+              onPress={() => addItem({ packageId: item.id })}
+              className={`flex-1 rounded-xl py-3 ${isInCart(item.id) ? "bg-green-50" : "bg-[#0F6E56]"}`}
+            >
+              <Text className={`font-bold text-center ${isInCart(item.id) ? "text-green-600" : "text-white"}`}>
+                {isInCart(item.id) ? "Added ✓" : "Add to Cart"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
