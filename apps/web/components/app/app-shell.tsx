@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Plus,
   Receipt,
   Settings,
   Stethoscope,
@@ -28,17 +29,18 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 
 const navItems = [
-  { href: "/admin/dashboard",    icon: LayoutDashboard, label: "Dashboard",    group: "main" },
-  { href: "/admin/appointments", icon: Stethoscope,     label: "Appointments", group: "main" },
-  { href: "/admin/orders",       icon: Receipt,         label: "Orders",       group: "main" },
-  { href: "/admin/reports",      icon: FileText,        label: "Reports",      group: "main" },
-  { href: "/admin/notifications",icon: Bell,            label: "Notifications",group: "main" },
-  { href: "/admin/tests",        icon: FlaskConical,    label: "Tests",        group: "catalog" },
-  { href: "/admin/packages",     icon: Boxes,           label: "Packages",     group: "catalog" },
-  { href: "/admin/pricing",      icon: Coins,           label: "Pricing",      group: "catalog" },
-  { href: "/admin/employees",    icon: Users,           label: "Employees",    group: "people" },
-  { href: "/admin/patients",     icon: UserSquare2,     label: "Patients",     group: "people" },
-  { href: "/admin/settings",     icon: Settings,        label: "Settings",     group: "system" },
+  { href: "/admin/dashboard",         icon: LayoutDashboard, label: "Dashboard",        group: "main" },
+  { href: "/admin/appointments",      icon: Stethoscope,     label: "Appointments",     group: "main" },
+  { href: "/admin/appointments/new",  icon: Plus,            label: "New Appointment",  group: "main" },
+  { href: "/admin/orders",            icon: Receipt,         label: "Orders",           group: "main" },
+  { href: "/admin/reports",           icon: FileText,        label: "Reports",          group: "main" },
+  { href: "/admin/notifications",     icon: Bell,            label: "Notifications",    group: "main" },
+  { href: "/admin/tests",             icon: FlaskConical,    label: "Tests",            group: "catalog" },
+  { href: "/admin/packages",          icon: Boxes,           label: "Packages",         group: "catalog" },
+  { href: "/admin/pricing",           icon: Coins,           label: "Pricing",          group: "catalog" },
+  { href: "/admin/employees",         icon: Users,           label: "Employees",        group: "people" },
+  { href: "/admin/patients",          icon: UserSquare2,     label: "Patients",         group: "people" },
+  { href: "/admin/settings",          icon: Settings,        label: "Settings",         group: "system" },
 ];
 
 const groups = [
@@ -76,7 +78,8 @@ function Sidebar({ close }: { close?: () => void }) {
               <div className="space-y-0.5">
                 {items.map((item) => {
                   const Icon = item.icon;
-                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const active = pathname === item.href ||
+                    (item.href !== "/admin/appointments/new" && pathname.startsWith(`${item.href}/`));
                   return (
                     <Link
                       key={item.href}

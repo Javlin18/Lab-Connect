@@ -20,6 +20,7 @@ import { useState } from "react";
 
 import { getCart, removeFromCart } from "@/api/cart";
 import { createOrder } from "@/api/orders";
+import { LocationPicker, type LocationData } from "@/components/app/location-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,12 +51,14 @@ export default function CartPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
+  const [name, setName]     = useState("");
+  const [age, setAge]       = useState("");
   const [gender, setGender] = useState("male");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [pincode, setPincode] = useState("");
+  const [phone, setPhone]   = useState("");
+
+  const [location, setLocation] = useState<LocationData>({
+    address: "", city: "", pincode: "", landmark: "", latitude: null, longitude: null,
+  });
 
   const nextDays = getNextDays();
   const [selectedDate, setSelectedDate] = useState(nextDays[0].dateStr);
@@ -63,11 +66,11 @@ export default function CartPage() {
 
   const cartQuery = useQuery({
     queryKey: ["cart"],
-    queryFn: () => getCart(),
-    enabled: status === "authenticated",
+    queryFn:  () => getCart(),
+    enabled:  status === "authenticated",
   });
 
-  const cart = cartQuery.data?.data;
+  const cart  = cartQuery.data?.data;
   const items = cart?.items || [];
 
   const removeMutation = useMutation({
@@ -96,7 +99,7 @@ export default function CartPage() {
             <ShoppingBag className="h-9 w-9 text-red-400" />
           </div>
           <h3 className="font-bold text-slate-800 text-xl">Login Required</h3>
-          <p className="text-sm text-slate-400 mt-2">Please login as a patient to view your cart and proceed to checkout.</p>
+          <p className="text-sm text-slate-400 mt-2">Please login as a patient to view your cart.</p>
           <Link href="/login">
             <Button className="mt-6 rounded-xl bg-red-600 hover:bg-red-700 text-white px-8">Login Now</Button>
           </Link>
@@ -115,13 +118,30 @@ export default function CartPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !age || !phone || !address || !pincode) {
-      toast({ title: "Fill all required fields", variant: "destructive" });
-      return;
+    if (!name || !age || !phone) {
+      toast({ title: "Fill all patient details", variant: "destructive" }); return;
     }
+    if (!location.address || !location.city || !location.pincode) {
+      toast({ title: "Please complete your collection address", variant: "destructive" }); return;
+    }
+
+    // Build full address string including landmark + coords for backend
+    const fullAddress = [
+      location.address,
+      location.landmark ? `(Near: ${location.landmark})` : "",
+      location.city,
+      location.pincode,
+      location.latitude ? `[${location.latitude.toFixed(5)},${location.longitude!.toFixed(5)}]` : "",
+    ].filter(Boolean).join(", ");
+
     checkoutMutation.mutate({
-      patientName: name, patientAge: parseInt(age), patientGender: gender,
-      patientPhone: phone, address, pincode, slot: `${selectedDate} ${selectedSlot}`,
+      patientName:   name,
+      patientAge:    parseInt(age),
+      patientGender: gender,
+      patientPhone:  phone,
+      address:       fullAddress,
+      pincode:       location.pincode,
+      slot:          `${selectedDate} ${selectedSlot}`,
     });
   };
 
@@ -140,22 +160,19 @@ export default function CartPage() {
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-100 shadow-sm">
-          <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center mb-5">
-            <ShoppingBag className="h-9 w-9 text-slate-300" />
-          </div>
+          <ShoppingBag className="h-14 w-14 text-slate-300 mb-4" />
           <h3 className="font-bold text-slate-700 text-lg">Cart is Empty</h3>
-          <p className="text-sm text-slate-400 mt-2 max-w-xs text-center">Add diagnostic tests or health packages to start your booking.</p>
           <Link href="/tests">
-            <Button className="mt-6 rounded-xl bg-red-600 hover:bg-red-700 text-white px-8">Browse Tests</Button>
+            <Button className="mt-5 rounded-xl bg-red-600 hover:bg-red-700 text-white px-8">Browse Tests</Button>
           </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* Left column */}
+          {/* ── Left column ─────────────────────────────────────────────────── */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Cart items card */}
+            {/* Cart items */}
             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-50 flex items-center gap-2">
                 <Tag className="h-4 w-4 text-red-500" />
@@ -163,7 +180,7 @@ export default function CartPage() {
               </div>
               <div className="divide-y divide-slate-50 px-6">
                 {items.map((item) => {
-                  const obj = item.test || item.package;
+                  const obj  = item.test || item.package;
                   if (!obj) return null;
                   const disc = obj.discountPrice ? Math.round(((obj.price - obj.discountPrice) / obj.price) * 100) : 0;
                   return (
@@ -179,9 +196,7 @@ export default function CartPage() {
                               {item.test ? "Blood Test" : "Health Package"}
                             </span>
                             {disc > 0 && (
-                              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">
-                                {disc}% OFF
-                              </span>
+                              <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-bold">{disc}% OFF</span>
                             )}
                           </div>
                         </div>
@@ -189,9 +204,7 @@ export default function CartPage() {
                       <div className="flex items-center gap-4 flex-shrink-0">
                         <div className="text-right">
                           <p className="font-black text-slate-800">₹{obj.discountPrice ?? obj.price}</p>
-                          {obj.discountPrice && (
-                            <p className="text-[10px] text-slate-400 line-through">₹{obj.price}</p>
-                          )}
+                          {obj.discountPrice && <p className="text-[10px] text-slate-400 line-through">₹{obj.price}</p>}
                         </div>
                         <button
                           className="h-8 w-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition flex items-center justify-center"
@@ -207,51 +220,53 @@ export default function CartPage() {
               </div>
             </div>
 
-            {/* Patient details form */}
+            {/* Patient details + location form */}
             <form className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden" onSubmit={handleSubmit}>
+              {/* Patient info section */}
               <div className="px-6 py-4 border-b border-slate-50 flex items-center gap-2">
                 <User className="h-4 w-4 text-red-500" />
                 <h2 className="font-bold text-slate-800 text-sm">Patient Details</h2>
               </div>
               <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="patientName">Full Name *</Label>
-                  <Input className="rounded-xl" id="patientName" onChange={(e) => setName(e.target.value)} placeholder="Rahul Sharma" required value={name} />
+                  <Label htmlFor="pName">Full Name *</Label>
+                  <Input className="rounded-xl h-10" id="pName" onChange={(e) => setName(e.target.value)} placeholder="Rahul Sharma" required value={name} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="patientAge">Age *</Label>
-                  <Input className="rounded-xl" id="patientAge" min="1" onChange={(e) => setAge(e.target.value)} placeholder="32" required type="number" value={age} />
+                  <Label htmlFor="pAge">Age *</Label>
+                  <Input className="rounded-xl h-10" id="pAge" min="1" onChange={(e) => setAge(e.target.value)} placeholder="32" required type="number" value={age} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="patientGender">Gender *</Label>
-                  <select className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20" id="patientGender" onChange={(e) => setGender(e.target.value)} value={gender}>
+                  <Label htmlFor="pGender">Gender *</Label>
+                  <select className="w-full rounded-xl border border-slate-200 bg-white px-3 h-10 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20" id="pGender" onChange={(e) => setGender(e.target.value)} value={gender}>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="patientPhone">Phone Number *</Label>
-                  <Input className="rounded-xl" id="patientPhone" onChange={(e) => setPhone(e.target.value)} placeholder="+91 9876543210" required type="tel" value={phone} />
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="address">Collection Address *</Label>
-                  <Input className="rounded-xl" id="address" onChange={(e) => setAddress(e.target.value)} placeholder="House No., Street, Colony, City" required value={address} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="pincode">Pincode *</Label>
-                  <Input className="rounded-xl" id="pincode" onChange={(e) => setPincode(e.target.value)} placeholder="110001" required value={pincode} />
+                  <Label htmlFor="pPhone">Phone Number *</Label>
+                  <Input className="rounded-xl h-10" id="pPhone" onChange={(e) => setPhone(e.target.value)} placeholder="+91 9876543210" required type="tel" value={phone} />
                 </div>
               </div>
 
+              {/* Location section */}
+              <div className="px-6 pb-6 border-t border-slate-50 pt-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="h-4 w-4 text-red-500" />
+                  <h3 className="font-bold text-slate-800 text-sm">Collection Location</h3>
+                </div>
+                <LocationPicker value={location} onChange={setLocation} />
+              </div>
+
               {/* Slot picker */}
-              <div className="px-6 pb-6 space-y-4 border-t border-slate-50 pt-4">
+              <div className="px-6 pb-6 border-t border-slate-50 pt-5 space-y-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-red-500" />
-                  <h3 className="font-bold text-slate-800 text-sm">Select Collection Date & Slot</h3>
+                  <h3 className="font-bold text-slate-800 text-sm">Collection Date & Time Slot</h3>
                 </div>
 
-                {/* Date */}
+                {/* Date grid */}
                 <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                   {nextDays.map((d) => (
                     <button
@@ -295,15 +310,12 @@ export default function CartPage() {
             </form>
           </div>
 
-          {/* Right — Price Summary */}
+          {/* ── Right — Price Summary ────────────────────────────────────────── */}
           <div className="space-y-4">
             <div className="bg-white rounded-3xl border border-slate-100 shadow-md overflow-hidden sticky top-24">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-red-600 to-red-500 px-6 py-4">
-                <div className="flex items-center gap-2 text-white">
-                  <CreditCard className="h-4 w-4" />
-                  <h3 className="font-bold text-sm">Price Summary</h3>
-                </div>
+              <div className="bg-gradient-to-r from-red-600 to-red-500 px-6 py-4 flex items-center gap-2 text-white">
+                <CreditCard className="h-4 w-4" />
+                <h3 className="font-bold text-sm">Price Summary</h3>
               </div>
 
               <div className="p-6 space-y-3">
@@ -313,7 +325,7 @@ export default function CartPage() {
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-sm text-emerald-600 font-medium">
-                    <span>Discount Applied</span>
+                    <span>Discount</span>
                     <span>− ₹{discount}</span>
                   </div>
                 )}
@@ -327,11 +339,24 @@ export default function CartPage() {
                   <span className="font-bold text-slate-800">Total</span>
                   <span className="text-xl font-black text-red-600">₹{total}</span>
                 </div>
-
                 {discount > 0 && (
                   <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2 flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                    <p className="text-xs text-emerald-700 font-semibold">You save ₹{discount} on this order!</p>
+                    <p className="text-xs text-emerald-700 font-semibold">You save ₹{discount}!</p>
+                  </div>
+                )}
+
+                {/* Location preview */}
+                {location.address && (
+                  <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">Collection Location</p>
+                    <p className="text-xs text-slate-700 line-clamp-2">{location.address}</p>
+                    {location.city && <p className="text-[10px] text-slate-500 mt-0.5">{location.city} — {location.pincode}</p>}
+                    {location.latitude && (
+                      <p className="text-[10px] text-emerald-600 mt-1 flex items-center gap-1">
+                        <MapPin className="h-3 w-3" /> GPS Pinned ✓
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -340,13 +365,12 @@ export default function CartPage() {
                 <Button
                   className="w-full rounded-2xl bg-red-600 hover:bg-red-700 text-white h-12 font-bold shadow-lg shadow-red-200 text-sm"
                   disabled={checkoutMutation.isPending}
-                  onClick={() => { const btn = document.getElementById("hidden-submit-btn"); if (btn) btn.click(); }}
+                  onClick={() => { document.getElementById("hidden-submit-btn")?.click(); }}
                 >
-                  {checkoutMutation.isPending ? "Creating Order..." : "Proceed to Payment →"}
+                  {checkoutMutation.isPending ? "Creating Order…" : "Proceed to Payment →"}
                 </Button>
               </div>
 
-              {/* Trust badges */}
               <div className="border-t border-slate-50 px-6 py-4 space-y-2">
                 {["256-bit SSL Encrypted", "NABL Certified Lab", "Free Cancellation"].map((t) => (
                   <div className="flex items-center gap-2 text-[10px] text-slate-400" key={t}>

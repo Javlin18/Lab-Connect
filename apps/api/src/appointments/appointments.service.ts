@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 
 import { toSharedAppointment } from "../common/mappers/entity.mappers";
 import type { AuthenticatedUser } from "../common/types/authenticated-user";
@@ -152,6 +152,33 @@ export class AppointmentsService {
     };
   }
 
+  async findAvailableForEmployee(employeeId: string) {
+    const employee = await this.ensureEmployeeProfile(employeeId);
+
+    if (!employee.isAvailable) {
+      return {
+        data: [],
+        message: "Employee is busy"
+      };
+    }
+
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        employeeId: null,
+        status: "pending"
+      },
+      include: this.appointmentInclude,
+      orderBy: {
+        createdAt: "asc"
+      }
+    });
+
+    return {
+      data: appointments.map(toSharedAppointment),
+      message: "Available appointments fetched"
+    };
+  }
+
   async findOne(id: string, user: AuthenticatedUser) {
     const appointment = await this.prisma.appointment.findUnique({
       where: { id },
@@ -202,6 +229,56 @@ export class AppointmentsService {
     };
   }
 
+  async claim(id: string, employeeId: string) {
+    await this.ensureAvailableEmployee(employeeId);
+
+    const result = await this.prisma.appointment.updateMany({
+      where: {
+        id,
+        employeeId: null,
+        status: "pending"
+      },
+      data: {
+        employeeId,
+        status: "assigned"
+      }
+    });
+
+    if (result.count === 0) {
+      const appointment = await this.prisma.appointment.findUnique({
+        where: { id }
+      });
+
+      if (!appointment) {
+        throw new NotFoundException("Appointment not found");
+      }
+
+      throw new ConflictException("This booking has already been selected by another employee");
+    }
+
+    await this.prisma.employee.update({
+      where: { userId: employeeId },
+      data: { isAvailable: false }
+    });
+
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id },
+      include: this.appointmentInclude
+    });
+
+    await this.notificationsService.createNotification(
+      employeeId,
+      "Booking selected",
+      "You selected a patient collection booking.",
+      "appointment_assigned"
+    );
+
+    return {
+      data: toSharedAppointment(appointment!),
+      message: "Appointment selected"
+    };
+  }
+
   async accept(id: string, employeeId: string) {
     const appointment = await this.assertEmployeeOwnsAppointment(id, employeeId);
 
@@ -248,6 +325,13 @@ export class AppointmentsService {
       `Appointment status changed to ${dto.status}.`,
       "appointment_status"
     );
+
+    if (dto.status === "collected" || dto.status === "completed") {
+      await this.prisma.employee.update({
+        where: { userId: employeeId },
+        data: { isAvailable: true }
+      });
+    }
 
     return {
       data: toSharedAppointment(updated),
@@ -320,5 +404,32 @@ export class AppointmentsService {
     }
 
     return appointment;
+  }
+
+  private async ensureAvailableEmployee(employeeId: string) {
+    const employee = await this.ensureEmployeeProfile(employeeId);
+
+    if (!employee.isAvailable) {
+      throw new BadRequestException("Employee is currently busy");
+    }
+
+    return employee;
+  }
+
+  private async ensureEmployeeProfile(employeeId: string) {
+    const employee = await this.prisma.employee.findUnique({
+      where: {
+        userId: employeeId
+      },
+      include: {
+        user: true
+      }
+    });
+
+    if (!employee || employee.user.role !== "employee") {
+      throw new NotFoundException("Employee not found");
+    }
+
+    return employee;
   }
 }

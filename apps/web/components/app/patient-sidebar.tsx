@@ -2,12 +2,14 @@
 
 import {
   BookOpen,
+  Boxes,
   ClipboardList,
   FileText,
   Headphones,
   Home,
   LogOut,
   MapPin,
+  ShoppingCart,
   User2,
   X
 } from "lucide-react";
@@ -18,12 +20,14 @@ import { useEffect } from "react";
 
 const menuItems = [
   { icon: Home,          label: "Home",             href: "/" },
-  { icon: BookOpen,      label: "Book Test",         href: "/tests" },
-  { icon: ClipboardList, label: "My Bookings",       href: "/dashboard/my-bookings" },
-  { icon: MapPin,        label: "Track Collection",  href: "/dashboard/track-collection" },
-  { icon: FileText,      label: "My Reports",        href: "/dashboard/reports" },
-  { icon: User2,         label: "My Profile",        href: "/dashboard/my-profile" },
-  { icon: Headphones,    label: "Support",           href: "/dashboard/support" },
+  { icon: BookOpen,      label: "Book Test",        href: "/tests" },
+  { icon: Boxes,         label: "Packages",         href: "/packages" },
+  { icon: ShoppingCart,  label: "My Cart",          href: "/cart" },
+  { icon: ClipboardList, label: "My Bookings",      href: "/dashboard/my-bookings" },
+  { icon: MapPin,        label: "Track Collection", href: "/dashboard/track-collection" },
+  { icon: FileText,      label: "My Reports",       href: "/dashboard/reports" },
+  { icon: User2,         label: "My Profile",       href: "/dashboard/my-profile" },
+  { icon: Headphones,    label: "Support",          href: "/dashboard/support" },
 ];
 
 interface PatientSidebarProps {
