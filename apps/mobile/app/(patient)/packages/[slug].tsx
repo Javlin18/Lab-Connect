@@ -3,12 +3,12 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 import { getPackageBySlug } from "@/api/patient";
-import { useCartStore } from "@/store/cartStore";
+import { useServerCart } from "@/hooks/useServerCart";
 
 export default function PackageDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const query = useQuery({ queryKey: ["patient-package", slug], queryFn: () => getPackageBySlug(slug) });
-  const addItem = useCartStore((state) => state.addItem);
+  const { addItem, isInCart, isAddingItem } = useServerCart();
   const item = query.data?.data;
 
   if (query.isLoading || !item) {
@@ -42,8 +42,14 @@ export default function PackageDetailScreen() {
       </ScrollView>
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 flex-row items-center gap-3">
         <Text className="text-[#C41E3A] text-xl font-black">₹{currentPrice}</Text>
-        <TouchableOpacity onPress={() => addItem({ id: item.id, type: "package", name: item.name, price: currentPrice, originalPrice: item.price, packageId: item.id, count: item.tests?.length ?? 0 })} className="flex-1 bg-[#0F6E56] rounded-xl py-4">
-          <Text className="text-white text-center font-bold">Add to Cart</Text>
+        <TouchableOpacity
+          onPress={() => isInCart(item.id) ? router.push("/(patient)/cart") : addItem({ packageId: item.id })}
+          disabled={isAddingItem && !isInCart(item.id)}
+          className={`flex-1 rounded-xl py-4 ${isInCart(item.id) ? "bg-green-600" : "bg-[#0F6E56]"}`}
+        >
+          <Text className="text-white text-center font-bold">
+            {isInCart(item.id) ? "Go to Cart →" : isAddingItem ? "Adding…" : "Add to Cart"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

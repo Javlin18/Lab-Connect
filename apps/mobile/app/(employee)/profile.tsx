@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/store/auth-store";
@@ -8,7 +8,7 @@ import { getHistory } from "@/api/employee";
 import { Screen } from "@/components/screen";
 
 export default function EmployeeProfileScreen() {
-  const router = useRouter();
+
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
 
@@ -38,11 +38,11 @@ export default function EmployeeProfileScreen() {
     : "EM";
 
   return (
-    <Screen title="My Profile">
+    <Screen title="My Profile" scroll={false}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Avatar */}
         <View className="items-center py-6">
-          <View className="h-20 w-20 bg-emerald-800 rounded-full items-center justify-center shadow-md">
+          <View className="h-20 w-20 bg-emerald-800 rounded-full items-center justify-center" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 3 }}>
             <Text className="text-white text-2xl font-black">{initials}</Text>
           </View>
           <Text className="text-lg font-black text-slate-800 mt-3">
@@ -127,7 +127,7 @@ export default function EmployeeProfileScreen() {
           className="w-full bg-red-500 rounded-2xl py-4 items-center justify-center mb-8"
           onPress={async () => {
             await logout();
-            router.replace("/(auth)/login");
+            router.replace("/(auth)/login" as never);
           }}
         >
           <Text className="text-white font-black text-sm">Logout Account</Text>

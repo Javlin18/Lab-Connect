@@ -12,8 +12,11 @@ interface TaskCardProps {
 
 export function TaskCard({ appointment, onPress, showDistance = true, distanceText }: TaskCardProps) {
   const firstLineAddress = appointment.address.split(",")[0];
-  const testsJoined = appointment.testTypes.join(", ");
+  const tests = appointment.testTypes ?? [];
+  const testsJoined = tests.length ? tests.join(", ") : "No tests listed";
   const mockDistance = distanceText ?? `${(Math.random() * 5 + 0.5).toFixed(1)} km away`;
+
+  const payment = appointment.payment;
 
   return (
     <View className="bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm mb-3">
@@ -37,6 +40,33 @@ export function TaskCard({ appointment, onPress, showDistance = true, distanceTe
           Slot: <Text className="text-slate-600 font-normal">{appointment.slot}</Text>
         </Text>
       </View>
+
+      {/* Payment Badge */}
+      {payment && (
+        <View className="mb-2">
+          {payment.paymentType === "pay_on_collection" && payment.paymentStatus === "pending" && (
+            <View className="bg-orange-100 border border-orange-200 rounded-full px-3 py-1 self-start">
+              <Text className="text-xs font-bold text-orange-700">
+                ₹{payment.totalAmount} to collect
+              </Text>
+            </View>
+          )}
+          {payment.paymentType === "pay_on_collection" && payment.paymentStatus === "paid" && (
+            <View className="bg-green-100 border border-green-200 rounded-full px-3 py-1 self-start">
+              <Text className="text-xs font-bold text-green-700">
+                Payment done ✓
+              </Text>
+            </View>
+          )}
+          {payment.paymentType === "online_prepaid" && (
+            <View className="bg-slate-100 border border-slate-200 rounded-full px-3 py-1 self-start">
+              <Text className="text-xs font-bold text-slate-500">
+                Paid online
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-slate-100">
         {showDistance && (

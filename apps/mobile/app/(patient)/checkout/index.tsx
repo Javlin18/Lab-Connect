@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { router } from "expo-router";
+import * as Location from "expo-location";
 import {
+  ActivityIndicator,
   Alert,
-  FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
@@ -12,10 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import RazorpayCheckout from "react-native-razorpay";
 
-import { addServerCartItem, createOrder, verifyPayment } from "@/api/patient";
+import { createOrder } from "@/api/patient";
+import { createPaymentOrder, verifyRazorpayPayment } from "@/api/payments";
+import { useServerCart } from "@/hooks/useServerCart";
+import { RAZORPAY_KEY_ID } from "@/lib/env";
 import { useAuthStore } from "@/store/auth-store";
-import { useCartStore } from "@/store/cartStore";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const genders = ["Male", "Female", "Other"];
@@ -52,10 +56,17 @@ function Drum({
   onSelect: (v: number) => void;
   label: (v: number) => string;
 }) {
-  const ref = useRef<FlatList>(null);
+  const ref = useRef<ScrollView>(null);
   const VISIBLE = 5;
   const PAD = Math.floor(VISIBLE / 2);
   const padded = [...Array(PAD).fill(-1), ...items, ...Array(PAD).fill(-1)];
+
+  useEffect(() => {
+    const idx = items.indexOf(selected);
+    if (idx >= 0) {
+      ref.current?.scrollTo({ y: ITEM_H * idx, animated: false });
+    }
+  }, []);
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_H);
@@ -80,22 +91,17 @@ function Drum({
           borderColor: "#0F6E5640",
         }}
       />
-      <FlatList
+      <ScrollView
         ref={ref}
-        data={padded}
-        keyExtractor={(_, i) => String(i)}
+        nestedScrollEnabled
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_H}
         decelerationRate="fast"
         onMomentumScrollEnd={onMomentumEnd}
-        initialScrollIndex={items.indexOf(selected)}
-        getItemLayout={(_, index) => ({
-          length: ITEM_H,
-          offset: ITEM_H * index,
-          index,
-        })}
-        renderItem={({ item }) => (
+      >
+        {padded.map((item, i) => (
           <View
+            key={i}
             style={{
               height: ITEM_H,
               alignItems: "center",
@@ -114,8 +120,8 @@ function Drum({
               </Text>
             ) : null}
           </View>
-        )}
-      />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -123,9 +129,8 @@ function Drum({
 // ── Main Screen ───────────────────────────────────────────────────────────────
 export default function CheckoutScreen() {
   const user = useAuthStore((s) => s.user);
-  const items = useCartStore((s) => s.items);
-  const total = useCartStore((s) => s.getTotalPrice());
-  const clearCart = useCartStore((s) => s.clearCart);
+  const { items, getTotalPrice, clearCart } = useServerCart();
+  const total = getTotalPrice();
 
   const [name, setName] = useState(user?.name ?? "");
   const [age, setAge] = useState("");
@@ -138,6 +143,60 @@ export default function CheckoutScreen() {
   const [hour, setHour] = useState(7);
   const [minute, setMinute] = useState(0);
   const [paymentType, setPaymentType] = useState<"online_prepaid" | "pay_on_collection">("online_prepaid");
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  // ── Auto-fill address from GPS (Nominatim) ────────────────────────────────
+  const fetchLocation = async () => {
+    setLocationLoading(true);
+    try {
+      // 1. Get GPS coords
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission Denied", "Enable location in Settings to auto-fill address.");
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const { latitude, longitude } = loc.coords;
+
+      // 2. Reverse geocode via Nominatim (OpenStreetMap) — better India coverage
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+        { headers: { "Accept-Language": "en-IN,en", "User-Agent": "LabconnectApp/1.0" } }
+      );
+      const data = await res.json();
+      const a = data?.address ?? {};
+
+      const line1 = [a.house_number, a.road || a.pedestrian || a.footway]
+        .filter(Boolean).join(", ") || a.amenity || a.building || "";
+      const line2 = a.suburb || a.neighbourhood || a.village || a.county || "";
+      const cityVal = a.city || a.town || a.city_district || a.state_district || a.state || "";
+      const pin    = (a.postcode ?? "").replace(/\D/g, "").slice(0, 6);
+
+      if (line1) setAddress1(line1);
+      if (line2) setAddress2(line2);
+      if (cityVal) setCity(cityVal);
+      if (pin) setPincode(pin);
+
+      if (!line1 && !cityVal) {
+        Alert.alert("Partial address", "Only some fields could be filled. Please complete manually.");
+      }
+    } catch {
+      // 3. IP fallback (works on emulator too)
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        const d = await res.json();
+        if (d.city) setCity(d.city);
+        if (d.postal) setPincode(d.postal.replace(/\D/g, "").slice(0, 6));
+        if (d.region) setAddress2(d.region);
+        Alert.alert("Note", "GPS unavailable — filled city from IP. Please enter street address.");
+      } catch {
+        Alert.alert("Error", "Could not detect location. Please fill manually.");
+      }
+    } finally {
+      setLocationLoading(false);
+    }
+  };
 
   const timeLabel = useMemo(
     () => `${to12(hour).replace(/ (AM|PM)/, ":")}${pad(minute)} ${hour < 12 ? "AM" : "PM"}`,
@@ -148,11 +207,14 @@ export default function CheckoutScreen() {
 
   const payMutation = useMutation({
     mutationFn: async () => {
-      if (!name || !age || !address1 || !city || pincode.length !== 6)
-        throw new Error("Please fill all required fields");
-      for (const item of items) {
-        await addServerCartItem({ testId: item.testId, packageId: item.packageId });
-      }
+      if (!name.trim())    throw new Error("Missing: Patient name");
+      if (!age.trim())     throw new Error("Missing: Patient age");
+      if (!address1.trim()) throw new Error("Missing: Address line 1");
+      if (!city.trim())    throw new Error("Missing: City");
+      if (pincode.length < 5) throw new Error(`Missing: Pincode (enter 6 digits, got ${pincode.length})`);
+
+      // Items are already on the server via useServerCart — no need to push again
+      // Step 1: Create order
       const order = await createOrder({
         patientName: name,
         patientAge: Number(age),
@@ -163,10 +225,63 @@ export default function CheckoutScreen() {
         slot,
         paymentType,
       });
-      // Only verify payment for online prepaid
-      if (paymentType === "online_prepaid") {
-        await verifyPayment({ orderId: order.data.paymentId, status: "paid" });
+
+      // Pay on collection — no Razorpay, go straight to success
+      if (paymentType === "pay_on_collection") {
+        clearCart();
+        router.replace({
+          pathname: "/(patient)/checkout/success",
+          params: {
+            id: order.data.orderId,
+            total: String(total),
+            slot: timeLabel,
+            date: selectedDate,
+            tests: summary,
+          },
+        });
+        return;
       }
+
+      // Step 2: Create Razorpay order on backend
+      const payment = await createPaymentOrder({
+        orderId: order.data.orderId,
+        amount: total,
+      });
+
+      // Step 3: Open Razorpay native checkout
+      const options = {
+        description: "Medical Test Booking",
+        currency: "INR",
+        key: RAZORPAY_KEY_ID,
+        amount: String(payment.data.amount),
+        order_id: payment.data.razorpayOrderId,
+        name: "Labconnect Diagnostics",
+        prefill: {
+          contact: user?.phone ?? "",
+          name: user?.name ?? name,
+        },
+        theme: { color: "#C41E3A" },
+      };
+
+      let paymentData: any;
+      try {
+        paymentData = await RazorpayCheckout.open(options);
+      } catch (err: any) {
+        // User cancelled — err.code === 0, err.description === "Payment cancelled by user"
+        if (err?.code === 0 || err?.description?.toLowerCase().includes("cancel")) {
+          return; // silent exit — stay on checkout screen
+        }
+        throw new Error(err?.description ?? "Payment failed. Please try again.");
+      }
+
+      // Step 4: Verify signature on backend
+      await verifyRazorpayPayment({
+        orderId: order.data.orderId,
+        razorpayOrderId: paymentData.razorpay_order_id,
+        razorpayPaymentId: paymentData.razorpay_payment_id,
+        razorpaySignature: paymentData.razorpay_signature,
+      });
+
       clearCart();
       router.replace({
         pathname: "/(patient)/checkout/success",
@@ -225,11 +340,52 @@ export default function CheckoutScreen() {
 
       {/* ── Address ── */}
       <View className="bg-white rounded-2xl p-4 mt-5 border border-gray-100 gap-3">
-        <Text className="font-black">Collection Address</Text>
-        <TextInput className="border border-gray-200 rounded-xl px-4 py-3 text-sm" value={address1} onChangeText={setAddress1} placeholder="Address Line 1" />
-        <TextInput className="border border-gray-200 rounded-xl px-4 py-3 text-sm" value={address2} onChangeText={setAddress2} placeholder="Address Line 2 (optional)" />
-        <TextInput className="border border-gray-200 rounded-xl px-4 py-3 text-sm" value={city} onChangeText={setCity} placeholder="City" />
-        <TextInput className="border border-gray-200 rounded-xl px-4 py-3 text-sm" value={pincode} onChangeText={(t) => setPincode(t.replace(/\D/g, "").slice(0, 6))} keyboardType="numeric" placeholder="Pincode" />
+        {/* Header row */}
+        <View className="flex-row items-center justify-between">
+          <Text className="font-black">Collection Address</Text>
+          <TouchableOpacity
+            onPress={fetchLocation}
+            disabled={locationLoading}
+            className="flex-row items-center gap-1.5 bg-[#E8F5F1] px-3 py-1.5 rounded-xl"
+          >
+            {locationLoading ? (
+              <ActivityIndicator size="small" color="#0F6E56" />
+            ) : (
+              <Text className="text-base">📍</Text>
+            )}
+            <Text className="text-[#0F6E56] text-xs font-bold">
+              {locationLoading ? "Detecting…" : "Use My Location"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Address fields */}
+        <TextInput
+          className="border border-gray-200 rounded-xl px-4 py-3 text-sm"
+          value={address1}
+          onChangeText={setAddress1}
+          placeholder="Address Line 1 (House/Street)"
+        />
+        <TextInput
+          className="border border-gray-200 rounded-xl px-4 py-3 text-sm"
+          value={address2}
+          onChangeText={setAddress2}
+          placeholder="Area / District (optional)"
+        />
+        <TextInput
+          className="border border-gray-200 rounded-xl px-4 py-3 text-sm"
+          value={city}
+          onChangeText={setCity}
+          placeholder="City"
+        />
+        <TextInput
+          className="border border-gray-200 rounded-xl px-4 py-3 text-sm"
+          value={pincode}
+          onChangeText={(t) => setPincode(t.replace(/\D/g, "").slice(0, 6))}
+          keyboardType="numeric"
+          placeholder="Pincode"
+          maxLength={6}
+        />
       </View>
 
       {/* ── Date ── */}
@@ -370,15 +526,15 @@ export default function CheckoutScreen() {
       <TouchableOpacity
         disabled={payMutation.isPending}
         onPress={() => payMutation.mutate()}
-        className={`rounded-xl py-4 mt-4 ${payMutation.isPending ? "bg-[#0F6E56]/60" : "bg-[#0F6E56]"}`}
+        className={`rounded-xl py-4 mt-4 items-center ${payMutation.isPending ? "bg-[#C41E3A]/50" : "bg-[#C41E3A]"}`}
       >
-        <Text className="text-white text-center font-bold text-base">
-          {payMutation.isPending
-            ? "Processing..."
-            : paymentType === "pay_on_collection"
-            ? "Confirm Booking"
-            : `Pay ₹${total}`}
-        </Text>
+        {payMutation.isPending ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text className="text-white text-center font-bold text-base">
+            {paymentType === "pay_on_collection" ? "Confirm Booking" : `Pay ₹${total}`}
+          </Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );

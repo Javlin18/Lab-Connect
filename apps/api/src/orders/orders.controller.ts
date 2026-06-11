@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { Public } from "../common/decorators/public.decorator";
@@ -36,5 +36,16 @@ export class OrdersController {
   @Get()
   findAll() {
     return this.ordersService.findAll();
+  }
+
+  @Roles("employee", "admin")
+  @Get(":id")
+  async findOne(@Param("id") id: string) {
+    const order = await this.ordersService.findById(id);
+    return {
+      success: true,
+      data: order,
+      message: "Order fetched"
+    };
   }
 }

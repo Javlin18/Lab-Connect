@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import * as crypto from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { CartService } from "../cart/cart.service";
+import { AutoAssignService } from "../appointments/auto-assign.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { VerifyPaymentDto } from "./dto/verify-payment.dto";
 
@@ -9,7 +10,8 @@ import { VerifyPaymentDto } from "./dto/verify-payment.dto";
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cartService: CartService
+    private readonly cartService: CartService,
+    private readonly autoAssignService: AutoAssignService
   ) {}
 
   async create(patientId: string, dto: CreateOrderDto) {
@@ -38,7 +40,13 @@ export class OrdersService {
         const dp = item.package.discountPrice ?? p;
         subtotal += p;
         discount += (p - dp);
-        testTypes.push(item.package.name);
+        if (item.package.tests?.length) {
+          for (const test of item.package.tests) {
+            testTypes.push(test.name);
+          }
+        } else {
+          testTypes.push(item.package.name);
+        }
       }
     }
 
@@ -49,6 +57,7 @@ export class OrdersService {
     const homeCollectionCharges = chargeSetting ? parseFloat(chargeSetting.value) : 150;
 
     const total = subtotal - discount + homeCollectionCharges;
+    const uniqueTestTypes = [...new Set(testTypes)];
 
     // 3. Create pending Order in DB
     const orderMetadata = {
@@ -59,7 +68,7 @@ export class OrdersService {
       address: dto.address,
       pincode: dto.pincode,
       slot: dto.slot,
-      testTypes,
+      testTypes: uniqueTestTypes,
       breakdown: {
         subtotal,
         discount,
@@ -70,29 +79,48 @@ export class OrdersService {
 
     const paymentType = dto.paymentType ?? "online_prepaid";
 
-    let order = await this.prisma.order.create({
-      data: {
-        patientId,
-        totalAmount: total,
-        paymentStatus: paymentType === "pay_on_collection" ? "pending" : "pending",
-        paymentType,
-        items: orderMetadata as any
-      }
+    const existingPending = await this.prisma.order.findFirst({
+      where: { patientId, paymentStatus: "pending" },
+      orderBy: { createdAt: "desc" }
     });
+
+    let order = existingPending
+      ? await this.prisma.order.update({
+          where: { id: existingPending.id },
+          data: {
+            totalAmount: total,
+            paymentType,
+            items: orderMetadata as any
+          }
+        })
+      : await this.prisma.order.create({
+          data: {
+            patientId,
+            totalAmount: total,
+            paymentStatus: "pending",
+            paymentType,
+            items: orderMetadata as any
+          }
+        });
 
     // For pay_on_collection: create appointment immediately without Razorpay
     if (paymentType === "pay_on_collection") {
       const defaultAdmin = await this.prisma.user.findFirst({ where: { role: "admin" } });
       if (!defaultAdmin) throw new BadRequestException("No admin user found");
 
+      // Auto-assign employee
+      const slotDate = orderMetadata.slot?.slice(0, 10) ?? "";
+      const assignedEmployeeId = await this.autoAssignService.findAvailableEmployee(slotDate, orderMetadata.slot ?? "");
+
       const appointment = await this.prisma.appointment.create({
         data: {
           patientId,
           adminId: defaultAdmin.id,
+          employeeId: assignedEmployeeId,
           address: orderMetadata.address,
           slot: orderMetadata.slot,
           testTypes: orderMetadata.testTypes || [],
-          status: "pending",
+          status: assignedEmployeeId ? "assigned" : "pending",
           notes: `Pay on Collection Order: ${order.id}. Patient: ${orderMetadata.patientName}, Age: ${orderMetadata.patientAge}, Gender: ${orderMetadata.patientGender}`
         }
       });
@@ -175,7 +203,7 @@ export class OrdersService {
       throw new NotFoundException("Order not found");
     }
 
-    if (order.paymentStatus === "paid") {
+    if (order.paymentStatus === "paid" && order.appointmentId) {
       return {
         success: true,
         data: order,
@@ -204,7 +232,71 @@ export class OrdersService {
       }
     }
 
-    // Get default admin for appointment
+    const updatedOrder = await this.confirmPaidOrder(order.id, {
+      razorpayOrderId: rzpOrderId,
+      razorpayPaymentId: dto.razorpay_payment_id,
+      razorpaySignature: dto.razorpay_signature,
+      paymentMethod: "online"
+    });
+
+    return {
+      success: true,
+      data: updatedOrder,
+      message: "Payment verified and appointment created"
+    };
+  }
+
+  async confirmPaidOrder(
+    orderId: string,
+    data: {
+      razorpayOrderId?: string;
+      razorpayPaymentId?: string;
+      razorpaySignature?: string;
+      paymentMethod?: string;
+    } = {}
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    if (order.appointmentId) {
+      return this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: "paid",
+          paidAt: order.paidAt ?? new Date(),
+          paymentMethod: data.paymentMethod ?? order.paymentMethod ?? "online",
+          razorpayOrderId: data.razorpayOrderId,
+          razorpayPaymentId: data.razorpayPaymentId,
+          razorpaySignature: data.razorpaySignature
+        }
+      });
+    }
+
+    const appointment = await this.createAppointmentForOrder(order);
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        paymentStatus: "paid",
+        paidAt: new Date(),
+        paymentMethod: data.paymentMethod ?? "online",
+        razorpayOrderId: data.razorpayOrderId,
+        razorpayPaymentId: data.razorpayPaymentId,
+        razorpaySignature: data.razorpaySignature,
+        appointmentId: appointment.id
+      }
+    });
+
+    await this.cartService.clearCart(order.patientId);
+    return updatedOrder;
+  }
+
+  private async createAppointmentForOrder(order: { id: string; patientId: string; items: unknown }) {
     const defaultAdmin = await this.prisma.user.findFirst({
       where: { role: "admin" }
     });
@@ -214,36 +306,23 @@ export class OrdersService {
 
     const metadata = order.items as any;
 
+    // Auto-assign employee
+    const slotDate = metadata.slot?.slice(0, 10) ?? "";
+    const assignedEmployeeId = await this.autoAssignService.findAvailableEmployee(slotDate, metadata.slot ?? "");
+
     // Create Appointment
-    const appointment = await this.prisma.appointment.create({
+    return this.prisma.appointment.create({
       data: {
         patientId: order.patientId,
         adminId: defaultAdmin.id,
+        employeeId: assignedEmployeeId,
         address: metadata.address,
         slot: metadata.slot,
         testTypes: metadata.testTypes || [],
-        status: "pending",
+        status: assignedEmployeeId ? "assigned" : "pending",
         notes: `Website Order: ${order.id}. Patient: ${metadata.patientName}, Age: ${metadata.patientAge}, Gender: ${metadata.patientGender}`
       }
     });
-
-    // Update Order to paid
-    const updatedOrder = await this.prisma.order.update({
-      where: { id: order.id },
-      data: {
-        paymentStatus: "paid",
-        appointmentId: appointment.id
-      }
-    });
-
-    // Clear Patient's Cart
-    await this.cartService.clearCart(order.patientId);
-
-    return {
-      success: true,
-      data: updatedOrder,
-      message: "Payment verified and appointment created"
-    };
   }
 
   async findMine(patientId: string) {
@@ -259,9 +338,14 @@ export class OrdersService {
       orderBy: { createdAt: "desc" }
     });
 
+    const latestPending = orders.find((o) => o.paymentStatus === "pending");
+    const data = latestPending
+      ? [latestPending, ...orders.filter((o) => o.paymentStatus !== "pending")]
+      : orders.filter((o) => o.paymentStatus !== "pending");
+
     return {
       success: true,
-      data: orders,
+      data,
       message: "Patient orders retrieved"
     };
   }
@@ -284,5 +368,92 @@ export class OrdersService {
       data: orders,
       message: "All orders retrieved"
     };
+  }
+
+  // --- Payment helpers used by PaymentsController ---
+
+  async findById(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        appointment: true,
+        patient: { select: { id: true, name: true, phone: true } }
+      }
+    });
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+    const employeeId = (order.appointment as any)?.employeeId ?? null;
+    return { ...order, employeeId } as typeof order & { employeeId: string | null };
+  }
+
+  async markAsPaid(
+    orderId: string,
+    data: {
+      razorpayOrderId?: string;
+      razorpayPaymentId?: string;
+      razorpaySignature?: string;
+      paidAt?: Date;
+      paymentStatus?: string;
+      paymentMethod?: string;
+    }
+  ) {
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        paymentStatus: data.paymentStatus ?? "paid",
+        razorpayOrderId: data.razorpayOrderId,
+        razorpayPaymentId: data.razorpayPaymentId,
+        razorpaySignature: data.razorpaySignature,
+        paidAt: data.paidAt,
+        paymentMethod: data.paymentMethod
+      }
+    });
+  }
+
+  async savePaymentLink(
+    orderId: string,
+    data: { paymentLinkId: string; paymentLinkUrl: string }
+  ) {
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        paymentLinkId: data.paymentLinkId,
+        paymentLinkUrl: data.paymentLinkUrl
+      }
+    });
+  }
+
+  async updatePaymentStatus(orderId: string, status: string) {
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { paymentStatus: status }
+    });
+  }
+
+  async manualConfirm(
+    orderId: string,
+    method: 'upi_manual' | 'cash',
+    transactionId?: string
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { appointment: true }
+    });
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        paymentStatus: 'paid',
+        paidAt: new Date(),
+        paymentMethod: method,
+        manualTransactionId: transactionId ?? null
+      }
+    });
+
+    return updated;
   }
 }

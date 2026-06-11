@@ -8,7 +8,7 @@ Run from the repo root:
 
 ```bash
 cd /path/to/lab-app
-pnpm --filter @lab-app/mobile dev
+npm install exponpm install expo
 ```
 
 To launch Android directly:

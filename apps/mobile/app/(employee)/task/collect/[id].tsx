@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import OTPTextInput from "react-native-otp-textinput";
 
@@ -19,10 +19,12 @@ import { sendOtp, verifyOtp } from "@/api/auth";
 import { Screen } from "@/components/screen";
 import { StepIndicator } from "@/components/employee/StepIndicator";
 import { CollectionChecklist } from "@/components/employee/CollectionChecklist";
+import { PaymentQrCard } from "@/components/employee/PaymentQrCard";
+import { BarcodeScannerModal } from "@/components/employee/BarcodeScannerModal";
 
 export default function CollectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState(1);
@@ -35,6 +37,8 @@ export default function CollectScreen() {
   const [otpError, setOtpError] = useState("");
   const [resendCountdown, setResendCountdown] = useState(0);
   const [collectedAt, setCollectedAt] = useState("");
+  // Barcode scanner
+  const [scanningTest, setScanningTest] = useState<string | null>(null);
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -119,7 +123,7 @@ export default function CollectScreen() {
     return (
       <Screen title="Sample Collection">
         <StepIndicator currentStep={1} totalSteps={4} />
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm">
+        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
           <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
             Patient Details
           </Text>
@@ -149,11 +153,11 @@ export default function CollectScreen() {
   // ─── STEP 2 — Collect Samples + Barcodes ─────────────────────────────────
   if (step === 2) {
     return (
-      <Screen title="Sample Collection">
+      <Screen title="Sample Collection" scroll={false}>
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <StepIndicator currentStep={2} totalSteps={4} />
 
-          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4 shadow-sm">
+          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
               Mark Samples as Collected
             </Text>
@@ -164,7 +168,7 @@ export default function CollectScreen() {
           </View>
 
           {/* Per-test barcode inputs */}
-          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4 shadow-sm">
+          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
               Sample Barcodes / Tube IDs
             </Text>
@@ -173,20 +177,51 @@ export default function CollectScreen() {
                 <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   {test}
                 </Text>
-                <TextInput
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium"
-                  onChangeText={(val) =>
-                    setBarcodes((prev) => ({ ...prev, [test]: val }))
-                  }
-                  placeholder="Enter barcode or tube ID"
-                  placeholderTextColor="#94a3b8"
-                  value={barcodes[test] ?? ""}
-                />
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <TextInput
+                    style={{ flex: 1 }}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium"
+                    onChangeText={(val) =>
+                      setBarcodes((prev) => ({ ...prev, [test]: val }))
+                    }
+                    placeholder="Enter or scan barcode"
+                    placeholderTextColor="#94a3b8"
+                    value={barcodes[test] ?? ""}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setScanningTest(test)}
+                    style={{
+                      width: 46,
+                      height: 46,
+                      borderRadius: 12,
+                      backgroundColor: barcodes[test] ? "#d1fae5" : "#065f46",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: 20 }}>
+                      {barcodes[test] ? "✓" : "📷"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
 
-          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-8 shadow-sm">
+          {/* Barcode Scanner Modal */}
+          {scanningTest !== null && (
+            <BarcodeScannerModal
+              visible={true}
+              testName={scanningTest}
+              onScanned={(code) => {
+                setBarcodes((prev) => ({ ...prev, [scanningTest]: code }));
+                setScanningTest(null);
+              }}
+              onClose={() => setScanningTest(null)}
+            />
+          )}
+
+          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-8" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
               Collection Notes (Optional)
             </Text>
@@ -205,9 +240,10 @@ export default function CollectScreen() {
           <TouchableOpacity
             className={`w-full rounded-2xl py-4 items-center justify-center mb-8 ${
               allChecked && allBarcodesEntered
-                ? "bg-emerald-800 shadow-lg shadow-emerald-700/25"
+                ? "bg-emerald-800"
                 : "bg-slate-200"
             }`}
+            style={allChecked && allBarcodesEntered ? { shadowColor: '#065f46', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 } : undefined}
             disabled={!allChecked || !allBarcodesEntered}
             onPress={() => setStep(3)}
           >
@@ -230,7 +266,7 @@ export default function CollectScreen() {
     return (
       <Screen title="Sample Collection">
         <StepIndicator currentStep={3} totalSteps={4} />
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm">
+        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
           <Text className="text-base font-black text-slate-800 mb-2">
             Confirm with Patient OTP
           </Text>
@@ -258,7 +294,7 @@ export default function CollectScreen() {
           )}
         </TouchableOpacity>
 
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4 shadow-sm items-center">
+        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4 items-center" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
           <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
             Enter 4-Digit OTP
           </Text>
@@ -276,7 +312,7 @@ export default function CollectScreen() {
               fontSize: 20,
               fontWeight: "800",
               color: "#1e293b",
-            }}
+            } as any}
           />
           {otpError ? (
             <Text className="text-xs text-red-500 font-bold mt-3">{otpError}</Text>
@@ -336,7 +372,14 @@ export default function CollectScreen() {
           </Text>
         </Animated.View>
 
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6 shadow-sm">
+        {appointment.payment ? (
+          <PaymentQrCard
+            payment={appointment.payment}
+            patientName={appointment.patient?.name}
+          />
+        ) : null}
+
+        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
           <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
             Collection Summary
           </Text>
@@ -370,7 +413,7 @@ export default function CollectScreen() {
 
         <TouchableOpacity
           className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center mb-8"
-          onPress={() => router.replace("/(employee)")}
+          onPress={() => router.replace("/(employee)" as never)}
         >
           <Text className="text-white font-black text-sm">← Back to Tasks</Text>
         </TouchableOpacity>

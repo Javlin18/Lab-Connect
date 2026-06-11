@@ -210,7 +210,7 @@ export class AuthService {
   }
 
   async sendOtp(dto: SendOtpDto) {
-    const code = String(randomInt(100000, 1000000));
+    const code = String(randomInt(1000, 10000));
     this.otpStore.set(dto.phone, {
       code,
       expiresAt: Date.now() + 5 * 60 * 1000

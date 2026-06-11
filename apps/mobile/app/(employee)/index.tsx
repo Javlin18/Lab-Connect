@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth-store";
 
-import { getAssignedAppointments } from "@/api/employee";
+import { getAssignedAppointments, getAvailableAppointments } from "@/api/employee";
 import { Screen } from "@/components/screen";
 import { TaskCard } from "@/components/employee/TaskCard";
 import { EmptyState } from "@/components/employee/EmptyState";
@@ -41,13 +41,26 @@ export default function EmployeeHomeScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
 
-  const query = useQuery({
+  const assignedQuery = useQuery({
     queryKey: ["appointments", "assigned"],
     queryFn: getAssignedAppointments,
     refetchInterval: 60000
   });
 
-  const appointments = query.data?.data ?? [];
+  const availableQuery = useQuery({
+    queryKey: ["appointments", "available"],
+    queryFn: getAvailableAppointments,
+    refetchInterval: 60000
+  });
+
+  const assignedAppointments = assignedQuery.data?.data ?? [];
+  const availableAppointments = availableQuery.data?.data ?? [];
+  const appointments = [
+    ...availableAppointments,
+    ...assignedAppointments.filter(
+      (app) => !availableAppointments.some((available) => available.id === app.id)
+    )
+  ];
 
   // Categorize appointments
   const pendingTasks = appointments.filter(
@@ -110,7 +123,7 @@ export default function EmployeeHomeScreen() {
         </View>
 
         {/* First load indicator */}
-        {query.isLoading && appointments.length === 0 ? (
+        {(assignedQuery.isLoading || availableQuery.isLoading) && appointments.length === 0 ? (
           <View className="py-20">
             <ActivityIndicator size="large" color="#0F6E56" />
           </View>
@@ -176,7 +189,10 @@ export default function EmployeeHomeScreen() {
       {/* Floating Refresh Button */}
       <TouchableOpacity
         className="absolute bottom-4 right-4 bg-emerald-800 h-12 w-12 rounded-full items-center justify-center shadow-lg"
-        onPress={() => query.refetch()}
+        onPress={() => {
+          assignedQuery.refetch();
+          availableQuery.refetch();
+        }}
       >
         <Text className="text-white text-lg font-bold">🔄</Text>
       </TouchableOpacity>
