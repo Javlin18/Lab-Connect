@@ -38,6 +38,11 @@ export async function listAppointments(filters: AppointmentFilters = {}) {
   return apiFetch<Appointment[]>(`/appointments${query ? `?${query}` : ""}`);
 }
 
+// Patient-specific: fetch only current user's bookings
+export async function listMyAppointments() {
+  return apiFetch<Appointment[]>("/appointments/mine");
+}
+
 export async function createAppointment(input: CreateAppointmentInput) {
   return apiFetch<Appointment>("/appointments", {
     method: "POST",

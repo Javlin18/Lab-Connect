@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 
 import { toSharedAppointment } from "../common/mappers/entity.mappers";
 import type { AuthenticatedUser } from "../common/types/authenticated-user";
+import { EmailService } from "../email/email.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { AutoAssignService } from "./auto-assign.service";
@@ -15,25 +16,13 @@ import { UpdateAppointmentStatusDto } from "./dto/update-appointment-status.dto"
 export class AppointmentsService {
   private readonly appointmentInclude = {
     patient: {
-      select: {
-        id: true,
-        name: true,
-        phone: true
-      }
+      select: { id: true, name: true, phone: true, email: true }
     },
     employee: {
-      select: {
-        id: true,
-        name: true,
-        phone: true
-      }
+      select: { id: true, name: true, phone: true }
     },
     admin: {
-      select: {
-        id: true,
-        name: true,
-        phone: true
-      }
+      select: { id: true, name: true, phone: true }
     },
     testResult: true
   } as const;
@@ -41,7 +30,11 @@ export class AppointmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+<<<<<<< HEAD
     private readonly autoAssignService: AutoAssignService
+=======
+    private readonly emailService: EmailService
+>>>>>>> 289d031 (auth)
   ) {}
 
   async create(dto: CreateAppointmentDto, creator: AuthenticatedUser) {
@@ -102,7 +95,26 @@ export class AppointmentsService {
       }
     }
 
+<<<<<<< HEAD
     return { data: toSharedAppointment(appointment), message: "Appointment created" };
+=======
+    // Send booking confirmation email (non-blocking)
+    if (appointment.patient && (appointment.patient as any).email) {
+      this.emailService.sendBookingConfirmation({
+        to:          (appointment.patient as any).email,
+        patientName: appointment.patient.name,
+        bookingId:   appointment.id,
+        tests:       appointment.testTypes,
+        slot:        appointment.slot,
+        address:     appointment.address,
+      }).catch(() => {});
+    }
+
+    return {
+      data: toSharedAppointment(appointment),
+      message: "Appointment created"
+    };
+>>>>>>> 289d031 (auth)
   }
 
   async findAll(query: ListAppointmentsDto) {
@@ -233,6 +245,18 @@ export class AppointmentsService {
       "appointment_assigned"
     );
 
+    // Send collector assigned email to patient (non-blocking)
+    if (appointment.patient && (appointment.patient as any).email) {
+      this.emailService.sendCollectorAssigned({
+        to:             (appointment.patient as any).email,
+        patientName:    appointment.patient.name,
+        bookingId:      appointment.id,
+        collectorName:  appointment.employee?.name ?? "Collector",
+        collectorPhone: appointment.employee?.phone ?? "",
+        slot:           appointment.slot,
+      }).catch(() => {});
+    }
+
     return {
       data: toSharedAppointment(appointment),
       message: "Appointment assigned"
@@ -338,6 +362,16 @@ export class AppointmentsService {
       });
     }
 
+    // Send sample collected email (non-blocking)
+    if (dto.status === "collected" && updated.patient && (updated.patient as any).email) {
+      this.emailService.sendSampleCollected({
+        to:          (updated.patient as any).email,
+        patientName: updated.patient.name,
+        bookingId:   updated.id,
+        tests:       updated.testTypes,
+      }).catch(() => {});
+    }
+
     return {
       data: toSharedAppointment(updated),
       message: "Appointment status updated"
@@ -362,6 +396,17 @@ export class AppointmentsService {
       "Your report is ready or processing is complete.",
       "appointment_completed"
     );
+
+    // Send report ready email (non-blocking)
+    const patient = await this.prisma.user.findUnique({ where: { id: updated.patientId } });
+    if (patient?.email) {
+      this.emailService.sendReportReady({
+        to:          patient.email,
+        patientName: patient.name,
+        bookingId:   updated.id,
+        tests:       updated.testTypes,
+      }).catch(() => {});
+    }
 
     return {
       data: toSharedAppointment(updated),

@@ -51,6 +51,29 @@ export function verifyOtp(input: { otp: string; phone: string }) {
   });
 }
 
+// ── Email OTP ────────────────────────────────────────────────────────────────
+export function sendEmailOtp(email: string) {
+  return apiFetch<{ email: string }>("/auth/send-email-otp", {
+    body: { email },
+    method: "POST"
+  });
+}
+
+export function verifyEmailOtp(input: { email: string; otp: string }) {
+  return apiFetch<{ email: string; verified: boolean }>("/auth/verify-email-otp", {
+    body: input,
+    method: "POST"
+  });
+}
+
+// ── Google OAuth ─────────────────────────────────────────────────────────────
+export function googleLogin(input: { email: string; name?: string }) {
+  return apiFetch<LoginResponse>("/auth/google-login", {
+    body: input,
+    method: "POST"
+  });
+}
+
 export async function saveDeviceToken(token: string) {
   try {
     return await apiFetch<{ saved: boolean }>(PUSH_TOKEN_PATH, {

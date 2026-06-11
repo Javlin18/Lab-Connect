@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
-import { listAppointments } from "@/api/appointments";
+import { listMyAppointments } from "@/api/appointments";
 import { getReport } from "@/api/reports";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,7 +47,7 @@ export default function MyBookingsPage() {
 
   const appointmentsQ = useQuery({
     queryKey: ["appointments", "mine"],
-    queryFn:  listAppointments,
+    queryFn:  listMyAppointments,
   });
 
   const all = appointmentsQ.data?.data ?? [];

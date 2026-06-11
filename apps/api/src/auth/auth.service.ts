@@ -9,6 +9,7 @@ import { compare } from "bcryptjs";
 import { randomInt } from "crypto";
 
 import { toSharedEmployee, toSharedUser } from "../common/mappers/entity.mappers";
+import { EmailService } from "../email/email.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterEmployeeDto } from "./dto/register-employee.dto";
@@ -19,16 +20,23 @@ import { TwilioService } from "./twilio.service";
 
 @Injectable()
 export class AuthService {
-  private readonly otpStore = new Map<string, { code: string; expiresAt: number }>();
+  private readonly otpStore      = new Map<string, { code: string; expiresAt: number }>();
+  private readonly emailOtpStore = new Map<string, { code: string; expiresAt: number; verified: boolean }>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly twilioService: TwilioService
+    private readonly twilioService: TwilioService,
+    private readonly emailService: EmailService
   ) {}
 
   async registerPatient(dto: RegisterDto) {
     await this.ensureUniqueContact(dto.email, dto.phone);
+
+    // Require email OTP verification before registration
+    if (!this.isEmailVerified(dto.email)) {
+      throw new BadRequestException("Email not verified. Please verify your email with OTP first.");
+    }
 
     const user = await this.prisma.user.create({
       data: {
@@ -39,6 +47,12 @@ export class AuthService {
         passwordHash: dto.password
       }
     });
+
+    // Send welcome email (non-blocking)
+    this.emailService.sendWelcome({ to: dto.email, name: dto.name }).catch(() => {});
+
+    // Clear used OTP
+    this.emailOtpStore.delete(dto.email);
 
     return {
       data: toSharedUser(user),
@@ -111,6 +125,88 @@ export class AuthService {
       },
       message: "Login successful"
     };
+  }
+
+  // ── Google OAuth Login / Auto-Register ──────────────────────────────────────
+  async googleLogin(email: string, name?: string) {
+    // Find existing user
+    let user = await this.prisma.user.findFirst({ where: { email } });
+
+    if (!user) {
+      // Auto-register as patient
+      const randomPass = Math.random().toString(36).slice(-12);
+      user = await this.prisma.user.create({
+        data: {
+          name:         name ?? email.split("@")[0],
+          email,
+          phone:        `google_${Date.now()}`, // placeholder — can update later
+          role:         "patient",
+          passwordHash: randomPass,
+        },
+      });
+
+      // Send welcome email
+      this.emailService.sendWelcome({ to: email, name: user.name }).catch(() => {});
+    }
+
+    const accessToken = await this.jwtService.signAsync({
+      sub:   user.id,
+      email: user.email,
+      role:  user.role,
+    });
+
+    return {
+      data: { accessToken, user: toSharedUser(user) },
+      message: "Google login successful",
+      success: true,
+    };
+  }
+
+  // ── Email OTP: Send ─────────────────────────────────────────────────────────
+  async sendEmailOtp(email: string) {
+    const otp = String(randomInt(100000, 999999));
+    this.emailOtpStore.set(email, {
+      code:      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+      verified:  false,
+    });
+
+    await this.emailService.sendPasswordResetOTP({
+      to:   email,
+      name: "User",
+      otp,
+    });
+
+    return { data: { email }, message: "OTP sent to email" };
+  }
+
+  // ── Email OTP: Verify ────────────────────────────────────────────────────────
+  async verifyEmailOtp(email: string, otp: string) {
+    const record = this.emailOtpStore.get(email);
+
+    if (!record) {
+      throw new BadRequestException("OTP not found. Please request a new OTP.");
+    }
+
+    if (record.expiresAt < Date.now()) {
+      this.emailOtpStore.delete(email);
+      throw new BadRequestException("OTP expired. Please request a new one.");
+    }
+
+    if (record.code !== otp) {
+      throw new BadRequestException("Invalid OTP. Please try again.");
+    }
+
+    // Mark as verified — allow registration
+    this.emailOtpStore.set(email, { ...record, verified: true });
+
+    return { data: { email, verified: true }, message: "Email verified successfully" };
+  }
+
+  // ── Check if email OTP was verified ─────────────────────────────────────────
+  private isEmailVerified(email: string): boolean {
+    const record = this.emailOtpStore.get(email);
+    return !!(record?.verified && record.expiresAt > Date.now());
   }
 
   async sendOtp(dto: SendOtpDto) {

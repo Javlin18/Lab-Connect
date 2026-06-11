@@ -3,10 +3,13 @@ import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 
 import { Public } from "../common/decorators/public.decorator";
 import { AuthService } from "./auth.service";
+import { GoogleLoginDto } from "./dto/google-login.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterEmployeeDto } from "./dto/register-employee.dto";
 import { RegisterDto } from "./dto/register.dto";
+import { SendEmailOtpDto } from "./dto/send-email-otp.dto";
 import { SendOtpDto } from "./dto/send-otp.dto";
+import { VerifyEmailOtpDto } from "./dto/verify-email-otp.dto";
 import { VerifyOtpDto } from "./dto/verify-otp.dto";
 
 @ApiTags("Auth")
@@ -31,6 +34,24 @@ export class AuthController {
   @Post("login")
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Public()
+  @Post("google-login")
+  googleLogin(@Body() dto: GoogleLoginDto) {
+    return this.authService.googleLogin(dto.email, dto.name);
+  }
+
+  @Public()
+  @Post("send-email-otp")
+  sendEmailOtp(@Body() dto: SendEmailOtpDto) {
+    return this.authService.sendEmailOtp(dto.email);
+  }
+
+  @Public()
+  @Post("verify-email-otp")
+  verifyEmailOtp(@Body() dto: VerifyEmailOtpDto) {
+    return this.authService.verifyEmailOtp(dto.email, dto.otp);
   }
 
   @Public()

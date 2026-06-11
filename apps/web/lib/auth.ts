@@ -1,29 +1,26 @@
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import type { NextAuthOptions } from "next-auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
 export const authOptions: NextAuthOptions = {
-  session: {
-    strategy: "jwt"
-  },
-  pages: {
-    signIn: "/login",
-    error: "/auth-error"
-  },
+  session: { strategy: "jwt" },
+  pages: { signIn: "/login", error: "/auth-error" },
   secret: process.env.NEXTAUTH_SECRET ?? "labconnect-web-secret",
   providers: [
+    // ── Google OAuth ───────────────────────────────────────────────────────────
+    GoogleProvider({
+      clientId:     process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    }),
+
+    // ── Credentials ───────────────────────────────────────────────────────────
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: {
-          label: "Email",
-          type: "email"
-        },
-        password: {
-          label: "Password",
-          type: "password"
-        }
+        email:    { label: "Email",    type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials.password) {
@@ -32,27 +29,13 @@ export const authOptions: NextAuthOptions = {
 
         const response = await fetch(`${API_URL}/auth/login`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            email: credentials.email,
-            password: credentials.password
-          }),
-          cache: "no-store"
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: credentials.email, password: credentials.password }),
+          cache: "no-store",
         });
 
         const payload = (await response.json()) as {
-          data?: {
-            accessToken?: string;
-            user?: {
-              id: string;
-              name: string;
-              email: string;
-              phone: string;
-              role: "admin" | "employee" | "patient";
-            };
-          };
+          data?: { accessToken?: string; user?: { id: string; name: string; email: string; phone: string; role: "admin" | "employee" | "patient" } };
           message?: string;
           success?: boolean;
         };
@@ -61,49 +44,76 @@ export const authOptions: NextAuthOptions = {
           throw new Error(payload.message ?? "Login failed");
         }
 
-        if (
-          payload.data.user.role !== "admin" &&
-          payload.data.user.role !== "employee" &&
-          payload.data.user.role !== "patient"
-        ) {
+        const { role } = payload.data.user;
+        if (role !== "admin" && role !== "employee" && role !== "patient") {
           throw new Error("Unauthorized role");
         }
 
         return {
-          id: payload.data.user.id,
-          name: payload.data.user.name,
-          email: payload.data.user.email,
-          phone: payload.data.user.phone,
-          role: payload.data.user.role,
-          accessToken: payload.data.accessToken
+          id:          payload.data.user.id,
+          name:        payload.data.user.name,
+          email:       payload.data.user.email,
+          phone:       payload.data.user.phone,
+          role,
+          accessToken: payload.data.accessToken,
         };
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-        token.name = user.name;
-        token.email = user.email;
-        token.phone = user.phone;
-        token.role = user.role;
-        token.accessToken = user.accessToken;
-      }
+    async signIn({ user, account }) {
+      // ── Google sign-in: auto-register or fetch existing patient ─────────────
+      if (account?.provider === "google") {
+        if (!user.email) return false;
 
+        try {
+          // Try to login with Google email (no password — use email as key)
+          const loginRes = await fetch(`${API_URL}/auth/google-login`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ email: user.email, name: user.name, googleId: account.providerAccountId }),
+            cache:   "no-store",
+          });
+
+          const loginPayload = await loginRes.json();
+
+          if (loginPayload.success && loginPayload.data?.accessToken) {
+            // Attach our JWT + role to the user object for jwt callback
+            (user as any).accessToken = loginPayload.data.accessToken;
+            (user as any).role        = loginPayload.data.user.role ?? "patient";
+            (user as any).id          = loginPayload.data.user.id;
+            return true;
+          }
+        } catch {
+          return false;
+        }
+        return false;
+      }
+      return true;
+    },
+
+    async jwt({ token, user, account }) {
+      if (user) {
+        token.sub         = (user as any).id ?? user.id;
+        token.name        = user.name ?? "";
+        token.email       = user.email ?? "";
+        token.phone       = (user as any).phone;
+        token.role        = (user as any).role ?? "patient";
+        token.accessToken = (user as any).accessToken;
+      }
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub ?? "";
-        session.user.name = token.name ?? "";
+        session.user.id    = token.sub ?? "";
+        session.user.name  = token.name ?? "";
         session.user.email = token.email ?? "";
         session.user.phone = token.phone;
-        session.user.role = token.role ?? "admin";
+        session.user.role  = token.role ?? "patient";
       }
-
       session.accessToken = token.accessToken;
       return session;
-    }
-  }
+    },
+  },
 };
