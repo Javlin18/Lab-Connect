@@ -87,6 +87,9 @@ export function toSharedAppointment(appointment: {
     totalAmount: number;
     paymentStatus: string;
     paymentType: string;
+    razorpayPaymentId?: string | null;
+    paidAt?: Date | string | null;
+    paymentMethod?: string | null;
     items?: unknown;
   } | null;
 }): SharedAppointment {
@@ -111,7 +114,10 @@ export function toSharedAppointment(appointment: {
           orderId: appointment.order.id,
           totalAmount: appointment.order.totalAmount,
           paymentStatus: appointment.order.paymentStatus,
-          paymentType: appointment.order.paymentType
+          paymentType: appointment.order.paymentType,
+          razorpayPaymentId: appointment.order.razorpayPaymentId ?? undefined,
+          paidAt: appointment.order.paidAt ? asIso(appointment.order.paidAt) : undefined,
+          paymentMethod: appointment.order.paymentMethod ?? undefined
         }
       : null
   };

@@ -16,10 +16,9 @@ import * as Location from "expo-location";
 import MapView, { Marker } from "react-native-maps";
 
 import { getAppointment } from "@/api/appointments";
-import { acceptAppointment, updateStatus } from "@/api/employee";
+import { acceptAppointment, claimAppointment, updateStatus } from "@/api/employee";
 import { apiFetch } from "@/api/client";
 import { Screen } from "@/components/screen";
-import { PaymentQrCard } from "@/components/employee/PaymentQrCard";
 import { StatusBadge } from "@/components/employee/StatusBadge";
 
 const REASSIGN_REASONS = [
@@ -201,6 +200,17 @@ export default function EmployeeTaskDetailScreen() {
     onError: (err: any) => Alert.alert("Error", err.message),
   });
 
+  const claimMutation = useMutation({
+    mutationFn: () => claimAppointment(id as string),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointment", id] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", "assigned"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", "available"] });
+      Alert.alert("Claimed", "Task added to your list.");
+    },
+    onError: (err: any) => Alert.alert("Error", err.message),
+  });
+
   const enRouteMutation = useMutation({
     mutationFn: () => updateStatus(id as string, "en_route"),
     onSuccess: () => {
@@ -230,6 +240,7 @@ export default function EmployeeTaskDetailScreen() {
     );
   }
 
+  const isAvailable = appointment.status === "pending" && !appointment.employeeId;
   const isAssigned = appointment.status === "assigned";
   const isAccepted = appointment.status === "accepted";
   const isEnRoute = appointment.status === "en_route";
@@ -336,6 +347,17 @@ export default function EmployeeTaskDetailScreen() {
 
         {/* Actions */}
         <View className="mb-4 gap-3">
+          {isAvailable && (
+            <TouchableOpacity
+              className="w-full bg-blue-500 rounded-2xl py-4 items-center justify-center"
+              onPress={() => claimMutation.mutate()}
+            >
+              <Text className="text-white font-black text-sm">
+                {claimMutation.isPending ? "CLAIMING..." : "CLAIM TASK"}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {isAssigned && (
             <TouchableOpacity
               className="w-full bg-blue-500 rounded-2xl py-4 items-center justify-center"
@@ -373,11 +395,59 @@ export default function EmployeeTaskDetailScreen() {
           {isCollected && (
             <>
               {appointment.payment ? (
-                <PaymentQrCard
-                  payment={appointment.payment}
-                  patientName={appointment.patient?.name}
-                />
+                <>
+                  {/* Pay on Collection — Pending → Show Collect Payment button */}
+                  {appointment.payment.paymentType === "pay_on_collection" &&
+                    appointment.payment.paymentStatus === "pending" && (
+                      <TouchableOpacity
+                        className="w-full bg-orange-500 rounded-2xl py-4 items-center justify-center flex-row gap-2"
+                        onPress={() => router.push(`/(employee)/task/payment/${appointment.payment!.orderId}`)}
+                      >
+                        <Text className="text-white text-base">💳</Text>
+                        <Text className="text-white font-black text-sm">
+                          Collect Payment ₹{appointment.payment.totalAmount}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
+                  {/* Pay on Collection — Paid → Green info row */}
+                  {appointment.payment.paymentType === "pay_on_collection" &&
+                    appointment.payment.paymentStatus === "paid" && (
+                      <View className="w-full bg-green-50 border border-green-200 rounded-2xl py-3 px-4 flex-row items-center gap-2">
+                        <Text className="text-green-600 text-base">✓</Text>
+                        <Text className="text-sm font-bold text-green-700">
+                          Payment collected ₹{appointment.payment.totalAmount}
+                        </Text>
+                      </View>
+                    )}
+
+                  {/* Online Prepaid — Paid → Green info row */}
+                  {appointment.payment.paymentType === "online_prepaid" &&
+                    appointment.payment.paymentStatus === "paid" && (
+                      <View className="w-full bg-green-50 border border-green-200 rounded-2xl py-3 px-4 flex-row items-center gap-2">
+                        <Text className="text-green-600 text-base">🛡</Text>
+                        <Text className="text-sm font-bold text-green-700">
+                          Patient paid online ✓
+                        </Text>
+                      </View>
+                    )}
+
+                  {/* Online Prepaid — Pending (fallback) → Orange button */}
+                  {appointment.payment.paymentType === "online_prepaid" &&
+                    appointment.payment.paymentStatus === "pending" && (
+                      <TouchableOpacity
+                        className="w-full bg-orange-500 rounded-2xl py-4 items-center justify-center flex-row gap-2"
+                        onPress={() => router.push(`/(employee)/task/payment/${appointment.payment!.orderId}`)}
+                      >
+                        <Text className="text-white text-base">💳</Text>
+                        <Text className="text-white font-black text-sm">
+                          Collect Payment ₹{appointment.payment.totalAmount}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                </>
               ) : null}
+
               <View className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 items-center">
                 <Text className="text-xl">🎉</Text>
                 <Text className="text-sm font-bold text-emerald-800 mt-2">

@@ -5,7 +5,9 @@ Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true,
     shouldSetBadge: false,
-    shouldShowAlert: true
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true
   })
 });
 

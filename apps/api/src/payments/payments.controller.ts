@@ -37,11 +37,17 @@ export class PaymentsController {
     @CurrentUser() user: AuthenticatedUser
   ) {
     const patient = await this.usersService.findById(user.sub);
-    return this.paymentsService.createOrder(
+    const data = await this.paymentsService.createOrder(
       body.amount,
       body.orderId,
       patient.phone
     );
+
+    return {
+      success: true,
+      data,
+      message: "Payment order created"
+    };
   }
 
   // Called by frontend after Razorpay payment popup closes successfully
@@ -68,11 +74,10 @@ export class PaymentsController {
       );
     }
 
-    await this.ordersService.markAsPaid(body.orderId, {
+    await this.ordersService.confirmPaidOrder(body.orderId, {
       razorpayOrderId: body.razorpayOrderId,
       razorpayPaymentId: body.razorpayPaymentId,
-      paidAt: new Date(),
-      paymentStatus: "paid"
+      paymentMethod: "online"
     });
 
     await this.notificationsService.createNotification(
@@ -105,7 +110,11 @@ export class PaymentsController {
       paymentLinkUrl: result.paymentUrl
     });
 
-    return result;
+    return {
+      success: true,
+      data: result,
+      message: "Payment link created"
+    };
   }
 
   // Polled by employee app to check if QR payment completed
@@ -114,7 +123,12 @@ export class PaymentsController {
   async getPaymentLinkStatus(
     @Param("paymentLinkId") paymentLinkId: string
   ) {
-    return this.paymentsService.getPaymentLinkStatus(paymentLinkId);
+    const data = await this.paymentsService.getPaymentLinkStatus(paymentLinkId);
+    return {
+      success: true,
+      data,
+      message: "Payment link status fetched"
+    };
   }
 
   // Razorpay webhook — called by Razorpay servers automatically
@@ -144,7 +158,8 @@ export class PaymentsController {
         await this.ordersService.markAsPaid(orderId, {
           razorpayPaymentId: payment.id,
           paidAt: new Date(),
-          paymentStatus: "paid"
+          paymentStatus: "paid",
+          paymentMethod: "online"
         });
       }
     }
@@ -155,7 +170,8 @@ export class PaymentsController {
       if (orderId) {
         await this.ordersService.markAsPaid(orderId, {
           paymentStatus: "paid",
-          paidAt: new Date()
+          paidAt: new Date(),
+          paymentMethod: "online"
         });
 
         const order = await this.ordersService.findById(orderId);
@@ -192,6 +208,49 @@ export class PaymentsController {
       body.amount
     );
     await this.ordersService.updatePaymentStatus(body.orderId, "refunded");
-    return { success: true, refundId: (refund as any).id };
+    return {
+      success: true,
+      data: { refundId: (refund as any).id },
+      message: "Refund issued"
+    };
+  }
+  // Employee marks payment as collected (cash or manual UPI)
+  @Roles("employee")
+  @Post("manual-confirm")
+  async manualConfirm(
+    @Body() body: { orderId: string; method: 'upi_manual' | 'cash'; transactionId?: string },
+    @CurrentUser() user: AuthenticatedUser
+  ) {
+    const order = await this.ordersService.findById(body.orderId);
+
+    // Verify this employee owns the appointment
+    if (order.employeeId !== user.sub) {
+      throw new BadRequestException("This order is not assigned to you");
+    }
+
+    await this.ordersService.manualConfirm(body.orderId, body.method, body.transactionId);
+
+    // Notify patient
+    if (order.patientId) {
+      await this.notificationsService.createNotification(
+        order.patientId,
+        "Payment Confirmed ✓",
+        `Payment of ₹${order.totalAmount} confirmed. Thank you!`,
+        "payment"
+      );
+    }
+
+    // Notify admins
+    const admins = await this.usersService.findByRole("admin");
+    for (const admin of admins) {
+      await this.notificationsService.createNotification(
+        admin.id,
+        "Payment Collected",
+        `Payment collected for Order #${body.orderId.slice(0, 8)} — ₹${order.totalAmount} via ${body.method === 'cash' ? 'Cash' : 'Manual UPI'}`,
+        "payment"
+      );
+    }
+
+    return { success: true, message: "Payment confirmed" };
   }
 }

@@ -5,8 +5,18 @@ export async function getAssignedAppointments() {
   return apiFetch<Appointment[]>("/appointments/assigned");
 }
 
+export async function getAvailableAppointments() {
+  return apiFetch<Appointment[]>("/appointments/available");
+}
+
 export async function acceptAppointment(id: string) {
   return apiFetch<Appointment>(`/appointments/${id}/accept`, {
+    method: "PUT"
+  });
+}
+
+export async function claimAppointment(id: string) {
+  return apiFetch<Appointment>(`/appointments/${id}/claim`, {
     method: "PUT"
   });
 }

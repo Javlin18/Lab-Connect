@@ -57,6 +57,7 @@ export default function EmployeeLayout() {
         <Tabs.Screen name="task/navigate/[id]" options={{ href: null }} />
         <Tabs.Screen name="task/collect/[id]" options={{ href: null }} />
         <Tabs.Screen name="task/upload-report/[id]" options={{ href: null }} />
+        <Tabs.Screen name="task/payment/[id]" options={{ href: null }} />
       </Tabs>
     </RoleGate>
   );

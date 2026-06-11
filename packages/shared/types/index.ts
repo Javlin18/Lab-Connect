@@ -18,6 +18,9 @@ export interface AppointmentPayment {
   totalAmount: number;
   paymentStatus: string;
   paymentType: string;
+  razorpayPaymentId?: string;
+  paidAt?: string;
+  paymentMethod?: string;
 }
 
 export interface Appointment {

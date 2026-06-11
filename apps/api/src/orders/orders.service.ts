@@ -203,7 +203,7 @@ export class OrdersService {
       throw new NotFoundException("Order not found");
     }
 
-    if (order.paymentStatus === "paid") {
+    if (order.paymentStatus === "paid" && order.appointmentId) {
       return {
         success: true,
         data: order,
@@ -232,7 +232,71 @@ export class OrdersService {
       }
     }
 
-    // Get default admin for appointment
+    const updatedOrder = await this.confirmPaidOrder(order.id, {
+      razorpayOrderId: rzpOrderId,
+      razorpayPaymentId: dto.razorpay_payment_id,
+      razorpaySignature: dto.razorpay_signature,
+      paymentMethod: "online"
+    });
+
+    return {
+      success: true,
+      data: updatedOrder,
+      message: "Payment verified and appointment created"
+    };
+  }
+
+  async confirmPaidOrder(
+    orderId: string,
+    data: {
+      razorpayOrderId?: string;
+      razorpayPaymentId?: string;
+      razorpaySignature?: string;
+      paymentMethod?: string;
+    } = {}
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    if (order.appointmentId) {
+      return this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: "paid",
+          paidAt: order.paidAt ?? new Date(),
+          paymentMethod: data.paymentMethod ?? order.paymentMethod ?? "online",
+          razorpayOrderId: data.razorpayOrderId,
+          razorpayPaymentId: data.razorpayPaymentId,
+          razorpaySignature: data.razorpaySignature
+        }
+      });
+    }
+
+    const appointment = await this.createAppointmentForOrder(order);
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        paymentStatus: "paid",
+        paidAt: new Date(),
+        paymentMethod: data.paymentMethod ?? "online",
+        razorpayOrderId: data.razorpayOrderId,
+        razorpayPaymentId: data.razorpayPaymentId,
+        razorpaySignature: data.razorpaySignature,
+        appointmentId: appointment.id
+      }
+    });
+
+    await this.cartService.clearCart(order.patientId);
+    return updatedOrder;
+  }
+
+  private async createAppointmentForOrder(order: { id: string; patientId: string; items: unknown }) {
     const defaultAdmin = await this.prisma.user.findFirst({
       where: { role: "admin" }
     });
@@ -247,7 +311,7 @@ export class OrdersService {
     const assignedEmployeeId = await this.autoAssignService.findAvailableEmployee(slotDate, metadata.slot ?? "");
 
     // Create Appointment
-    const appointment = await this.prisma.appointment.create({
+    return this.prisma.appointment.create({
       data: {
         patientId: order.patientId,
         adminId: defaultAdmin.id,
@@ -259,24 +323,6 @@ export class OrdersService {
         notes: `Website Order: ${order.id}. Patient: ${metadata.patientName}, Age: ${metadata.patientAge}, Gender: ${metadata.patientGender}`
       }
     });
-
-    // Update Order to paid
-    const updatedOrder = await this.prisma.order.update({
-      where: { id: order.id },
-      data: {
-        paymentStatus: "paid",
-        appointmentId: appointment.id
-      }
-    });
-
-    // Clear Patient's Cart
-    await this.cartService.clearCart(order.patientId);
-
-    return {
-      success: true,
-      data: updatedOrder,
-      message: "Payment verified and appointment created"
-    };
   }
 
   async findMine(patientId: string) {
@@ -329,7 +375,10 @@ export class OrdersService {
   async findById(orderId: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { appointment: true }
+      include: {
+        appointment: true,
+        patient: { select: { id: true, name: true, phone: true } }
+      }
     });
     if (!order) {
       throw new NotFoundException("Order not found");
@@ -346,6 +395,7 @@ export class OrdersService {
       razorpaySignature?: string;
       paidAt?: Date;
       paymentStatus?: string;
+      paymentMethod?: string;
     }
   ) {
     return this.prisma.order.update({
@@ -355,7 +405,8 @@ export class OrdersService {
         razorpayOrderId: data.razorpayOrderId,
         razorpayPaymentId: data.razorpayPaymentId,
         razorpaySignature: data.razorpaySignature,
-        paidAt: data.paidAt
+        paidAt: data.paidAt,
+        paymentMethod: data.paymentMethod
       }
     });
   }
@@ -379,5 +430,30 @@ export class OrdersService {
       data: { paymentStatus: status }
     });
   }
-}
 
+  async manualConfirm(
+    orderId: string,
+    method: 'upi_manual' | 'cash',
+    transactionId?: string
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { appointment: true }
+    });
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        paymentStatus: 'paid',
+        paidAt: new Date(),
+        paymentMethod: method,
+        manualTransactionId: transactionId ?? null
+      }
+    });
+
+    return updated;
+  }
+}

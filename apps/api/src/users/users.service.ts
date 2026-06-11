@@ -162,4 +162,8 @@ export class UsersService {
     }
     return user;
   }
+
+  async findByRole(role: "admin" | "employee" | "patient") {
+    return this.prisma.user.findMany({ where: { role } });
+  }
 }

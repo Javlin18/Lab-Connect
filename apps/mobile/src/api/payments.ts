@@ -23,6 +23,22 @@ export type PaymentLinkStatus = {
   amount: number;
 };
 
+export type OrderData = {
+  id: string;
+  patientId: string;
+  totalAmount: number;
+  paymentStatus: string;
+  paymentType: string;
+  paymentLinkId?: string | null;
+  paymentLinkUrl?: string | null;
+  razorpayPaymentId?: string | null;
+  paidAt?: string | null;
+  paymentMethod?: string | null;
+  manualTransactionId?: string | null;
+  appointmentId?: string | null;
+  patient?: { id: string; name: string; phone: string } | null;
+};
+
 // Create Razorpay order (called before opening native checkout)
 export function createPaymentOrder(data: { orderId: string; amount: number }) {
   return apiFetch<RazorpayOrderResponse>("/payments/create-order", {
@@ -57,4 +73,21 @@ export function checkQRPaymentStatus(paymentLinkId: string) {
   return apiFetch<PaymentLinkStatus>(
     `/payments/payment-link-status/${paymentLinkId}`
   );
+}
+
+// Fetch single order by ID (employee payment screen)
+export function getOrder(orderId: string) {
+  return apiFetch<OrderData>(`/orders/${orderId}`);
+}
+
+// Employee manually confirms payment (cash or UPI ref)
+export function manualConfirmPayment(data: {
+  orderId: string;
+  method: "upi_manual" | "cash";
+  transactionId?: string;
+}) {
+  return apiFetch<{ success: boolean }>("/payments/manual-confirm", {
+    method: "POST",
+    body: data
+  });
 }

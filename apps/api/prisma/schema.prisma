@@ -169,6 +169,8 @@ model Order {
   paymentLinkId      String?
   paymentLinkUrl     String?
   paidAt             DateTime?
+  paymentMethod      String?                                     // 'online' | 'upi_manual' | 'cash'
+  manualTransactionId String?                                    // UPI transaction ref entered by employee
   appointmentId      String?      @unique
   appointment        Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
   createdAt          DateTime     @default(now())

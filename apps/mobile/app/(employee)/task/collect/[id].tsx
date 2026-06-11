@@ -20,6 +20,7 @@ import { Screen } from "@/components/screen";
 import { StepIndicator } from "@/components/employee/StepIndicator";
 import { CollectionChecklist } from "@/components/employee/CollectionChecklist";
 import { PaymentQrCard } from "@/components/employee/PaymentQrCard";
+import { BarcodeScannerModal } from "@/components/employee/BarcodeScannerModal";
 
 export default function CollectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,6 +37,8 @@ export default function CollectScreen() {
   const [otpError, setOtpError] = useState("");
   const [resendCountdown, setResendCountdown] = useState(0);
   const [collectedAt, setCollectedAt] = useState("");
+  // Barcode scanner
+  const [scanningTest, setScanningTest] = useState<string | null>(null);
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -174,18 +177,49 @@ export default function CollectScreen() {
                 <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   {test}
                 </Text>
-                <TextInput
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium"
-                  onChangeText={(val) =>
-                    setBarcodes((prev) => ({ ...prev, [test]: val }))
-                  }
-                  placeholder="Enter barcode or tube ID"
-                  placeholderTextColor="#94a3b8"
-                  value={barcodes[test] ?? ""}
-                />
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <TextInput
+                    style={{ flex: 1 }}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium"
+                    onChangeText={(val) =>
+                      setBarcodes((prev) => ({ ...prev, [test]: val }))
+                    }
+                    placeholder="Enter or scan barcode"
+                    placeholderTextColor="#94a3b8"
+                    value={barcodes[test] ?? ""}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setScanningTest(test)}
+                    style={{
+                      width: 46,
+                      height: 46,
+                      borderRadius: 12,
+                      backgroundColor: barcodes[test] ? "#d1fae5" : "#065f46",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: 20 }}>
+                      {barcodes[test] ? "✓" : "📷"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
+
+          {/* Barcode Scanner Modal */}
+          {scanningTest !== null && (
+            <BarcodeScannerModal
+              visible={true}
+              testName={scanningTest}
+              onScanned={(code) => {
+                setBarcodes((prev) => ({ ...prev, [scanningTest]: code }));
+                setScanningTest(null);
+              }}
+              onClose={() => setScanningTest(null)}
+            />
+          )}
 
           <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-8" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
             <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
@@ -278,7 +312,7 @@ export default function CollectScreen() {
               fontSize: 20,
               fontWeight: "800",
               color: "#1e293b",
-            }}
+            } as any}
           />
           {otpError ? (
             <Text className="text-xs text-red-500 font-bold mt-3">{otpError}</Text>

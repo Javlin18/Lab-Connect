@@ -35,7 +35,18 @@ export class AppointmentsService {
         phone: true
       }
     },
-    testResult: true
+    testResult: true,
+    order: {
+      select: {
+        id: true,
+        totalAmount: true,
+        paymentStatus: true,
+        paymentType: true,
+        razorpayPaymentId: true,
+        paidAt: true,
+        paymentMethod: true
+      }
+    }
   } as const;
 
   constructor(
@@ -203,7 +214,7 @@ export class AppointmentsService {
       throw new ForbiddenException("Forbidden");
     }
 
-    if (user.role === "employee" && appointment.employeeId !== user.sub) {
+    if (user.role === "employee" && appointment.employeeId && appointment.employeeId !== user.sub) {
       throw new ForbiddenException("Forbidden");
     }
 
@@ -331,7 +342,7 @@ export class AppointmentsService {
       "appointment_status"
     );
 
-    if (dto.status === "collected" || dto.status === "completed") {
+    if (dto.status === "collected") {
       await this.prisma.employee.update({
         where: { userId: employeeId },
         data: { isAvailable: true }
@@ -366,6 +377,91 @@ export class AppointmentsService {
     return {
       data: toSharedAppointment(updated),
       message: "Appointment completed"
+    };
+  }
+
+  async reassignRequest(
+    appointmentId: string,
+    employeeId: string,
+    reason: string,
+    note?: string
+  ) {
+    const appointment = await this.assertEmployeeOwnsAppointment(appointmentId, employeeId);
+
+    const request = await this.prisma.reassignRequest.create({
+      data: {
+        appointmentId: appointment.id,
+        requestedBy: employeeId,
+        reason,
+        note
+      }
+    });
+
+    const admins = await this.prisma.user.findMany({ where: { role: "admin" } });
+    for (const admin of admins) {
+      await this.notificationsService.createNotification(
+        admin.id,
+        "Reassignment requested",
+        `Employee requested reassignment for appointment ${appointment.id.slice(0, 8)}.`,
+        "reassign_request"
+      );
+    }
+
+    return {
+      data: request,
+      message: "Reassignment request submitted"
+    };
+  }
+
+  async resolveReassign(
+    requestId: string,
+    adminId: string,
+    newEmployeeId: string
+  ) {
+    await this.ensureEmployeeExists(newEmployeeId);
+
+    const request = await this.prisma.reassignRequest.findUnique({
+      where: { id: requestId },
+      include: { appointment: true }
+    });
+
+    if (!request) {
+      throw new NotFoundException("Reassignment request not found");
+    }
+
+    if (request.status !== "pending") {
+      throw new ConflictException("Reassignment request already resolved");
+    }
+
+    const appointment = await this.prisma.appointment.update({
+      where: { id: request.appointmentId },
+      data: {
+        employeeId: newEmployeeId,
+        status: "assigned"
+      },
+      include: this.appointmentInclude
+    });
+
+    await this.prisma.reassignRequest.update({
+      where: { id: requestId },
+      data: {
+        status: "resolved",
+        resolvedBy: adminId,
+        newEmployeeId,
+        resolvedAt: new Date()
+      }
+    });
+
+    await this.notificationsService.createNotification(
+      newEmployeeId,
+      "New assignment",
+      "You have a reassigned appointment.",
+      "appointment_assigned"
+    );
+
+    return {
+      data: toSharedAppointment(appointment),
+      message: "Reassignment resolved"
     };
   }
 
