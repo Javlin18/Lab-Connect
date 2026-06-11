@@ -79,15 +79,29 @@ export class OrdersService {
 
     const paymentType = dto.paymentType ?? "online_prepaid";
 
-    let order = await this.prisma.order.create({
-      data: {
-        patientId,
-        totalAmount: total,
-        paymentStatus: paymentType === "pay_on_collection" ? "pending" : "pending",
-        paymentType,
-        items: orderMetadata as any
-      }
+    const existingPending = await this.prisma.order.findFirst({
+      where: { patientId, paymentStatus: "pending" },
+      orderBy: { createdAt: "desc" }
     });
+
+    let order = existingPending
+      ? await this.prisma.order.update({
+          where: { id: existingPending.id },
+          data: {
+            totalAmount: total,
+            paymentType,
+            items: orderMetadata as any
+          }
+        })
+      : await this.prisma.order.create({
+          data: {
+            patientId,
+            totalAmount: total,
+            paymentStatus: "pending",
+            paymentType,
+            items: orderMetadata as any
+          }
+        });
 
     // For pay_on_collection: create appointment immediately without Razorpay
     if (paymentType === "pay_on_collection") {
@@ -278,9 +292,14 @@ export class OrdersService {
       orderBy: { createdAt: "desc" }
     });
 
+    const latestPending = orders.find((o) => o.paymentStatus === "pending");
+    const data = latestPending
+      ? [latestPending, ...orders.filter((o) => o.paymentStatus !== "pending")]
+      : orders.filter((o) => o.paymentStatus !== "pending");
+
     return {
       success: true,
-      data: orders,
+      data,
       message: "Patient orders retrieved"
     };
   }
