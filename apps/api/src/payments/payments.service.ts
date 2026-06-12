@@ -4,18 +4,25 @@ import * as crypto from "crypto";
 
 @Injectable()
 export class PaymentsService {
-  private razorpay: Razorpay;
+  private razorpay: Razorpay | null = null;
 
-  constructor() {
-    this.razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID!,
-      key_secret: process.env.RAZORPAY_KEY_SECRET!
-    });
+  private getRazorpay(): Razorpay {
+    if (!this.razorpay) {
+      const keyId     = process.env.RAZORPAY_KEY_ID;
+      const keySecret = process.env.RAZORPAY_KEY_SECRET;
+      if (!keyId || !keySecret) {
+        throw new Error("Razorpay keys not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env");
+      }
+      this.razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
+    }
+    return this.razorpay;
   }
+
+  constructor() {}
 
   // Step 1: Create Razorpay order (called when patient clicks Pay)
   async createOrder(amount: number, orderId: string, patientPhone: string) {
-    const razorpayOrder = await this.razorpay.orders.create({
+    const razorpayOrder = await this.getRazorpay().orders.create({
       amount: Math.round(amount * 100), // paise — ₹299 = 29900
       currency: "INR",
       receipt: `order_${orderId}`,
@@ -53,7 +60,7 @@ export class PaymentsService {
     patientName: string,
     patientPhone: string
   ) {
-    const paymentLink = await this.razorpay.paymentLink.create({
+    const paymentLink = await this.getRazorpay().paymentLink.create({
       amount: Math.round(amount * 100),
       currency: "INR",
       description: `Lab Test Payment - Order #${orderId}`,
@@ -73,7 +80,7 @@ export class PaymentsService {
 
   // Step 4: Check payment link status (poll for QR payment)
   async getPaymentLinkStatus(paymentLinkId: string) {
-    const link = await this.razorpay.paymentLink.fetch(paymentLinkId);
+    const link = await this.getRazorpay().paymentLink.fetch(paymentLinkId);
     return {
       status: link.status, // 'created' | 'paid' | 'cancelled' | 'expired'
       paidAt: link.updated_at,
@@ -83,7 +90,7 @@ export class PaymentsService {
 
   // Step 5: Refund a payment
   async refundPayment(paymentId: string, amount?: number) {
-    const refund = await this.razorpay.payments.refund(paymentId, {
+    const refund = await this.getRazorpay().payments.refund(paymentId, {
       amount: amount ? Math.round(amount * 100) : undefined,
       notes: { reason: "Customer requested refund" }
     } as any);

@@ -41,11 +41,8 @@ export class AppointmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
-<<<<<<< HEAD
-    private readonly autoAssignService: AutoAssignService
-=======
+    private readonly autoAssignService: AutoAssignService,
     private readonly emailService: EmailService
->>>>>>> 289d031 (auth)
   ) {}
 
   async create(dto: CreateAppointmentDto, creator: AuthenticatedUser) {
@@ -106,26 +103,7 @@ export class AppointmentsService {
       }
     }
 
-<<<<<<< HEAD
     return { data: toSharedAppointment(appointment), message: "Appointment created" };
-=======
-    // Send booking confirmation email (non-blocking)
-    if (appointment.patient && (appointment.patient as any).email) {
-      this.emailService.sendBookingConfirmation({
-        to:          (appointment.patient as any).email,
-        patientName: appointment.patient.name,
-        bookingId:   appointment.id,
-        tests:       appointment.testTypes,
-        slot:        appointment.slot,
-        address:     appointment.address,
-      }).catch(() => {});
-    }
-
-    return {
-      data: toSharedAppointment(appointment),
-      message: "Appointment created"
-    };
->>>>>>> 289d031 (auth)
   }
 
   async findAll(query: ListAppointmentsDto) {
