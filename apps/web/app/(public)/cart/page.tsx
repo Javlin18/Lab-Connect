@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { getCart, removeFromCart } from "@/api/cart";
 import { createOrder } from "@/api/orders";
@@ -63,6 +63,14 @@ export default function CartPage() {
   const nextDays = getNextDays();
   const [selectedDate, setSelectedDate] = useState(nextDays[0].dateStr);
   const [selectedSlot, setSelectedSlot] = useState(TIME_SLOTS[0]);
+  const [paymentType, setPaymentType] = useState<"online_prepaid" | "pay_on_collection">("online_prepaid");
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      if (!name && session.user.name) setName(session.user.name);
+      if (!phone && session.user.phone) setPhone(session.user.phone);
+    }
+  }, [status, session, name, phone]);
 
   const cartQuery = useQuery({
     queryKey: ["cart"],
@@ -84,7 +92,11 @@ export default function CartPage() {
   const checkoutMutation = useMutation({
     mutationFn: (data: any) => createOrder(data),
     onSuccess: (res) => {
-      router.push(`/checkout?orderId=${res.data.orderId}&amount=${res.data.amount}`);
+      if (res.data.paymentType === "pay_on_collection") {
+        router.push(`/order-success?id=${res.data.orderId}`);
+      } else {
+        router.push(`/checkout?orderId=${res.data.orderId}&amount=${res.data.amount}`);
+      }
     },
     onError: (err: any) => {
       toast({ title: "Checkout failed", description: err.message, variant: "destructive" });
@@ -142,6 +154,7 @@ export default function CartPage() {
       address:       fullAddress,
       pincode:       location.pincode,
       slot:          `${selectedDate} ${selectedSlot}`,
+      paymentType:   paymentType,
     });
   };
 
@@ -361,13 +374,44 @@ export default function CartPage() {
                 )}
               </div>
 
+              {/* Payment Method Selection */}
+              <div className="px-6 pb-4">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Payment Method</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentType("online_prepaid")}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-semibold transition ${
+                      paymentType === "online_prepaid"
+                        ? "bg-red-50 border-red-500 text-red-600 shadow-sm"
+                        : "bg-slate-50 border-slate-100 text-slate-600 hover:border-red-200 hover:bg-red-50"
+                    }`}
+                  >
+                    <CreditCard className="h-4 w-4 mb-1" />
+                    Pay Online
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentType("pay_on_collection")}
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-semibold transition ${
+                      paymentType === "pay_on_collection"
+                        ? "bg-red-50 border-red-500 text-red-600 shadow-sm"
+                        : "bg-slate-50 border-slate-100 text-slate-600 hover:border-red-200 hover:bg-red-50"
+                    }`}
+                  >
+                    <User className="h-4 w-4 mb-1" />
+                    Pay Later
+                  </button>
+                </div>
+              </div>
+
               <div className="px-6 pb-6">
                 <Button
                   className="w-full rounded-2xl bg-red-600 hover:bg-red-700 text-white h-12 font-bold shadow-lg shadow-red-200 text-sm"
                   disabled={checkoutMutation.isPending}
                   onClick={() => { document.getElementById("hidden-submit-btn")?.click(); }}
                 >
-                  {checkoutMutation.isPending ? "Creating Order…" : "Proceed to Payment →"}
+                  {checkoutMutation.isPending ? "Creating Order…" : paymentType === "pay_on_collection" ? "Confirm Booking →" : "Proceed to Payment →"}
                 </Button>
               </div>
 

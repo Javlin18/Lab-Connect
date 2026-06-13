@@ -25,25 +25,17 @@ import {
   Trophy,
   User2,
   Users,
-<<<<<<< Updated upstream
+  WalletCards,
   X,
   Zap,
   Star
-=======
-  WalletCards,
-  X
->>>>>>> Stashed changes
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { listAppointments } from "@/api/appointments";
-<<<<<<< Updated upstream
-import { countEmployeeTasksForDate, listEmployees, updateEmployeeLocation } from "@/api/employees";
+import { type EmployeeRecord, countEmployeeTasksForDate, listEmployees, updateEmployeeLocation } from "@/api/employees";
 import { getFeedbackLeaderboard } from "@/api/feedback";
-=======
-import { type EmployeeRecord, listEmployees, updateEmployeeLocation } from "@/api/employees";
->>>>>>> Stashed changes
 import { createEmployee } from "@/api/users";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -602,14 +594,9 @@ export default function EmployeesPage() {
   const [zone, setZone] = useState("");
   const [password, setPassword] = useState("");
 
-<<<<<<< Updated upstream
   const employeesQ    = useQuery({ queryKey: ["employees"],               queryFn: listEmployees });
-  const appointmentsQ = useQuery({ queryKey: ["appointments", "emp-page"],queryFn: listAppointments });
-  const leaderQ       = useQuery({ queryKey: ["feedback-leaderboard"],    queryFn: getFeedbackLeaderboard });
-=======
-  const employeesQ = useQuery({ queryKey: ["employees"], queryFn: listEmployees });
   const appointmentsQ = useQuery({ queryKey: ["appointments", "emp-page"], queryFn: () => listAppointments() });
->>>>>>> Stashed changes
+  const leaderQ       = useQuery({ queryKey: ["feedback-leaderboard"],    queryFn: getFeedbackLeaderboard });
 
   const employees = employeesQ.data?.data ?? [];
   const appointments = appointmentsQ.data?.data ?? [];
@@ -859,11 +846,6 @@ export default function EmployeesPage() {
                   )}
                 </CardContent>
               </Card>
-=======
-                onOpen={() => setSelectedEmployeeId(record.employee.id)}
-                record={record}
-              />
->>>>>>> Stashed changes
             );
           })}
         </div>
