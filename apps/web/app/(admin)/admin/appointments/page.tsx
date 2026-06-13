@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Filter,
+  Phone,
   Plus,
   RefreshCw,
   Search,
@@ -347,6 +348,15 @@ export default function AppointmentsPage() {
                               <AlertTriangle className="h-3 w-3 mr-1" />
                               {isUrgent ? "Unurgent" : "Urgent"}
                             </Button>
+                            {patient?.phone && (
+                              <a
+                                className="inline-flex h-7 items-center justify-center gap-1 rounded-lg bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-600 transition hover:bg-emerald-100"
+                                href={`tel:${patient.phone}`}
+                              >
+                                <Phone className="h-3 w-3" />
+                                Call
+                              </a>
+                            )}
                             {a.status !== "completed" && (
                               <Button
                                 className="h-7 px-2.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-600 hover:bg-emerald-100"

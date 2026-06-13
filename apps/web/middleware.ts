@@ -25,10 +25,6 @@ export default withAuth(
         }
 
         // Employee routes — employee only
-        if (path.startsWith("/employee")) {
-          return token?.role === "employee";
-        }
-
         // Patient sub-pages (bookings, reports, etc.) — any authenticated user
         if (
           path.startsWith("/dashboard/") ||
@@ -52,7 +48,6 @@ export default withAuth(
 export const config = {
   matcher: [
     "/admin/:path*",
-    "/employee/:path*",
     "/dashboard/:path*",
     "/checkout/:path*",
     "/order-success/:path*",

@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Text, View } from "react-native";
+import { Linking, Text, View } from "react-native";
 
 import { listEmployees } from "@/api/employees";
 
+import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { Screen } from "@/components/screen";
 
@@ -32,6 +33,16 @@ export default function AdminEmployeesScreen() {
             <Text className="text-sm text-slate-500">
               Location: {item.employee.currentLocation || "Not updated"}
             </Text>
+            <Button
+              className="mt-1"
+              disabled={!item.user.phone}
+              onPress={() => {
+                if (item.user.phone) Linking.openURL(`tel:${item.user.phone}`);
+              }}
+              variant="outline"
+            >
+              Call employee
+            </Button>
           </Card>
         ))}
       </View>

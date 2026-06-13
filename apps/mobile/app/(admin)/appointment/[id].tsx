@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Picker } from "@react-native-picker/picker";
-import { Alert, Text, View } from "react-native";
+import { Alert, Linking, Text, View } from "react-native";
 
 import { assignAppointment, getAppointment } from "@/api/appointments";
 import { listEmployees } from "@/api/employees";
@@ -46,6 +46,7 @@ export default function AdminAppointmentDetailScreen() {
 
   const appointment = appointmentQuery.data?.data;
   const employees = employeesQuery.data?.data ?? [];
+  const patientPhone = appointment?.patient?.phone ?? "";
 
   if (!appointment) {
     return (
@@ -72,6 +73,15 @@ export default function AdminAppointmentDetailScreen() {
         <Text className="text-sm text-slate-700">{appointment.testTypes.join(", ")}</Text>
         <Text className="text-sm text-slate-700">Slot: {appointment.slot}</Text>
         <Text className="text-sm text-slate-700">Notes: {appointment.notes || "None"}</Text>
+        <Button
+          disabled={!patientPhone}
+          onPress={() => {
+            if (patientPhone) Linking.openURL(`tel:${patientPhone}`);
+          }}
+          variant="outline"
+        >
+          Call patient
+        </Button>
       </Card>
 
       <Card className="gap-3">

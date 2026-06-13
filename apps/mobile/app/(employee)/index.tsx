@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/auth-store";
 
-import { getAssignedAppointments, getAvailableAppointments } from "@/api/employee";
+import { getAssignedAppointments } from "@/api/employee";
 import { Screen } from "@/components/screen";
 import { TaskCard } from "@/components/employee/TaskCard";
 import { EmptyState } from "@/components/employee/EmptyState";
@@ -23,8 +23,8 @@ function LogoutButton() {
         onPress: async () => {
           await logout();
           router.replace("/(auth)/login");
-        },
-      },
+        }
+      }
     ]);
   };
 
@@ -48,25 +48,9 @@ export default function EmployeeHomeScreen() {
     refetchInterval: 60000
   });
 
-  const availableQuery = useQuery({
-    queryKey: ["appointments", "available"],
-    queryFn: getAvailableAppointments,
-    refetchInterval: 60000
-  });
+  const appointments = assignedQuery.data?.data ?? [];
 
-  const assignedAppointments = assignedQuery.data?.data ?? [];
-  const availableAppointments = availableQuery.data?.data ?? [];
-  const appointments = [
-    ...availableAppointments,
-    ...assignedAppointments.filter(
-      (app) => !availableAppointments.some((available) => available.id === app.id)
-    )
-  ];
-
-  // Categorize appointments
-  const pendingTasks = appointments.filter(
-    (app) => app.status === "assigned" || app.status === "pending"
-  );
+  const pendingTasks = appointments.filter((app) => app.status === "assigned");
   const acceptedTasks = appointments.filter(
     (app) => app.status === "accepted" || app.status === "en_route"
   );
@@ -83,6 +67,7 @@ export default function EmployeeHomeScreen() {
   return (
     <Screen title="" headerRight={<LogoutButton />}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+<<<<<<< Updated upstream
         {/* Header Bar */}
         <View className="flex-row justify-between items-center mb-6">
           <View>
@@ -99,9 +84,17 @@ export default function EmployeeHomeScreen() {
           >
             <Ionicons name="notifications-outline" size={20} color="#64748b" />
           </TouchableOpacity>
+=======
+        <View className="mb-6">
+          <Text className="text-xs text-slate-400 font-bold uppercase tracking-wider">
+            {todayStr}
+          </Text>
+          <Text className="text-xl font-black text-slate-800 mt-0.5">
+            Good morning, {user?.name ?? "Collector"}
+          </Text>
+>>>>>>> Stashed changes
         </View>
 
-        {/* Summary Row */}
         <View className="flex-row gap-3 mb-6">
           <View className="flex-1 bg-amber-50 border border-amber-200/60 p-3.5 rounded-2xl">
             <Text className="text-xs text-amber-500 font-bold">Pending</Text>
@@ -123,19 +116,17 @@ export default function EmployeeHomeScreen() {
           </View>
         </View>
 
-        {/* First load indicator */}
-        {(assignedQuery.isLoading || availableQuery.isLoading) && appointments.length === 0 ? (
+        {assignedQuery.isLoading && appointments.length === 0 ? (
           <View className="py-20">
             <ActivityIndicator size="large" color="#0F6E56" />
           </View>
         ) : appointments.length === 0 ? (
           <EmptyState
             message="No assigned tasks today"
-            subMessage="Enjoy your day or contact lab administrators to assign collections."
+            subMessage="Open the Appointments tab to accept a new patient booking when you are free."
           />
         ) : (
           <View className="space-y-6">
-            {/* Pending Section */}
             {pendingTasks.length > 0 && (
               <View>
                 <Text className="text-sm font-bold text-slate-700 mb-3 px-1 uppercase tracking-wider">
@@ -151,7 +142,6 @@ export default function EmployeeHomeScreen() {
               </View>
             )}
 
-            {/* Accepted Section */}
             {acceptedTasks.length > 0 && (
               <View>
                 <Text className="text-sm font-bold text-slate-700 mb-3 px-1 uppercase tracking-wider">
@@ -167,7 +157,6 @@ export default function EmployeeHomeScreen() {
               </View>
             )}
 
-            {/* Collected Section */}
             {collectedTasks.length > 0 && (
               <View className="opacity-60">
                 <Text className="text-sm font-bold text-slate-700 mb-3 px-1 uppercase tracking-wider">
@@ -187,15 +176,15 @@ export default function EmployeeHomeScreen() {
         )}
       </ScrollView>
 
-      {/* Floating Refresh Button */}
       <TouchableOpacity
         className="absolute bottom-4 right-4 bg-emerald-800 h-12 w-12 rounded-full items-center justify-center shadow-lg"
-        onPress={() => {
-          assignedQuery.refetch();
-          availableQuery.refetch();
-        }}
+        onPress={() => assignedQuery.refetch()}
       >
+<<<<<<< Updated upstream
         <Ionicons name="refresh" size={24} color="white" />
+=======
+        <Text className="text-white text-lg font-bold">R</Text>
+>>>>>>> Stashed changes
       </TouchableOpacity>
     </Screen>
   );

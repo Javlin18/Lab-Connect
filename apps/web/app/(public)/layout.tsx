@@ -174,15 +174,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                     </button>
                   )}
 
-                  {/* Employee link */}
-                  {session?.user?.role === "employee" && (
-                    <Link
-                      className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-                      href="/employee/dashboard"
-                    >
-                      <User className="h-3.5 w-3.5" /> My Tasks
-                    </Link>
-                  )}
                 </>
               ) : (
                 /* Not logged in */

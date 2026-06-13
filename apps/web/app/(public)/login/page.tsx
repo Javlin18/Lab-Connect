@@ -33,7 +33,7 @@ export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<Tab>(
     searchParams.get("tab") === "register" ? "register" : "login"
   );
-  const [loginRole, setLoginRole] = useState<"patient" | "admin" | "employee">(
+  const [loginRole, setLoginRole] = useState<"patient" | "admin">(
     searchParams.get("admin") === "true" ? "admin" : "patient"
   );
 
@@ -51,7 +51,6 @@ export default function LoginPage() {
   const [otp,         setOtp]         = useState("");
 
   const isAdmin    = loginRole === "admin";
-  const isEmployee = loginRole === "employee";
 
   // ── Send OTP mutation ────────────────────────────────────────────────────────
   const sendOtpMutation = useMutation({
@@ -111,9 +110,8 @@ export default function LoginPage() {
     }
 
     const session = await getSession();
-    if (session?.user?.role === "admin")         router.push("/admin/dashboard");
-    else if (session?.user?.role === "employee") router.push("/employee/dashboard");
-    else                                         router.push("/");
+    if (session?.user?.role === "admin") router.push("/admin/dashboard");
+    else router.push("/");
   };
 
   // ── Step 1: Details form ─────────────────────────────────────────────────────
@@ -138,16 +136,16 @@ export default function LoginPage() {
             <Shield className="h-6 w-6" />
           </div>
           <CardTitle className="text-xl font-black text-slate-800">
-            {isAdmin ? "Admin Console" : isEmployee ? "Employee Portal" : "Lab Connect"}
+            {isAdmin ? "Admin Console" : "Lab Connect"}
           </CardTitle>
           <CardDescription className="text-xs">
-            {isAdmin ? "Access laboratory admin panel" : isEmployee ? "View assigned patient bookings" : "Book home tests · Download reports"}
+            {isAdmin ? "Access laboratory admin panel" : "Book home tests and download reports"}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-5 px-6 pb-6">
           {/* Tab switcher — patient only */}
-          {!isAdmin && !isEmployee && (
+          {!isAdmin && (
             <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-50 border border-slate-100">
               {(["login", "register"] as Tab[]).map((tab) => (
                 <button
@@ -186,7 +184,7 @@ export default function LoginPage() {
               </Button>
 
               {/* Google sign-in — only for patients */}
-              {!isAdmin && !isEmployee && (
+              {!isAdmin && (
                 <>
                   <div className="flex items-center gap-3">
                     <div className="flex-1 h-px bg-slate-100" />
@@ -374,13 +372,6 @@ export default function LoginPage() {
               type="button"
             >
               {isAdmin ? "← Patient Login" : "Admin Login"}
-            </button>
-            <button
-              className="text-xs text-slate-400 hover:text-red-600 transition font-medium w-full"
-              onClick={() => { setLoginRole(isEmployee ? "patient" : "employee"); setActiveTab("login"); }}
-              type="button"
-            >
-              {isEmployee ? "← Patient Login" : "Employee Login"}
             </button>
           </div>
         </CardContent>

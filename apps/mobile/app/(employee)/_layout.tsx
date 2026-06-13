@@ -23,37 +23,54 @@ export default function EmployeeLayout() {
             backgroundColor: "#FFFFFF",
             borderTopWidth: 1,
             borderTopColor: "#F1F5F9",
-            elevation: 8,
+            elevation: 8
           },
           tabBarLabelStyle: {
             fontSize: 11,
-            fontWeight: "600",
-          },
+            fontWeight: "600"
+          }
         }}
       >
         <Tabs.Screen
           name="index"
           options={{
             title: "Tasks",
+<<<<<<< Updated upstream
             tabBarIcon: ({ color }) => <Ionicons name="clipboard-outline" size={24} color={color} />,
+=======
+            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>T</Text>
+          }}
+        />
+        <Tabs.Screen
+          name="appointments"
+          options={{
+            title: "Appointments",
+            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>+</Text>
+>>>>>>> Stashed changes
           }}
         />
         <Tabs.Screen
           name="history"
           options={{
             title: "History",
+<<<<<<< Updated upstream
             tabBarIcon: ({ color }) => <Ionicons name="time-outline" size={24} color={color} />,
+=======
+            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>H</Text>
+>>>>>>> Stashed changes
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
             title: "Profile",
+<<<<<<< Updated upstream
             tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={24} color={color} />,
+=======
+            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>P</Text>
+>>>>>>> Stashed changes
           }}
         />
-        {/* Hidden screens */}
-        <Tabs.Screen name="notifications" options={{ href: null }} />
         <Tabs.Screen name="task/[id]" options={{ href: null }} />
         <Tabs.Screen name="task/navigate/[id]" options={{ href: null }} />
         <Tabs.Screen name="task/collect/[id]" options={{ href: null }} />

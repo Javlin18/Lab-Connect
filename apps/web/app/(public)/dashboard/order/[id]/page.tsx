@@ -164,6 +164,15 @@ export default function OrderTrackerPage() {
                   </p>
                 </div>
               </div>
+              {order.appointment.employee.phone && (
+                <a
+                  className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 text-xs font-bold text-primary-foreground transition hover:bg-primary/90"
+                  href={`tel:${order.appointment.employee.phone}`}
+                >
+                  <Phone className="h-3.5 w-3.5" />
+                  Call Collector
+                </a>
+              )}
             </div>
           )}
 

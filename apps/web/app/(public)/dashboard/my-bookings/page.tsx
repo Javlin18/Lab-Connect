@@ -6,8 +6,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 
-import { listAppointments } from "@/api/appointments";
-import { getReport } from "@/api/reports";
+import { listMyOrders } from "@/api/orders";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Order } from "@lab-app/shared";
@@ -27,9 +26,9 @@ export default function MyBookingsPage() {
   const { status } = useSession();
   const [tab, setTab] = useState<(typeof tabs)[number]>("All");
 
-  const appointmentsQ = useQuery({
-    queryKey: ["appointments", "mine"],
-    queryFn:  listAppointments,
+  const ordersQ = useQuery({
+    queryKey: ["orders", "mine"],
+    queryFn: listMyOrders,
   });
 
   const all = ordersQ.data?.data ?? [];

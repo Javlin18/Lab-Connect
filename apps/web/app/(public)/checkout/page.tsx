@@ -1,11 +1,10 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle, CreditCard, Loader2, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { AlertCircle, CheckCircle, CreditCard, Loader2, ShieldCheck, Zap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { verifyPayment } from "@/api/orders";
 import { createRazorpayOrder, verifyRazorpayPayment } from "@/api/payments";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -89,18 +88,6 @@ export default function CheckoutPage() {
     },
   });
 
-  // Fallback simulate (dev / sandbox testing)
-  const simulateMutation = useMutation({
-    mutationFn: () => verifyPayment({ orderId: orderId!, status: "paid" }),
-    onSuccess: () => {
-      toast({ title: "Booking Confirmed (Simulated)" });
-      router.push(`/order-success?id=${orderId}`);
-    },
-    onError: (err: any) => {
-      toast({ title: "Simulation failed", description: err.message, variant: "destructive" });
-    },
-  });
-
   // ── Open Razorpay ─────────────────────────────────────────────────────────
   const handlePay = () => {
     if (!scriptLoaded || !rzpOrderId || !rzpKeyId) {
@@ -138,7 +125,7 @@ export default function CheckoutPage() {
 
   const isInit  = scriptLoading || rzpLoading;
   const isReady = scriptLoaded && !!rzpOrderId && !!rzpKeyId;
-  const isBusy  = verifyMutation.isPending || simulateMutation.isPending;
+  const isBusy  = verifyMutation.isPending;
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-slate-50">
@@ -172,61 +159,25 @@ export default function CheckoutPage() {
                 Initialising payment gateway...
               </div>
             ) : rzpError ? (
-              /* Gateway unavailable — show warning + simulate */
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left">
-                  <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-bold text-amber-800">Payment gateway unavailable</p>
-                    <p className="text-xs text-amber-600 mt-1">{rzpError}</p>
-                    <p className="text-xs text-amber-600 mt-2">
-                      Add real Razorpay test keys to <code className="bg-amber-100 px-1 rounded">.env</code>.
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left">
+                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-amber-800">Payment gateway unavailable</p>
+                  <p className="text-xs text-amber-600 mt-1">{rzpError}</p>
+                  <p className="text-xs text-amber-600 mt-2">
+                    Check the Razorpay credentials on the API server and restart the backend.
+                  </p>
                 </div>
-
-                <Button
-                  className="w-full h-12 rounded-2xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 flex items-center justify-center gap-2"
-                  disabled={isBusy}
-                  onClick={() => simulateMutation.mutate()}
-                  variant="outline"
-                >
-                  {isBusy
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <Sparkles className="h-4 w-4 text-amber-500" />}
-                  Simulate Booking (Dev Mode)
-                </Button>
               </div>
             ) : (
-              /* Ready — show Razorpay + sandbox */
-              <>
-                <Button
-                  className="w-full h-13 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-200 flex items-center justify-center gap-2 py-4"
-                  disabled={!isReady || isBusy}
-                  onClick={handlePay}
-                >
-                  <Zap className="h-4 w-4" />
-                  Pay ₹{amount} via Razorpay
-                </Button>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-slate-100" />
-                  <span className="text-[10px] text-slate-400 uppercase font-bold">or sandbox test</span>
-                  <div className="flex-1 h-px bg-slate-100" />
-                </div>
-
-                <Button
-                  className="w-full h-12 rounded-2xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 flex items-center justify-center gap-2"
-                  disabled={isBusy}
-                  onClick={() => simulateMutation.mutate()}
-                  variant="outline"
-                >
-                  {isBusy
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <Sparkles className="h-4 w-4 text-amber-500" />}
-                  Simulate Sandbox Payment
-                </Button>
-              </>
+              <Button
+                className="w-full h-13 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-200 flex items-center justify-center gap-2 py-4"
+                disabled={!isReady || isBusy}
+                onClick={handlePay}
+              >
+                <Zap className="h-4 w-4" />
+                Pay ₹{amount} via Razorpay
+              </Button>
             )}
           </div>
         </div>

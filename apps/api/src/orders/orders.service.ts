@@ -149,26 +149,29 @@ export class OrdersService {
     // Normal online prepaid flow — Razorpay
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
-    let rzpOrderId: string | null = null;
-
-    if (keyId && keySecret && !keyId.startsWith("rzp_test_mock")) {
-      try {
-        const res = await fetch("https://api.razorpay.com/v1/orders", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Basic " + Buffer.from(`${keyId}:${keySecret}`).toString("base64")
-          },
-          body: JSON.stringify({ amount: Math.round(total * 100), currency: "INR", receipt: order.id })
-        });
-        const rzpData = await res.json();
-        if (rzpData?.id) rzpOrderId = rzpData.id;
-      } catch (err) {
-        console.error("Razorpay fallback", err);
-      }
+    if (!keyId || !keySecret || keyId.startsWith("rzp_test_mock")) {
+      throw new BadRequestException("Razorpay keys are not configured");
     }
 
-    if (!rzpOrderId) rzpOrderId = `order_mock_${Math.random().toString(36).substring(7)}`;
+    let rzpOrderId: string;
+    try {
+      const res = await fetch("https://api.razorpay.com/v1/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Basic " + Buffer.from(`${keyId}:${keySecret}`).toString("base64")
+        },
+        body: JSON.stringify({ amount: Math.round(total * 100), currency: "INR", receipt: order.id })
+      });
+      const rzpData = await res.json();
+      if (!res.ok || !rzpData?.id) {
+        throw new Error(rzpData?.error?.description ?? "Razorpay order creation failed");
+      }
+      rzpOrderId = rzpData.id;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Razorpay order creation failed";
+      throw new BadRequestException(message);
+    }
 
     order = await this.prisma.order.update({
       where: { id: order.id },
