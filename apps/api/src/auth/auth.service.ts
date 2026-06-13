@@ -226,6 +226,19 @@ export class AuthService {
     };
   }
 
+  getActiveOtp(phone: string) {
+    const record = this.otpStore.get(phone);
+    if (!record) return null;
+    if (record.expiresAt < Date.now()) {
+      this.otpStore.delete(phone);
+      return null;
+    }
+    return {
+      code: record.code,
+      expiresAt: new Date(record.expiresAt).toISOString()
+    };
+  }
+
   async verifyOtp(dto: VerifyOtpDto) {
     const record = this.otpStore.get(dto.phone);
 

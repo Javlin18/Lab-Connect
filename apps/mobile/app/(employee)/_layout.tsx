@@ -1,9 +1,8 @@
 import React from "react";
-import { Text } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import { Ionicons } from "@expo/vector-icons";
+
 import { RoleGate } from "@/components/role-gate";
 
 export default function EmployeeLayout() {
@@ -35,40 +34,28 @@ export default function EmployeeLayout() {
           name="index"
           options={{
             title: "Tasks",
-<<<<<<< Updated upstream
-            tabBarIcon: ({ color }) => <Ionicons name="clipboard-outline" size={24} color={color} />,
-=======
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>T</Text>
+            tabBarIcon: ({ color }) => <Ionicons name="clipboard-outline" size={24} color={color} />
           }}
         />
         <Tabs.Screen
           name="appointments"
           options={{
             title: "Appointments",
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>+</Text>
->>>>>>> Stashed changes
+            tabBarIcon: ({ color }) => <Ionicons name="add-circle-outline" size={24} color={color} />
           }}
         />
         <Tabs.Screen
           name="history"
           options={{
             title: "History",
-<<<<<<< Updated upstream
-            tabBarIcon: ({ color }) => <Ionicons name="time-outline" size={24} color={color} />,
-=======
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>H</Text>
->>>>>>> Stashed changes
+            tabBarIcon: ({ color }) => <Ionicons name="time-outline" size={24} color={color} />
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
             title: "Profile",
-<<<<<<< Updated upstream
-            tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={24} color={color} />,
-=======
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>P</Text>
->>>>>>> Stashed changes
+            tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={24} color={color} />
           }}
         />
         <Tabs.Screen name="task/[id]" options={{ href: null }} />

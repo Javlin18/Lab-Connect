@@ -25,25 +25,14 @@ import {
   Trophy,
   User2,
   Users,
-<<<<<<< Updated upstream
-  X,
-  Zap,
-  Star
-=======
   WalletCards,
   X
->>>>>>> Stashed changes
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { listAppointments } from "@/api/appointments";
-<<<<<<< Updated upstream
-import { countEmployeeTasksForDate, listEmployees, updateEmployeeLocation } from "@/api/employees";
-import { getFeedbackLeaderboard } from "@/api/feedback";
-=======
 import { type EmployeeRecord, listEmployees, updateEmployeeLocation } from "@/api/employees";
->>>>>>> Stashed changes
 import { createEmployee } from "@/api/users";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -602,20 +591,11 @@ export default function EmployeesPage() {
   const [zone, setZone] = useState("");
   const [password, setPassword] = useState("");
 
-<<<<<<< Updated upstream
-  const employeesQ    = useQuery({ queryKey: ["employees"],               queryFn: listEmployees });
-  const appointmentsQ = useQuery({ queryKey: ["appointments", "emp-page"],queryFn: listAppointments });
-  const leaderQ       = useQuery({ queryKey: ["feedback-leaderboard"],    queryFn: getFeedbackLeaderboard });
-=======
   const employeesQ = useQuery({ queryKey: ["employees"], queryFn: listEmployees });
   const appointmentsQ = useQuery({ queryKey: ["appointments", "emp-page"], queryFn: () => listAppointments() });
->>>>>>> Stashed changes
 
   const employees = employeesQ.data?.data ?? [];
   const appointments = appointmentsQ.data?.data ?? [];
-  const leaderMap    = Object.fromEntries(
-    (leaderQ.data?.data ?? []).map((e) => [e.employeeId, e])
-  );
 
   const rankedRevenue = useMemo(() => {
     const pairs = employees
@@ -755,115 +735,9 @@ export default function EmployeesPage() {
               <EmployeeCompactCard
                 analytics={analytics}
                 key={record.employee.id}
-<<<<<<< Updated upstream
-              >
-                {/* Top strip */}
-                <div className={`h-1 ${record.employee.isAvailable ? "bg-emerald-400" : "bg-amber-400"}`} />
-
-                <CardContent className="p-5 space-y-4">
-                  {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
-                        {initials}
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-900 text-sm">{record.user.name}</p>
-                        <AvailabilityBadge available={record.employee.isAvailable} />
-                      </div>
-                    </div>
-                    <button
-                      className="h-7 w-7 rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition flex items-center justify-center"
-                      onClick={() => toggleAvailability.mutate({ empId: record.employee.id, isAvailable: !record.employee.isAvailable })}
-                      title="Toggle availability"
-                      type="button"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Details */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Phone className="h-3.5 w-3.5 text-slate-300" />
-                      {record.user.phone}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <MapPin className="h-3.5 w-3.5 text-slate-300" />
-                      {record.employee.zone || "No zone assigned"}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <User2 className="h-3.5 w-3.5 text-slate-300" />
-                      {record.user.email}
-                    </div>
-                  </div>
-
-                  {/* Stats row */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
-                    <div className="bg-slate-50 rounded-xl px-3 py-2">
-                      <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Today</p>
-                      <p className="text-lg font-black text-slate-800">{taskCount}</p>
-                      <p className="text-[9px] text-slate-400">tasks</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-xl px-3 py-2">
-                      <p className="text-[9px] text-slate-400 uppercase font-bold tracking-wider">Active</p>
-                      <p className="text-lg font-black text-slate-800">{assigned.length}</p>
-                      <p className="text-[9px] text-slate-400">bookings</p>
-                    </div>
-                  </div>
-
-                  {/* Rating row */}
-                  {(() => {
-                    const entry = leaderMap[record.employee.id];
-                    return entry && entry.totalFeedbackCount > 0 ? (
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-                        <div className="flex items-center gap-1">
-                          <span className="text-amber-400"><Star className="h-4 w-4 fill-amber-400" /></span>
-                          <span className="text-sm font-black text-slate-800">{entry.averageRating.toFixed(1)}</span>
-                          <span className="text-[10px] text-slate-400">({entry.totalFeedbackCount})</span>
-                        </div>
-                        <a
-                          href={`/admin/employees/${record.employee.id}/feedback`}
-                          className="text-[10px] font-bold text-blue-600 hover:underline"
-                        >
-                          View Feedback →
-                        </a>
-                      </div>
-                    ) : (
-                      <div className="pt-2 border-t border-slate-50">
-                        <span className="text-[10px] text-slate-300">No reviews yet</span>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Active bookings preview */}
-                  {assigned.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Active bookings</p>
-                      {assigned.slice(0, 2).map((a) => (
-                        <div className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-1.5" key={a.id}>
-                          <span className="text-[10px] font-mono text-blue-700">{a.id.slice(0, 10)}…</span>
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                            a.status === "en_route" ? "bg-indigo-100 text-indigo-600" :
-                            a.status === "collected" ? "bg-cyan-100 text-cyan-600" :
-                            "bg-blue-100 text-blue-600"
-                          }`}>
-                            {a.status}
-                          </span>
-                        </div>
-                      ))}
-                      {assigned.length > 2 && (
-                        <p className="text-[10px] text-slate-400 text-center">+{assigned.length - 2} more</p>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-=======
                 onOpen={() => setSelectedEmployeeId(record.employee.id)}
                 record={record}
               />
->>>>>>> Stashed changes
             );
           })}
         </div>

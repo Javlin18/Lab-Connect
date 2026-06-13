@@ -20,6 +20,7 @@ import { CartModule } from "./cart/cart.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { FeedbackModule } from "./feedback/feedback.module";
+import { OtpAssistanceModule } from "./otp-assistance/otp-assistance.module";
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { FeedbackModule } from "./feedback/feedback.module";
     CallsModule,
     PaymentsModule,
     FeedbackModule,
+    OtpAssistanceModule,
   ],
   controllers: [AppController],
   providers: [

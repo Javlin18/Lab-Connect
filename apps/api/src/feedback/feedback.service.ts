@@ -187,7 +187,7 @@ export class FeedbackService {
 
     return {
       data: {
-        employee: { id: employee.id, ...employee.user },
+        employee: { id: employee.id, name: employee.user.name, email: employee.user.email },
         averageRating: parseFloat(avgRating.toFixed(2)),
         totalFeedbackCount: total,
         ratingBreakdown: {

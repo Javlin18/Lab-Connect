@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getAppointment } from "@/api/appointments";
 import { updateStatus } from "@/api/employee";
 import { sendOtp, verifyOtp } from "@/api/auth";
+import { createOtpAssistanceRequest, listOtpAssistanceRequests } from "@/api/otp-assistance";
 import { Screen } from "@/components/screen";
 import { StepIndicator } from "@/components/employee/StepIndicator";
 import { CollectionChecklist } from "@/components/employee/CollectionChecklist";
@@ -38,6 +39,7 @@ export default function CollectScreen() {
   const [otpError, setOtpError] = useState("");
   const [resendCountdown, setResendCountdown] = useState(0);
   const [collectedAt, setCollectedAt] = useState("");
+  const [adminOverrideVerified, setAdminOverrideVerified] = useState(false);
   // Barcode scanner
   const [scanningTest, setScanningTest] = useState<string | null>(null);
 
@@ -62,6 +64,15 @@ export default function CollectScreen() {
 
   const allBarcodesEntered =
     (appointment?.testTypes ?? []).every((t) => (barcodes[t] ?? "").trim().length > 0);
+
+  const assistanceQuery = useQuery({
+    enabled: Boolean(id) && step === 3,
+    queryKey: ["otp-assistance", id],
+    queryFn: () => listOtpAssistanceRequests(id as string),
+    refetchInterval: 5000,
+  });
+
+  const assistanceRequest = assistanceQuery.data?.data?.[0];
 
   useEffect(() => {
     if (resendCountdown <= 0) return;
@@ -108,6 +119,29 @@ export default function CollectScreen() {
     },
     onError: (err: Error) => Alert.alert("Error", err.message),
   });
+
+  const askAdminMutation = useMutation({
+    mutationFn: () =>
+      createOtpAssistanceRequest({
+        appointmentId: id as string,
+        reason: notes.trim() || "Booking owner is unavailable or unable to share OTP",
+      }),
+    onSuccess: async () => {
+      await assistanceQuery.refetch();
+      Alert.alert("Request sent", "Admin has been notified for OTP assistance.");
+    },
+    onError: (err: Error) => Alert.alert("Request failed", err.message),
+  });
+
+  useEffect(() => {
+    if (assistanceRequest?.status === "verified_by_admin" && !adminOverrideVerified) {
+      setAdminOverrideVerified(true);
+      setCollectedAt(assistanceRequest.resolvedAt ?? new Date().toISOString());
+      queryClient.invalidateQueries({ queryKey: ["appointment", id] });
+      queryClient.invalidateQueries({ queryKey: ["appointments", "assigned"] });
+      setStep(4);
+    }
+  }, [adminOverrideVerified, assistanceRequest?.resolvedAt, assistanceRequest?.status, id, queryClient]);
 
   if (query.isLoading || !appointment) {
     return (
@@ -361,6 +395,53 @@ export default function CollectScreen() {
             )}
           </View>
         )}
+
+        <View className="mt-5 bg-blue-50 border border-blue-200 rounded-3xl p-4">
+          <View className="flex-row items-start gap-3">
+            <View className="h-10 w-10 rounded-2xl bg-blue-600 items-center justify-center">
+              <Ionicons name="shield-checkmark-outline" size={20} color="white" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-black text-slate-800">Booking owner unavailable?</Text>
+              <Text className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Ask admin for OTP assistance when the booking owner cannot provide the OTP.
+              </Text>
+              {assistanceRequest ? (
+                <View className="mt-3 rounded-2xl bg-white border border-blue-100 p-3">
+                  <Text className="text-[10px] font-bold uppercase tracking-wider text-blue-500">
+                    Request Status
+                  </Text>
+                  <Text className="mt-1 text-sm font-black text-slate-800">
+                    {assistanceRequest.status.replace(/_/g, " ").toUpperCase()}
+                  </Text>
+                  {assistanceRequest.otpShared ? (
+                    <Text className="mt-2 text-sm font-black text-emerald-700">
+                      Admin OTP: {assistanceRequest.otpShared}
+                    </Text>
+                  ) : null}
+                  {assistanceRequest.adminReason ? (
+                    <Text className="mt-1 text-xs text-slate-500">{assistanceRequest.adminReason}</Text>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+          </View>
+          <TouchableOpacity
+            className={`mt-4 rounded-2xl py-3 items-center justify-center ${
+              askAdminMutation.isPending || assistanceRequest ? "bg-slate-300" : "bg-blue-700"
+            }`}
+            disabled={askAdminMutation.isPending || Boolean(assistanceRequest)}
+            onPress={() => askAdminMutation.mutate()}
+          >
+            {askAdminMutation.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-white text-sm font-black">
+                {assistanceRequest ? "Admin Request Created" : "Ask Admin OTP"}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </Screen>
     );
   }
@@ -377,6 +458,11 @@ export default function CollectScreen() {
             <Ionicons name="checkmark" size={64} color="#059669" />
           </View>
           <Text className="text-2xl font-black text-emerald-800">Collection Confirmed!</Text>
+          {adminOverrideVerified ? (
+            <View className="mt-3 rounded-full bg-blue-50 border border-blue-200 px-4 py-2">
+              <Text className="text-xs font-black text-blue-700">Verified by Admin Override</Text>
+            </View>
+          ) : null}
           <Text className="text-xs text-slate-400 mt-1">
             {new Date(collectedAt || Date.now()).toLocaleString()}
           </Text>

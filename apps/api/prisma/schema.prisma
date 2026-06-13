@@ -23,6 +23,13 @@ enum AppointmentStatus {
   completed
 }
 
+enum OtpAssistanceStatus {
+  pending
+  approved
+  rejected
+  verified_by_admin
+}
+
 model User {
   id                  String         @id @default(cuid())
   name                String
@@ -39,6 +46,10 @@ model User {
   employeeProfile     Employee?
   cart                Cart?
   orders              Order[]
+  otpAssistanceAsEmployee OtpAssistanceRequest[] @relation("OtpAssistanceEmployee")
+  otpAssistanceAsPatient OtpAssistanceRequest[] @relation("OtpAssistancePatient")
+  otpAssistanceAsBookingOwner OtpAssistanceRequest[] @relation("OtpAssistanceBookingOwner")
+  otpAssistanceAsAdmin OtpAssistanceRequest[] @relation("OtpAssistanceAdmin")
 
   @@index([role])
 }
@@ -64,6 +75,7 @@ model Appointment {
   order            Order?
   reassignRequests ReassignRequest[]
   employeeFeedback EmployeeFeedback?
+  otpAssistanceRequests OtpAssistanceRequest[]
 
   @@index([patientId])
   @@index([employeeId])
@@ -106,6 +118,55 @@ model Notification {
 
   @@index([userId])
   @@index([read])
+}
+
+model OtpAssistanceRequest {
+  id                 String              @id @default(cuid())
+  appointmentId      String
+  orderId            String?
+  employeeId         String
+  patientId          String
+  bookingOwnerId     String?
+  status             OtpAssistanceStatus @default(pending)
+  reason             String
+  collectionLocation String
+  otpShared          String?
+  requestedAt        DateTime            @default(now())
+  resolvedAt         DateTime?
+  resolvedBy         String?
+  adminReason        String?
+
+  appointment        Appointment         @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  employee           User                @relation("OtpAssistanceEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  patient            User                @relation("OtpAssistancePatient", fields: [patientId], references: [id], onDelete: Cascade)
+  bookingOwner       User?               @relation("OtpAssistanceBookingOwner", fields: [bookingOwnerId], references: [id], onDelete: SetNull)
+  admin              User?               @relation("OtpAssistanceAdmin", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  auditLogs          OtpAssistanceAuditLog[]
+
+  @@index([appointmentId])
+  @@index([employeeId])
+  @@index([status])
+  @@index([requestedAt])
+}
+
+model OtpAssistanceAuditLog {
+  id            String               @id @default(cuid())
+  requestId     String
+  appointmentId String
+  orderId       String?
+  action        String
+  reason        String?
+  actorId       String
+  actorName     String
+  actorRole     UserRole
+  employeeName  String?
+  createdAt     DateTime             @default(now())
+
+  request       OtpAssistanceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([appointmentId])
+  @@index([createdAt])
 }
 
 model Test {

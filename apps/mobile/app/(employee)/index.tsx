@@ -67,24 +67,6 @@ export default function EmployeeHomeScreen() {
   return (
     <Screen title="" headerRight={<LogoutButton />}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-<<<<<<< Updated upstream
-        {/* Header Bar */}
-        <View className="flex-row justify-between items-center mb-6">
-          <View>
-            <Text className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-              {todayStr}
-            </Text>
-            <Text className="text-xl font-black text-slate-800 mt-0.5">
-              Good morning, {user?.name ?? "Collector"}
-            </Text>
-          </View>
-          <TouchableOpacity
-            className="h-10 w-10 bg-slate-50 border border-slate-100 items-center justify-center rounded-full"
-            onPress={() => router.push("/(employee)/notifications")}
-          >
-            <Ionicons name="notifications-outline" size={20} color="#64748b" />
-          </TouchableOpacity>
-=======
         <View className="mb-6">
           <Text className="text-xs text-slate-400 font-bold uppercase tracking-wider">
             {todayStr}
@@ -92,7 +74,6 @@ export default function EmployeeHomeScreen() {
           <Text className="text-xl font-black text-slate-800 mt-0.5">
             Good morning, {user?.name ?? "Collector"}
           </Text>
->>>>>>> Stashed changes
         </View>
 
         <View className="flex-row gap-3 mb-6">
@@ -180,11 +161,7 @@ export default function EmployeeHomeScreen() {
         className="absolute bottom-4 right-4 bg-emerald-800 h-12 w-12 rounded-full items-center justify-center shadow-lg"
         onPress={() => assignedQuery.refetch()}
       >
-<<<<<<< Updated upstream
         <Ionicons name="refresh" size={24} color="white" />
-=======
-        <Text className="text-white text-lg font-bold">R</Text>
->>>>>>> Stashed changes
       </TouchableOpacity>
     </Screen>
   );

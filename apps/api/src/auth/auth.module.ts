@@ -23,6 +23,6 @@ import { TwilioService } from "./twilio.service";
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, TwilioService],
-  exports: [JwtModule]
+  exports: [AuthService, JwtModule]
 })
 export class AuthModule {}
