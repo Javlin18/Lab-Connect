@@ -15,6 +15,7 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import ConfettiCannon from "react-native-confetti-cannon";
 import QRCode from "react-native-qrcode-svg";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   checkQRPaymentStatus,
@@ -146,7 +147,7 @@ function CashConfirmModal({
           </Text>
 
           <View className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-4 mt-3 flex-row items-start gap-2">
-            <Text className="text-orange-600 text-base">⚠️</Text>
+            <Ionicons name="warning-outline" size={18} color="#EA580C" />
             <Text className="text-xs font-bold text-orange-800 leading-relaxed flex-1">
               Only confirm if you have physically received the cash from the patient.
             </Text>
@@ -343,9 +344,9 @@ export default function PaymentScreen() {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="items-center py-8">
             <View className="h-20 w-20 bg-green-500 rounded-full items-center justify-center mb-4">
-              <Text className="text-4xl text-white">✓</Text>
+              <Ionicons name="checkmark" size={40} color="white" />
             </View>
-            <Text className="text-2xl font-black text-green-600">Already Paid ✓</Text>
+            <Text className="text-2xl font-black text-green-600">Already Paid</Text>
             <Text className="text-sm text-slate-400 mt-1">
               This patient paid online during booking.
             </Text>
@@ -383,7 +384,7 @@ export default function PaymentScreen() {
           </View>
 
           <View className="bg-green-50 border border-green-200 rounded-2xl p-4 mx-1 mb-6 flex-row items-center gap-2">
-            <Text className="text-green-600 text-base">🛡</Text>
+            <Ionicons name="shield-checkmark" size={18} color="#16A34A" />
             <Text className="text-xs font-bold text-green-700 flex-1 leading-relaxed">
               No payment collection needed. Patient is cleared to go.
             </Text>
@@ -418,10 +419,10 @@ export default function PaymentScreen() {
             style={{ opacity: opacityAnim, transform: [{ scale: scaleAnim }] }}
           >
             <View className="h-24 w-24 bg-green-500 rounded-full items-center justify-center mb-4 border-4 border-green-300">
-              <Text className="text-5xl text-white">✓</Text>
+              <Ionicons name="checkmark" size={48} color="white" />
             </View>
             <Text className="text-2xl font-black text-slate-800 mt-2">
-              Payment Received! 🎉
+              Payment Received!
             </Text>
             <Text className="text-3xl font-black text-green-500 mt-1">₹{amount}</Text>
             <Text className="text-xs text-slate-400 mt-1">
@@ -430,9 +431,12 @@ export default function PaymentScreen() {
           </Animated.View>
 
           <View className="bg-white border border-slate-100 rounded-2xl p-4 mx-1 mb-4" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-            <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
-              🧾 Receipt
-            </Text>
+            <View className="flex-row items-center mb-3">
+              <Ionicons name="receipt-outline" size={14} color="#94A3B8" />
+              <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider ml-1.5">
+                Receipt
+              </Text>
+            </View>
             <View className="flex-row justify-between py-2 border-b border-slate-50">
               <Text className="text-xs text-slate-500 font-semibold">Patient</Text>
               <Text className="text-xs font-bold text-slate-800">{patientName}</Text>
@@ -573,7 +577,7 @@ export default function PaymentScreen() {
               }
             }}
           >
-            <Text className="text-sm">📤</Text>
+            <Ionicons name="share-outline" size={16} color="#334155" />
             <Text className="text-sm font-bold text-slate-700">Share Payment Link</Text>
           </TouchableOpacity>
 
@@ -581,15 +585,16 @@ export default function PaymentScreen() {
             className="bg-white border border-slate-200 rounded-2xl py-3 items-center flex-row justify-center gap-2 mb-2"
             onPress={() => setShowManualModal(true)}
           >
-            <Text className="text-sm">⌨️</Text>
+            <Ionicons name="keypad-outline" size={16} color="#334155" />
             <Text className="text-sm font-bold text-slate-700">Enter UPI Transaction ID</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="py-3 items-center"
+            className="py-3 items-center flex-row justify-center gap-1.5"
             onPress={() => setShowCashModal(true)}
           >
-            <Text className="text-xs text-slate-400 font-medium">💵 Mark as Cash Payment</Text>
+            <Ionicons name="cash-outline" size={14} color="#94A3B8" />
+            <Text className="text-xs text-slate-400 font-medium">Mark as Cash Payment</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

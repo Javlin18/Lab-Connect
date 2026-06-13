@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { Ionicons } from "@expo/vector-icons";
 
 import { registerEmployee } from "@/api/auth";
 import { useAuthStore } from "@/store/auth-store";
@@ -203,7 +204,7 @@ export default function EmployeeLoginScreen() {
           <View className="items-center mb-10">
             {/* Logo */}
             <View className="w-20 h-20 rounded-3xl bg-[#0F6E56] items-center justify-center mb-4 shadow-lg">
-              <Text className="text-4xl">🧪</Text>
+              <Ionicons name="flask" size={40} color="white" />
             </View>
 
             <Text className="text-xs font-bold text-[#0F6E56] uppercase tracking-widest mb-3">
@@ -231,7 +232,7 @@ export default function EmployeeLoginScreen() {
                       nameError ? "border-[#EF4444]" : "border-[#E5E7EB]"
                     }`}
                   >
-                    <Text className="text-base mr-3">👤</Text>
+                    <Ionicons name="person-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
                     <TextInput
                       className="flex-1 text-sm text-[#101828]"
                       value={name}
@@ -261,7 +262,7 @@ export default function EmployeeLoginScreen() {
                       emailError ? "border-[#EF4444]" : "border-[#E5E7EB]"
                     }`}
                   >
-                    <Text className="text-base mr-3">✉️</Text>
+                    <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
                     <TextInput
                       autoCapitalize="none"
                       className="flex-1 text-sm text-[#101828]"
@@ -296,7 +297,7 @@ export default function EmployeeLoginScreen() {
                   phoneError ? "border-[#EF4444]" : "border-[#E5E7EB]"
                 }`}
               >
-                <Text className="text-base mr-3">📞</Text>
+                <Ionicons name="call-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
                 <TextInput
                   className="flex-1 text-sm text-[#101828]"
                   value={phone}
@@ -334,7 +335,7 @@ export default function EmployeeLoginScreen() {
                   passwordError ? "border-[#EF4444]" : "border-[#E5E7EB]"
                 }`}
               >
-                <Text className="text-base mr-3">🔒</Text>
+                <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
                 <TextInput
                   ref={passwordRef}
                   className="flex-1 text-sm text-[#101828]"
@@ -355,7 +356,7 @@ export default function EmployeeLoginScreen() {
                   onPress={() => setShowPassword((v) => !v)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Text className="text-base">{showPassword ? "🙈" : "👁️"}</Text>
+                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               </View>
               {passwordError ? (
@@ -383,7 +384,7 @@ export default function EmployeeLoginScreen() {
                   Zone
                 </Text>
                 <View className="bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl flex-row items-center px-4 h-[52px]">
-                  <Text className="text-base mr-3">📍</Text>
+                  <Ionicons name="location-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
                   <TextInput
                     className="flex-1 text-sm text-[#101828]"
                     value={zone}
@@ -435,7 +436,7 @@ export default function EmployeeLoginScreen() {
               className="bg-red-50 border border-red-200 rounded-xl p-3 flex-row items-center mt-4"
               accessibilityRole="alert"
             >
-              <Text className="text-red-500 text-base mr-2">⚠️</Text>
+              <Ionicons name="warning-outline" size={20} color="#EF4444" style={{ marginRight: 8 }} />
               <Text className="flex-1 text-sm text-red-700 font-medium">{error}</Text>
               <TouchableOpacity
                 onPress={() => setError("")}
@@ -448,7 +449,7 @@ export default function EmployeeLoginScreen() {
 
           {success ? (
             <View className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex-row items-center mt-4">
-              <Text className="text-emerald-600 text-base mr-2">✓</Text>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#059669" style={{ marginRight: 8 }} />
               <Text className="flex-1 text-sm text-emerald-700 font-medium">
                 {success}
               </Text>

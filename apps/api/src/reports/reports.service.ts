@@ -45,7 +45,7 @@ export class ReportsService {
     // Notify patient
     await this.notificationsService.createNotification(
       appointment.patientId,
-      "📋 Report Ready",
+      "Report Ready",
       "Your test report is ready! Open the app to download it.",
       "report_uploaded"
     );

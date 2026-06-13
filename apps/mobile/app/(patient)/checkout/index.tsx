@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import RazorpayCheckout from "react-native-razorpay";
+import { Ionicons } from "@expo/vector-icons";
 
 import { createOrder } from "@/api/patient";
 import { createPaymentOrder, verifyRazorpayPayment } from "@/api/payments";
@@ -351,7 +352,7 @@ export default function CheckoutScreen() {
             {locationLoading ? (
               <ActivityIndicator size="small" color="#0F6E56" />
             ) : (
-              <Text className="text-base">📍</Text>
+              <Ionicons name="location-outline" size={16} color="#0F6E56" />
             )}
             <Text className="text-[#0F6E56] text-xs font-bold">
               {locationLoading ? "Detecting…" : "Use My Location"}
@@ -417,7 +418,7 @@ export default function CheckoutScreen() {
       <View className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {/* Selected time display */}
         <View className="bg-[#0F6E56] px-4 py-3 flex-row items-center justify-center gap-2">
-          <Text className="text-white text-2xl">🕐</Text>
+          <Ionicons name="time-outline" size={24} color="white" />
           <Text className="text-white text-xl font-black">{timeLabel}</Text>
         </View>
 
@@ -492,7 +493,7 @@ export default function CheckoutScreen() {
             <Text className="text-sm font-bold text-[#1a1a1a]">Pay Now (Online)</Text>
             <Text className="text-xs text-gray-400 mt-0.5">UPI / Card / Net Banking</Text>
           </View>
-          <Text className="text-base">💳</Text>
+          <Ionicons name="card-outline" size={20} color="#374151" />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -518,7 +519,7 @@ export default function CheckoutScreen() {
               Pay cash or UPI when collector arrives
             </Text>
           </View>
-          <Text className="text-base">🏠</Text>
+          <Ionicons name="home-outline" size={20} color="#374151" />
         </TouchableOpacity>
       </View>
 

@@ -130,7 +130,7 @@ export default function AppointmentDetailPage() {
             <CardContent className="space-y-3">
               {reportQuery.data?.data.downloadUrl ? (
                 <div className="space-y-2">
-                  <p className="text-sm text-green-700 font-medium">✓ Report uploaded</p>
+                  <p className="text-sm text-green-700 font-medium">Report uploaded</p>
                   <a
                     className="text-sm text-primary underline"
                     href={reportQuery.data.data.downloadUrl}

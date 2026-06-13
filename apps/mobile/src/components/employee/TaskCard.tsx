@@ -1,5 +1,6 @@
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import type { Appointment } from "@lab-app/shared";
 import { StatusBadge } from "./StatusBadge";
 
@@ -26,7 +27,7 @@ export function TaskCard({ appointment, onPress, showDistance = true, distanceTe
             {appointment.patient?.name ?? "Patient Name"}
           </Text>
           <Text className="text-xs text-slate-400 mt-0.5 line-clamp-1">
-            📍 {firstLineAddress}
+            <Ionicons name="location-outline" size={12} color="#94A3B8" /> {firstLineAddress}
           </Text>
         </View>
         <StatusBadge status={appointment.status} />
@@ -52,9 +53,10 @@ export function TaskCard({ appointment, onPress, showDistance = true, distanceTe
             </View>
           )}
           {payment.paymentType === "pay_on_collection" && payment.paymentStatus === "paid" && (
-            <View className="bg-green-100 border border-green-200 rounded-full px-3 py-1 self-start">
+            <View className="bg-green-100 border border-green-200 rounded-full px-3 py-1 self-start flex-row items-center gap-1">
+              <Ionicons name="checkmark" size={12} color="#15803D" />
               <Text className="text-xs font-bold text-green-700">
-                Payment done ✓
+                Payment done
               </Text>
             </View>
           )}
@@ -70,9 +72,12 @@ export function TaskCard({ appointment, onPress, showDistance = true, distanceTe
 
       <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-slate-100">
         {showDistance && (
-          <Text className="text-[11px] font-bold text-emerald-700">
-            🚗 {mockDistance}
-          </Text>
+          <View className="flex-row items-center gap-1">
+            <Ionicons name="car-outline" size={12} color="#047857" />
+            <Text className="text-[11px] font-bold text-emerald-700">
+              {mockDistance}
+            </Text>
+          </View>
         )}
         <TouchableOpacity
           className="bg-emerald-800 px-3.5 py-1.5 rounded-lg"

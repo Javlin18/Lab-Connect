@@ -103,7 +103,7 @@ export default function EmployeeDashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-black text-slate-900">
-              Good day, {session?.user?.name?.split(" ")[0] ?? "Collector"} 👋
+              Good day, {session?.user?.name?.split(" ")[0] ?? "Collector"}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
               {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
@@ -311,22 +311,22 @@ function BookingCard({
             <>
               {a.status === "assigned" && (
                 <Button className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold h-9 text-xs" disabled={actionDisabled} onClick={onAccept}>
-                  ✓ Confirm Booking
+                  Confirm Booking
                 </Button>
               )}
               {a.status === "accepted" && (
                 <Button className="w-full rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold h-9 text-xs" disabled={actionDisabled} onClick={() => onStatusUpdate?.("en_route")}>
-                  🚗 Mark En Route
+                  Mark En Route
                 </Button>
               )}
               {a.status === "en_route" && (
                 <Button className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs" disabled={actionDisabled} onClick={() => onStatusUpdate?.("collected")}>
-                  🧪 Mark Collected
+                  Mark Collected
                 </Button>
               )}
               {a.status === "collected" && (
                 <Button className="w-full rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold h-9 text-xs" disabled={actionDisabled} onClick={() => onStatusUpdate?.("processing")}>
-                  ⚗️ Mark Processing
+                  Mark Processing
                 </Button>
               )}
               {/* Maps + Call quick actions */}

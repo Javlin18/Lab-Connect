@@ -9,8 +9,8 @@ import {
   StatusBar,
 } from "react-native";
 import {
-  Camera,
   CameraView,
+  useCameraPermissions,
 } from "expo-camera";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -23,51 +23,28 @@ interface BarcodeScannerModalProps {
   onClose: () => void;
 }
 
-type PermissionStatus = "undetermined" | "granted" | "denied";
-
 export function BarcodeScannerModal({
   visible,
   testName,
   onScanned,
   onClose,
 }: BarcodeScannerModalProps) {
-  const [permissionStatus, setPermissionStatus] =
-    useState<PermissionStatus>("undetermined");
+  const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const hasScanned = useRef(false);
 
-  // Check / request permissions when the modal becomes visible
+  // Auto-request permission when modal becomes visible
   useEffect(() => {
-    if (!visible) return;
-    let cancelled = false;
-
-    (async () => {
-      const existing = await Camera.getCameraPermissionsAsync();
-      if (cancelled) return;
-
-      if (existing.granted) {
-        setPermissionStatus("granted");
-      } else if (existing.canAskAgain) {
-        const result = await Camera.requestCameraPermissionsAsync();
-        if (!cancelled) {
-          setPermissionStatus(result.granted ? "granted" : "denied");
-        }
-      } else {
-        setPermissionStatus("denied");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [visible]);
+    if (visible && permission && !permission.granted && permission.canAskAgain) {
+      requestPermission();
+    }
+  }, [visible, permission]);
 
   // Reset state when modal closes
   useEffect(() => {
     if (!visible) {
       hasScanned.current = false;
       setScanned(false);
-      setPermissionStatus("undetermined");
     }
   }, [visible]);
 
@@ -90,9 +67,15 @@ export function BarcodeScannerModal({
   };
 
   const handleGrantPermission = async () => {
-    const result = await Camera.requestCameraPermissionsAsync();
-    setPermissionStatus(result.granted ? "granted" : "denied");
+    await requestPermission();
   };
+
+  // Derive permission status for rendering
+  const permissionStatus: "undetermined" | "granted" | "denied" = !permission
+    ? "undetermined"
+    : permission.granted
+      ? "granted"
+      : "denied";
 
   if (!visible) return null;
 

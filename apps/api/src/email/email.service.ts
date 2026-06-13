@@ -57,7 +57,7 @@ export class EmailService {
           <p style="color:#fca5a5;margin:4px 0 0;font-size:13px">NABL Accredited Diagnostics</p>
         </div>
         <div style="padding:28px">
-          <h2 style="color:#111;margin:0 0 8px">Booking Confirmed ✓</h2>
+          <h2 style="color:#111;margin:0 0 8px">Booking Confirmed</h2>
           <p style="color:#555;font-size:14px">Hi <strong>${opts.patientName}</strong>, your home sample collection has been booked.</p>
 
           <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;margin:20px 0">
@@ -96,7 +96,7 @@ export class EmailService {
           <h1 style="color:#fff;margin:0;font-size:22px">Lab Connect</h1>
         </div>
         <div style="padding:28px">
-          <h2 style="color:#111;margin:0 0 8px">Collector Assigned 🚗</h2>
+          <h2 style="color:#111;margin:0 0 8px">Collector Assigned</h2>
           <p style="color:#555;font-size:14px">Hi <strong>${opts.patientName}</strong>, a phlebotomist has been assigned to your booking.</p>
           <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;margin:20px 0">
             <p style="margin:0 0 8px;font-size:12px;color:#16a34a;font-weight:700;text-transform:uppercase">Collector Details</p>
@@ -126,7 +126,7 @@ export class EmailService {
           <h1 style="color:#fff;margin:0;font-size:22px">Lab Connect</h1>
         </div>
         <div style="padding:28px">
-          <h2 style="color:#111;margin:0 0 8px">Sample Collected 🧪</h2>
+          <h2 style="color:#111;margin:0 0 8px">Sample Collected</h2>
           <p style="color:#555;font-size:14px">Hi <strong>${opts.patientName}</strong>, your blood sample has been collected and is on its way to our lab.</p>
           <p style="font-size:13px;color:#555">Tests: <strong>${opts.tests.join(", ")}</strong></p>
           <p style="font-size:13px;color:#555">Your report will be ready in <strong>12–24 hours</strong>. We'll notify you when it's available.</p>
@@ -155,7 +155,7 @@ export class EmailService {
           <h1 style="color:#fff;margin:0;font-size:22px">Lab Connect</h1>
         </div>
         <div style="padding:28px">
-          <h2 style="color:#111;margin:0 0 8px">Your Report is Ready ✅</h2>
+          <h2 style="color:#111;margin:0 0 8px">Your Report is Ready</h2>
           <p style="color:#555;font-size:14px">Hi <strong>${opts.patientName}</strong>, your diagnostic report is ready!</p>
           <p style="font-size:13px;color:#555">Tests completed: <strong>${opts.tests.join(", ")}</strong></p>
           ${downloadBtn}
@@ -199,7 +199,7 @@ export class EmailService {
     const html = `
       <div style="font-family:sans-serif;max-width:560px;margin:auto;border:1px solid #f0f0f0;border-radius:12px;overflow:hidden">
         <div style="background:#dc2626;padding:24px 28px">
-          <h1 style="color:#fff;margin:0;font-size:22px">Welcome to Lab Connect 👋</h1>
+          <h1 style="color:#fff;margin:0;font-size:22px">Welcome to Lab Connect</h1>
         </div>
         <div style="padding:28px">
           <p style="color:#555;font-size:14px">Hi <strong>${opts.name}</strong>, your account has been created successfully.</p>

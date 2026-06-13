@@ -19,6 +19,7 @@ import { PackagesModule } from "./packages/packages.module";
 import { CartModule } from "./cart/cart.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PaymentsModule } from "./payments/payments.module";
+import { FeedbackModule } from "./feedback/feedback.module";
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { PaymentsModule } from "./payments/payments.module";
     CartModule,
     OrdersModule,
     CallsModule,
-    PaymentsModule
+    PaymentsModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [

@@ -11,11 +11,13 @@ import {
   IndianRupee,
   TrendingUp,
   Users,
-  Zap
+  Zap,
+  AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
 
 import { listAppointments } from "@/api/appointments";
+import { getFeedbackAlerts, getFeedbackLeaderboard } from "@/api/feedback";
 import { listAllOrders } from "@/api/orders";
 import { listUsers } from "@/api/users";
 import { StatusBadge } from "@/components/app/status-badge";
@@ -28,11 +30,23 @@ export default function DashboardPage() {
   const ordersQ        = useQuery({ queryKey: ["admin-orders"],              queryFn: listAllOrders });
   const patientsQ      = useQuery({ queryKey: ["users", "patients"],         queryFn: () => listUsers("patient") });
   const employeesQ     = useQuery({ queryKey: ["users", "employees"],        queryFn: () => listUsers("employee") });
+  const alertsQ        = useQuery({ queryKey: ["feedback-alerts"],           queryFn: getFeedbackAlerts });
+  const leaderQ        = useQuery({ queryKey: ["feedback-leaderboard"],      queryFn: getFeedbackLeaderboard });
 
   const appointments = appointmentsQ.data?.data ?? [];
   const orders       = ordersQ.data?.data ?? [];
   const patients     = patientsQ.data?.data ?? [];
   const employees    = employeesQ.data?.data ?? [];
+  const alerts       = alertsQ.data?.data ?? [];
+  const leaderboard  = leaderQ.data?.data ?? [];
+
+  const todayAlerts  = alerts.filter((a) => {
+    const d = new Date(a.createdAt);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  });
+  const todayReviews = leaderboard.reduce((s, e) => s + e.totalFeedbackCount, 0); // approximate
+  const overallAvg   = leaderboard.filter(e => e.totalFeedbackCount > 0).reduce((s, e, _, arr) => s + e.averageRating / arr.length, 0);
 
   const pending    = appointments.filter((a) => a.status === "pending").length;
   const assigned   = appointments.filter((a) => a.status === "assigned").length;
@@ -192,6 +206,7 @@ export default function DashboardPage() {
                 { label: "Upload Report",    href: "/admin/reports",          color: "bg-emerald-600 hover:bg-emerald-700 text-white" },
                 { label: "View Orders",      href: "/admin/orders",           color: "bg-purple-600 hover:bg-purple-700 text-white" },
                 { label: "Send Notification",href: "/admin/notifications",    color: "bg-amber-500 hover:bg-amber-600 text-white" },
+                { label: "View Feedback",    href: "/admin/feedback",         color: "bg-rose-500 hover:bg-rose-600 text-white" },
               ].map((action) => (
                 <Link
                   className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-xs font-bold transition ${action.color}`}
@@ -216,6 +231,31 @@ export default function DashboardPage() {
               <p className="text-xs text-blue-200 mt-1">{orders.filter((o) => o.paymentStatus === "paid").length} paid orders</p>
               <Link className="mt-4 flex items-center gap-1 text-xs font-bold text-blue-200 hover:text-white transition" href="/admin/orders">
                 View Orders <ArrowRight className="h-3 w-3" />
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Feedback widget */}
+          <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="h-4 w-4 text-amber-500" />
+                <p className="text-xs font-semibold text-slate-500">Feedback Summary</p>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-slate-900">
+                  {overallAvg > 0 ? overallAvg.toFixed(1) : "—"}
+                </span>
+                <span className="text-base text-amber-400">★</span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">{todayReviews} total reviews</p>
+              {todayAlerts.length > 0 && (
+                <div className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                  <AlertTriangle className="inline-block h-3 w-3" /> {todayAlerts.length} alerts today
+                </div>
+              )}
+              <Link className="mt-3 flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline" href="/admin/feedback">
+                View All <ArrowRight className="h-3 w-3" />
               </Link>
             </CardContent>
           </Card>

@@ -69,7 +69,7 @@ export default function LoginPage() {
   const verifyOtpMutation = useMutation({
     mutationFn: () => verifyEmailOtp(regEmail, otp),
     onSuccess: () => {
-      toast({ title: "Email verified ✓", description: "Completing registration…" });
+      toast({ title: "Email verified", description: "Completing registration…" });
       registerMutation.mutate();
     },
     onError: (err: any) => {

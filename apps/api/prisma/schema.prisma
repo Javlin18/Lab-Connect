@@ -51,7 +51,8 @@ model Appointment {
   testTypes  String[]
   address    String
   slot       String
-  status     AppointmentStatus @default(pending)
+  status             AppointmentStatus @default(pending)
+  feedbackSubmitted  Boolean           @default(false)
   notes      String            @default("")
   barcodes   Json?
   createdAt  DateTime          @default(now())
@@ -59,9 +60,10 @@ model Appointment {
   patient    User              @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade)
   employee   User?             @relation("EmployeeAppointments", fields: [employeeId], references: [id], onDelete: SetNull)
   admin      User              @relation("AdminAppointments", fields: [adminId], references: [id], onDelete: Cascade)
-  testResult TestResult?
-  order      Order?
+  testResult       TestResult?
+  order            Order?
   reassignRequests ReassignRequest[]
+  employeeFeedback EmployeeFeedback?
 
   @@index([patientId])
   @@index([employeeId])
@@ -80,12 +82,13 @@ model TestResult {
 }
 
 model Employee {
-  id              String  @id @default(cuid())
-  userId          String  @unique
+  id              String             @id @default(cuid())
+  userId          String             @unique
   zone            String
-  isAvailable     Boolean @default(true)
-  currentLocation String  @default("")
-  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isAvailable     Boolean            @default(true)
+  currentLocation String             @default("")
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feedbacks       EmployeeFeedback[]
 
   @@index([isAvailable])
   @@index([zone])
@@ -211,4 +214,26 @@ model ReassignRequest {
 
   @@index([appointmentId])
   @@index([status])
+}
+
+model EmployeeFeedback {
+  id              String   @id @default(cuid())
+  appointmentId   String   @unique
+  employeeId      String
+  patientId       String
+
+  overallRating   Int
+  woreGloves      Boolean
+  woreMask        Boolean
+  wasPunctual     Boolean
+  wasProfessional Boolean
+  comment         String?
+
+  createdAt       DateTime @default(now())
+
+  employee        Employee    @relation(fields: [employeeId], references: [id])
+  appointment     Appointment @relation(fields: [appointmentId], references: [id])
+
+  @@index([employeeId])
+  @@index([patientId])
 }

@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 import { apiFetch } from "@/api/client";
 import type { Notification } from "@lab-app/shared";
@@ -22,12 +23,12 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function notifIcon(type: string): string {
-  if (type.includes("report")) return "📄";
-  if (type.includes("collect")) return "🧪";
-  if (type.includes("assign")) return "👤";
-  if (type.includes("route")) return "🚗";
-  return "🔔";
+function notifIcon(type: string): any {
+  if (type.includes("report")) return "document-text-outline";
+  if (type.includes("collect")) return "flask-outline";
+  if (type.includes("assign")) return "person-outline";
+  if (type.includes("route")) return "car-outline";
+  return "notifications-outline";
 }
 
 export default function PatientNotificationsScreen() {
@@ -66,7 +67,7 @@ export default function PatientNotificationsScreen() {
         </View>
       ) : notifications.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-5xl mb-4">🔔</Text>
+          <Ionicons name="notifications-outline" size={48} color="#9CA3AF" style={{ marginBottom: 16 }} />
           <Text className="text-base font-bold text-[#1a1a1a] text-center">
             No notifications yet
           </Text>
@@ -98,7 +99,7 @@ export default function PatientNotificationsScreen() {
                   : "bg-red-50 border-l-4 border-l-[#C41E3A] border-red-100"
               }`}
             >
-              <Text className="text-xl mt-0.5">{notifIcon(notif.type)}</Text>
+              <Ionicons name={notifIcon(notif.type)} size={24} color="#4B5563" />
               <View className="flex-1">
                 <Text className="text-sm font-bold text-[#1a1a1a]">{notif.title}</Text>
                 <Text className="text-xs text-gray-500 mt-0.5 leading-relaxed">

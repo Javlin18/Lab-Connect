@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { getOrderById } from "@/api/patient";
 
@@ -33,11 +34,32 @@ export default function OrderDetailScreen() {
         <Text className="font-black mb-4">Live Status</Text>
         {steps.map((step, index) => (
           <View key={step} className="flex-row items-center mb-3">
-            <View className={`h-6 w-6 rounded-full items-center justify-center ${index <= current ? "bg-[#0F6E56]" : "bg-gray-200"}`}><Text className="text-white text-xs">✓</Text></View>
+            <View className={`h-6 w-6 rounded-full items-center justify-center ${index <= current ? "bg-[#0F6E56]" : "bg-gray-200"}`}><Ionicons name="checkmark" size={14} color="white" /></View>
             <Text className={`ml-3 ${index === current ? "font-black text-[#0F6E56]" : "text-gray-600"}`}>{step}</Text>
           </View>
         ))}
       </View>
+      {/* ── Feedback Banner ── */}
+      {["collected", "processing", "completed"].includes(order.appointment?.status ?? "") &&
+        !order.appointment?.feedbackSubmitted ? (
+        <TouchableOpacity
+          onPress={() =>
+            router.push(
+              `/(patient)/feedback/${order.appointment?.id ?? order.appointmentId}` as any
+            )
+          }
+          className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mx-0 mb-4 flex-row items-center justify-between"
+        >
+          <View className="flex-1">
+            <View className="flex-row items-center gap-1">
+              <Ionicons name="star" size={14} color="#92400E" />
+              <Text className="font-black text-amber-800 text-sm">Rate your collector's visit</Text>
+            </View>
+            <Text className="text-amber-600 text-xs mt-0.5">Your feedback helps us improve</Text>
+          </View>
+          <Text className="text-amber-700 font-black text-sm">Rate Now →</Text>
+        </TouchableOpacity>
+      ) : null}
       {order.appointment?.status === "en_route" ? (
         <View className="bg-white rounded-2xl p-4 mt-5 border border-gray-100">
           <Text className="font-black">Collector on the way</Text>

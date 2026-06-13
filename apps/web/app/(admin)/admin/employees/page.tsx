@@ -11,12 +11,14 @@ import {
   User2,
   Users,
   X,
-  Zap
+  Zap,
+  Star
 } from "lucide-react";
 import { useState } from "react";
 
 import { listAppointments } from "@/api/appointments";
 import { countEmployeeTasksForDate, listEmployees, updateEmployeeLocation } from "@/api/employees";
+import { getFeedbackLeaderboard } from "@/api/feedback";
 import { createEmployee } from "@/api/users";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -55,9 +57,13 @@ export default function EmployeesPage() {
 
   const employeesQ    = useQuery({ queryKey: ["employees"],               queryFn: listEmployees });
   const appointmentsQ = useQuery({ queryKey: ["appointments", "emp-page"],queryFn: listAppointments });
+  const leaderQ       = useQuery({ queryKey: ["feedback-leaderboard"],    queryFn: getFeedbackLeaderboard });
 
   const employees    = employeesQ.data?.data ?? [];
   const appointments = appointmentsQ.data?.data ?? [];
+  const leaderMap    = Object.fromEntries(
+    (leaderQ.data?.data ?? []).map((e) => [e.employeeId, e])
+  );
 
   const freeCount   = employees.filter((e) => e.employee.isAvailable).length;
   const busyCount   = employees.filter((e) => !e.employee.isAvailable).length;
@@ -207,6 +213,30 @@ export default function EmployeesPage() {
                       <p className="text-[9px] text-slate-400">bookings</p>
                     </div>
                   </div>
+
+                  {/* Rating row */}
+                  {(() => {
+                    const entry = leaderMap[record.employee.id];
+                    return entry && entry.totalFeedbackCount > 0 ? (
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                        <div className="flex items-center gap-1">
+                          <span className="text-amber-400"><Star className="h-4 w-4 fill-amber-400" /></span>
+                          <span className="text-sm font-black text-slate-800">{entry.averageRating.toFixed(1)}</span>
+                          <span className="text-[10px] text-slate-400">({entry.totalFeedbackCount})</span>
+                        </div>
+                        <a
+                          href={`/admin/employees/${record.employee.id}/feedback`}
+                          className="text-[10px] font-bold text-blue-600 hover:underline"
+                        >
+                          View Feedback →
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="pt-2 border-t border-slate-50">
+                        <span className="text-[10px] text-slate-300">No reviews yet</span>
+                      </div>
+                    );
+                  })()}
 
                   {/* Active bookings preview */}
                   {assigned.length > 0 && (

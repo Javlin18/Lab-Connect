@@ -8,7 +8,8 @@ import {
   Eye,
   EyeOff,
   Shield,
-  User2
+  User2,
+  AlertTriangle
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -197,8 +198,8 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
-          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700 font-medium">
-            ⚠️ These values must also be set in your <code className="bg-amber-100 px-1 rounded">.env</code> file as <code className="bg-amber-100 px-1 rounded">RAZORPAY_KEY_ID</code> and <code className="bg-amber-100 px-1 rounded">RAZORPAY_KEY_SECRET</code> for the backend to use them.
+          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700 font-medium flex items-center gap-1.5">
+            <AlertTriangle className="h-4 w-4" /> These values must also be set in your <code className="bg-amber-100 px-1 rounded">.env</code> file as <code className="bg-amber-100 px-1 rounded">RAZORPAY_KEY_ID</code> and <code className="bg-amber-100 px-1 rounded">RAZORPAY_KEY_SECRET</code> for the backend to use them.
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
             <div className="space-y-1.5">

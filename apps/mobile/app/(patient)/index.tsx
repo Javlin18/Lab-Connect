@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useState } from "react";
 import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 import { getMyOrders, getPackages, getTests, type HealthPackage, type Test } from "@/api/patient";
+import { getPendingFeedback } from "@/api/feedback";
 import { useAuthStore } from "@/store/auth-store";
 import { useServerCart } from "@/hooks/useServerCart";
 
@@ -38,10 +41,11 @@ function TestCard({ test }: { test: Test }) {
       <TouchableOpacity
         disabled={inCart || isAddingItem}
         onPress={() => addItem({ testId: test.id })}
-        className={`mt-3 py-2 rounded-xl items-center ${inCart ? "bg-green-50" : "bg-[#0F6E56]"}`}
+        className={`mt-3 py-2 rounded-xl flex-row items-center justify-center gap-1 ${inCart ? "bg-green-50" : "bg-[#0F6E56]"}`}
       >
+        {inCart && <Ionicons name="checkmark" size={14} color="#16A34A" />}
         <Text className={`font-bold text-xs ${inCart ? "text-green-600" : "text-white"}`}>
-          {inCart ? "✓ Added" : isAddingItem ? "…" : "+ Add"}
+          {inCart ? "Added" : isAddingItem ? "…" : "+ Add"}
         </Text>
       </TouchableOpacity>
     </TouchableOpacity>
@@ -83,10 +87,10 @@ function PackageCard({ item }: { item: HealthPackage }) {
 }
 
 const QUICK_ACTIONS = [
-  { icon: "🧪", label: "Book a Test", href: "/(patient)/tests" },
-  { icon: "📦", label: "Health Packages", href: "/(patient)/packages" },
-  { icon: "📋", label: "My Reports", href: "/(patient)/orders" },
-  { icon: "📍", label: "Track Collection", href: "/(patient)/orders" },
+  { icon: "flask-outline", label: "Book a Test", href: "/(patient)/tests" },
+  { icon: "cube-outline", label: "Health Packages", href: "/(patient)/packages" },
+  { icon: "clipboard-outline", label: "My Reports", href: "/(patient)/orders" },
+  { icon: "location-outline", label: "Track Collection", href: "/(patient)/orders" },
 ] as const;
 
 export default function PatientHomeScreen() {
@@ -106,6 +110,12 @@ export default function PatientHomeScreen() {
   const activeOrder = (ordersQuery.data?.data ?? []).find(
     (o) => o.appointment && o.appointment.status !== "completed"
   );
+  const pendingQuery = useQuery({
+    queryKey: ["feedback-pending"],
+    queryFn: () => getPendingFeedback(),
+  });
+  const firstPending = (pendingQuery.data?.data ?? [])[0] ?? null;
+  const [feedbackDismissed, setFeedbackDismissed] = useState(false);
 
   return (
     <SafeAreaView className="flex-1 bg-[#F5F5F5]" edges={["top"]}>
@@ -118,7 +128,7 @@ export default function PatientHomeScreen() {
         <View className="flex-row justify-between items-start px-5 pt-4 pb-2">
           <View>
             <Text className="text-lg font-bold text-[#1a1a1a]">
-              Hi, {user?.name ?? "there"} 👋
+              Hi, {user?.name ?? "there"}
             </Text>
             <Text className="text-xs text-gray-500 mt-0.5">
               Book a test from the comfort of your home
@@ -128,8 +138,8 @@ export default function PatientHomeScreen() {
             onPress={() => router.push("/(patient)/notifications")}
             className="relative mt-1"
           >
-            <Text className="text-2xl">🔔</Text>
-            <View className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#C41E3A]" />
+            <Ionicons name="notifications-outline" size={24} color="#1a1a1a" />
+            <View className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#C41E3A] border-2 border-[#F5F5F5]" />
           </TouchableOpacity>
         </View>
 
@@ -138,7 +148,7 @@ export default function PatientHomeScreen() {
           onPress={() => router.push("/(patient)/tests")}
           className="mx-5 mt-3 bg-white rounded-2xl border border-gray-100 px-4 py-3.5 flex-row items-center shadow-sm"
         >
-          <Text className="text-gray-400 mr-2">🔍</Text>
+          <Ionicons name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
           <Text className="text-gray-400 text-sm">Search tests, packages...</Text>
         </TouchableOpacity>
 
@@ -151,7 +161,7 @@ export default function PatientHomeScreen() {
               className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm items-center justify-center"
               style={{ width: "47%" }}
             >
-              <Text className="text-4xl mb-2">{icon}</Text>
+              <Ionicons name={icon as any} size={32} color="#0F6E56" style={{ marginBottom: 8 }} />
               <Text className="font-bold text-[#1a1a1a] text-xs text-center">{label}</Text>
             </TouchableOpacity>
           ))}
@@ -180,6 +190,34 @@ export default function PatientHomeScreen() {
                 <Text className="text-[#0F6E56] font-bold text-xs">Track Now →</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        ) : null}
+
+        {/* ── Pending Feedback Card ── */}
+        {firstPending && !feedbackDismissed ? (
+          <View className="mx-5 mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <View className="flex-row items-center gap-1">
+                  <Ionicons name="star" size={14} color="#92400E" />
+                  <Text className="font-black text-amber-800 text-sm">You have a pending review</Text>
+                </View>
+                <Text className="text-amber-600 text-xs mt-0.5" numberOfLines={1}>
+                  {firstPending.employeeName ?? "Your collector"} • {firstPending.slot}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setFeedbackDismissed(true)} className="ml-2 px-2">
+                <Text className="text-amber-400 text-xs">✕</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              onPress={() =>
+                router.push(`/(patient)/feedback/${firstPending.appointmentId}` as any)
+              }
+              className="mt-3 bg-amber-500 rounded-xl py-2.5 items-center"
+            >
+              <Text className="text-white font-bold text-sm">Rate Now →</Text>
+            </TouchableOpacity>
           </View>
         ) : null}
 

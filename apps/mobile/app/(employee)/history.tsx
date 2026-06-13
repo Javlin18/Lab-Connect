@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 
 import { getHistory } from "@/api/employee";
 import { Screen } from "@/components/screen";
@@ -85,8 +86,9 @@ export default function HistoryScreen() {
                     className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-2.5 flex-row items-center gap-2 -mt-1 mb-3 mx-0.5"
                     onPress={() => router.push(`/(employee)/task/upload-report/${app.id}`)}
                   >
+                    <Ionicons name="warning" size={14} color="#EA580C" />
                     <Text className="text-orange-600 text-xs font-bold">
-                      ⚠️ Report pending upload
+                      Report pending upload
                     </Text>
                     <Text className="text-orange-500 text-xs font-semibold ml-auto">
                       Upload →

@@ -96,7 +96,7 @@ export default function MyReportsPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Status</span>
-                  <span className="font-bold text-emerald-600">Completed ✓</span>
+                  <span className="font-bold text-emerald-600">Completed</span>
                 </div>
               </div>
 

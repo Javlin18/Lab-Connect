@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { getTests, type Test } from "@/api/patient";
 import { useServerCart } from "@/hooks/useServerCart";
@@ -29,9 +30,10 @@ function Row({ test }: { test: Test }) {
           <TouchableOpacity
             disabled={inCart || isAddingItem}
             onPress={() => addItem({ testId: test.id })}
-            className={`px-4 py-2 rounded-xl mt-3 ${inCart ? "bg-green-50" : "bg-[#0F6E56]"}`}
+            className={`px-4 py-2 rounded-xl mt-3 flex-row items-center justify-center gap-1 ${inCart ? "bg-green-50" : "bg-[#0F6E56]"}`}
           >
-            <Text className={`font-bold text-xs ${inCart ? "text-green-600" : "text-white"}`}>{inCart ? "ADDED ✓" : "ADD"}</Text>
+            {inCart && <Ionicons name="checkmark" size={12} color="#16A34A" />}
+            <Text className={`font-bold text-xs ${inCart ? "text-green-600" : "text-white"}`}>{inCart ? "ADDED" : "ADD"}</Text>
           </TouchableOpacity>
         </View>
       </View>

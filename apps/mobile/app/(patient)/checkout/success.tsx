@@ -1,12 +1,13 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function SuccessScreen() {
   const params = useLocalSearchParams<{ id?: string; total?: string; tests?: string; date?: string; slot?: string }>();
   return (
     <View className="flex-1 bg-[#F5F5F5] p-6 items-center justify-center">
-      <Text className="text-6xl">✓</Text>
-      <Text className="text-3xl font-black mt-4">Booking Confirmed!</Text>
+      <Ionicons name="checkmark-circle" size={64} color="#0F6E56" />
+      <Text className="text-3xl font-black mt-4 text-center">Booking Confirmed!</Text>
       <Text className="text-gray-500 mt-2">Order ID: #{params.id?.slice(0, 8)}</Text>
       <View className="bg-white rounded-2xl p-4 mt-6 w-full border border-gray-100">
         <Text className="font-bold">Tests booked</Text>

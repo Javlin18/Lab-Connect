@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import MapView, { Marker, Polyline } from "react-native-maps";
+import { Ionicons } from "@expo/vector-icons";
 
 import { getAppointment } from "@/api/appointments";
 import { updateLocation, updateStatus } from "@/api/employee";
@@ -167,7 +168,7 @@ export default function NavigationScreen() {
               {appointment.patient?.name ?? "Patient"}
             </Text>
             <Text className="text-xs text-slate-400 mt-1 line-clamp-1 leading-relaxed">
-              📍 {appointment.address}
+              <Ionicons name="location-outline" size={12} color="#94A3B8" /> {appointment.address}
             </Text>
           </View>
           <View className="items-end">
@@ -182,13 +183,19 @@ export default function NavigationScreen() {
             className="flex-1 bg-slate-50 border border-slate-100 rounded-xl py-3 items-center justify-center"
             onPress={handleOpenMaps}
           >
-            <Text className="text-slate-600 font-bold text-xs">🗺 Open in G-Maps</Text>
+            <View className="flex-row items-center gap-1.5">
+              <Ionicons name="map-outline" size={14} color="#475569" />
+              <Text className="text-slate-600 font-bold text-xs">Open in G-Maps</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity
             className="flex-1 bg-slate-50 border border-slate-100 rounded-xl py-3 items-center justify-center"
             onPress={handleCallPatient}
           >
-            <Text className="text-slate-600 font-bold text-xs">📞 Call Patient</Text>
+            <View className="flex-row items-center gap-1.5">
+              <Ionicons name="call-outline" size={14} color="#475569" />
+              <Text className="text-slate-600 font-bold text-xs">Call Patient</Text>
+            </View>
           </TouchableOpacity>
         </View>
 

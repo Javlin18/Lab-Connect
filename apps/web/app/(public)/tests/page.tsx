@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FlaskConical, Search, ShoppingCart, Zap } from "lucide-react";
+import { Droplet, FlaskConical, Search, ShoppingCart, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -179,7 +179,7 @@ export default function TestsPage() {
                     {/* Meta chips */}
                     {!item.isPackage && (
                       <div className="flex gap-2 mt-3">
-                        <span className="text-[10px] text-slate-500 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full font-medium">🩸 {item.sampleType}</span>
+                        <span className="flex items-center gap-1 text-[10px] text-slate-500 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full font-medium"><Droplet className="h-3 w-3" /> {item.sampleType}</span>
                         <span className="text-[10px] text-slate-500 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full font-medium">⏱ {item.turnaroundHours}h</span>
                       </div>
                     )}

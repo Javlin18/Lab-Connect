@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { getPackages, type HealthPackage } from "@/api/patient";
 import { useServerCart } from "@/hooks/useServerCart";
@@ -33,10 +34,11 @@ export default function PackagesScreen() {
             <TouchableOpacity
               disabled={isInCart(item.id) || isAddingItem}
               onPress={() => addItem({ packageId: item.id })}
-              className={`flex-1 rounded-xl py-3 ${isInCart(item.id) ? "bg-green-50" : "bg-[#0F6E56]"}`}
+              className={`flex-1 rounded-xl py-3 flex-row items-center justify-center gap-1 ${isInCart(item.id) ? "bg-green-50" : "bg-[#0F6E56]"}`}
             >
+              {isInCart(item.id) && <Ionicons name="checkmark" size={14} color="#16A34A" />}
               <Text className={`font-bold text-center ${isInCart(item.id) ? "text-green-600" : "text-white"}`}>
-                {isInCart(item.id) ? "Added ✓" : "Add to Cart"}
+                {isInCart(item.id) ? "Added" : "Add to Cart"}
               </Text>
             </TouchableOpacity>
           </View>

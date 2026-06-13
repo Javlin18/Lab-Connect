@@ -187,22 +187,22 @@ export default function EmployeeBookingsPage() {
                       <div className="flex flex-col gap-2">
                         {a.status === "assigned" && (
                           <Button className="h-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold" disabled={acceptMutation.isPending} onClick={() => acceptMutation.mutate(a.id)}>
-                            ✓ Accept
+                            Accept
                           </Button>
                         )}
                         {a.status === "accepted" && (
                           <Button className="h-8 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ id: a.id, status: "en_route" })}>
-                            🚗 En Route
+                            En Route
                           </Button>
                         )}
                         {a.status === "en_route" && (
                           <Button className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ id: a.id, status: "collected" })}>
-                            🧪 Collected
+                            Collected
                           </Button>
                         )}
                         {a.status === "collected" && (
                           <Button className="h-8 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold" disabled={statusMutation.isPending} onClick={() => statusMutation.mutate({ id: a.id, status: "processing" })}>
-                            ⚗️ Processing
+                            Processing
                           </Button>
                         )}
                         <div className="flex gap-1.5">

@@ -2,6 +2,7 @@ import React from "react";
 import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/auth-store";
 
 import { getAssignedAppointments, getAvailableAppointments } from "@/api/employee";
@@ -96,7 +97,7 @@ export default function EmployeeHomeScreen() {
             className="h-10 w-10 bg-slate-50 border border-slate-100 items-center justify-center rounded-full"
             onPress={() => router.push("/(employee)/notifications")}
           >
-            <Text className="text-lg">🔔</Text>
+            <Ionicons name="notifications-outline" size={20} color="#64748b" />
           </TouchableOpacity>
         </View>
 
@@ -138,7 +139,7 @@ export default function EmployeeHomeScreen() {
             {pendingTasks.length > 0 && (
               <View>
                 <Text className="text-sm font-bold text-slate-700 mb-3 px-1 uppercase tracking-wider">
-                  ⚠️ Pending Tasks ({pendingTasks.length})
+                  Pending Tasks ({pendingTasks.length})
                 </Text>
                 {pendingTasks.map((app) => (
                   <TaskCard
@@ -154,7 +155,7 @@ export default function EmployeeHomeScreen() {
             {acceptedTasks.length > 0 && (
               <View>
                 <Text className="text-sm font-bold text-slate-700 mb-3 px-1 uppercase tracking-wider">
-                  🏃 Accepted Tasks ({acceptedTasks.length})
+                  Accepted Tasks ({acceptedTasks.length})
                 </Text>
                 {acceptedTasks.map((app) => (
                   <TaskCard
@@ -170,7 +171,7 @@ export default function EmployeeHomeScreen() {
             {collectedTasks.length > 0 && (
               <View className="opacity-60">
                 <Text className="text-sm font-bold text-slate-700 mb-3 px-1 uppercase tracking-wider">
-                  ✓ Collected Today ({collectedTasks.length})
+                  Collected Today ({collectedTasks.length})
                 </Text>
                 {collectedTasks.map((app) => (
                   <TaskCard
@@ -194,7 +195,7 @@ export default function EmployeeHomeScreen() {
           availableQuery.refetch();
         }}
       >
-        <Text className="text-white text-lg font-bold">🔄</Text>
+        <Ionicons name="refresh" size={24} color="white" />
       </TouchableOpacity>
     </Screen>
   );

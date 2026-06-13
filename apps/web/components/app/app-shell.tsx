@@ -13,6 +13,7 @@ import {
   Plus,
   Receipt,
   Settings,
+  Star,
   Stethoscope,
   Users,
   UserSquare2,
@@ -39,6 +40,7 @@ const navItems = [
   { href: "/admin/packages",          icon: Boxes,           label: "Packages",         group: "catalog" },
   { href: "/admin/pricing",           icon: Coins,           label: "Pricing",          group: "catalog" },
   { href: "/admin/employees",         icon: Users,           label: "Employees",        group: "people" },
+  { href: "/admin/feedback",          icon: Star,            label: "Feedback",         group: "people" },
   { href: "/admin/patients",          icon: UserSquare2,     label: "Patients",         group: "people" },
   { href: "/admin/settings",          icon: Settings,        label: "Settings",         group: "system" },
 ];

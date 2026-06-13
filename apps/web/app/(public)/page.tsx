@@ -5,11 +5,13 @@ import {
   ArrowRight,
   Baby,
   Calendar,
+  Check,
   CheckCircle,
   ChevronRight,
   FileText,
   Flame,
   FlaskConical,
+  Droplet,
   Heart,
   Home,
   MapPin,
@@ -198,7 +200,7 @@ export default function HomePage() {
                 ].map((step) => (
                   <div className="flex items-center gap-3" key={step.label}>
                     <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${step.done ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>
-                      {step.done ? "✓" : "○"}
+                      {step.done ? <Check className="h-4 w-4" /> : "○"}
                     </div>
                     <div className="flex-1">
                       <p className="text-xs font-semibold text-slate-800">{step.label}</p>
@@ -293,7 +295,7 @@ export default function HomePage() {
                     <h3 className="font-bold text-slate-800 text-sm leading-snug">{t.name}</h3>
                     <p className="text-xs text-slate-400 mt-1 line-clamp-2">{t.description}</p>
                     <div className="flex items-center gap-3 mt-3">
-                      <span className="text-[10px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded font-medium">🩸 {t.sampleType}</span>
+                      <span className="flex items-center gap-1 text-[10px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded font-medium"><Droplet className="h-3 w-3" /> {t.sampleType}</span>
                       <span className="text-[10px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded font-medium">⏱ {t.turnaroundHours}h report</span>
                     </div>
                   </div>

@@ -10,6 +10,7 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
+import { Ionicons } from "@expo/vector-icons";
 
 import { getAppointment } from "@/api/appointments";
 import { useAuthStore } from "@/store/auth-store";
@@ -91,7 +92,7 @@ export default function UploadReportScreen() {
       <Screen title="">
         <View className="flex-1 items-center justify-center py-12">
           <View className="h-24 w-24 bg-emerald-100 rounded-full items-center justify-center border-4 border-emerald-300 mb-4">
-            <Text className="text-5xl">✓</Text>
+            <Ionicons name="checkmark" size={64} color="#059669" />
           </View>
           <Text className="text-xl font-black text-emerald-800 mt-2">Report Uploaded!</Text>
           <Text className="text-xs text-slate-400 mt-1 text-center">Patient has been notified</Text>
@@ -135,7 +136,7 @@ export default function UploadReportScreen() {
             onPress={pickFile}
             disabled={uploading}
           >
-            <Text className="text-2xl">📄</Text>
+            <Ionicons name="document-text-outline" size={24} color="#065F46" />
             <Text className="text-emerald-800 font-bold text-sm">
               {file ? "Change File" : "Select PDF from Storage"}
             </Text>
@@ -147,7 +148,7 @@ export default function UploadReportScreen() {
 
           {file && (
             <View className="mt-4 bg-slate-50 rounded-xl p-3 border border-slate-100 flex-row items-center gap-3">
-              <Text className="text-xl">📄</Text>
+              <Ionicons name="document-text-outline" size={24} color="#64748B" />
               <View className="flex-1">
                 <Text className="text-sm font-bold text-slate-800" numberOfLines={1}>
                   {file.name}
@@ -157,7 +158,7 @@ export default function UploadReportScreen() {
                 </Text>
               </View>
               <View className="h-6 w-6 bg-emerald-500 rounded-full items-center justify-center">
-                <Text className="text-white text-xs font-bold">✓</Text>
+                <Ionicons name="checkmark" size={12} color="white" />
               </View>
             </View>
           )}

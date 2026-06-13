@@ -82,7 +82,7 @@ export class PaymentsController {
 
     await this.notificationsService.createNotification(
       user.sub,
-      "Payment Confirmed ✓",
+      "Payment Confirmed",
       "Your payment has been received. Booking confirmed!",
       "payment"
     );
@@ -178,7 +178,7 @@ export class PaymentsController {
         if (order.employeeId) {
           await this.notificationsService.createNotification(
             order.employeeId,
-            "Payment Received ✓",
+            "Payment Received",
             `Patient has paid ₹${paymentLink.amount / 100} for Order #${orderId}`,
             "payment"
           );
@@ -234,7 +234,7 @@ export class PaymentsController {
     if (order.patientId) {
       await this.notificationsService.createNotification(
         order.patientId,
-        "Payment Confirmed ✓",
+        "Payment Confirmed",
         `Payment of ₹${order.totalAmount} confirmed. Thank you!`,
         "payment"
       );

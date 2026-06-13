@@ -81,7 +81,7 @@ export default function CheckoutPage() {
         razorpaySignature: data.razorpaySignature,
       }),
     onSuccess: () => {
-      toast({ title: "Payment Confirmed ✓", description: "Booking confirmed!" });
+      toast({ title: "Payment Confirmed", description: "Booking confirmed!" });
       router.push(`/order-success?id=${orderId}`);
     },
     onError: (err: any) => {

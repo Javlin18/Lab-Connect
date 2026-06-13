@@ -59,6 +59,7 @@ export default function PatientLayout() {
         <Tabs.Screen name="packages/[slug]" options={{ href: null }} />
         <Tabs.Screen name="orders/[id]" options={{ href: null }} />
         <Tabs.Screen name="checkout/success" options={{ href: null }} />
+        <Tabs.Screen name="feedback/[appointmentId]" options={{ href: null }} />
       </Tabs>
     </RoleGate>
   );

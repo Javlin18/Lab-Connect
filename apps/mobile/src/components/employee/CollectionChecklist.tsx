@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 interface CollectionChecklistProps {
   tests: string[];
@@ -41,7 +42,7 @@ export function CollectionChecklist({ tests, onAllChecked }: CollectionChecklist
                   : "bg-white border-slate-350"
               }`}
             >
-              {isChecked && <Text className="text-white text-[10px] font-black">✓</Text>}
+              {isChecked && <Ionicons name="checkmark" size={12} color="white" />}
             </View>
           </TouchableOpacity>
         );

@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetch } from "@/api/client";
@@ -32,11 +33,11 @@ function timeAgo(dateStr: string): string {
   return `${days} day${days > 1 ? "s" : ""} ago`;
 }
 
-function notifIcon(type: string): string {
-  if (type.includes("assign")) return "📋";
-  if (type.includes("collect")) return "🧪";
-  if (type.includes("route")) return "🚗";
-  return "🔔";
+function notifIcon(type: string): any {
+  if (type.includes("assign")) return "clipboard-outline";
+  if (type.includes("collect")) return "flask-outline";
+  if (type.includes("route")) return "car-outline";
+  return "notifications-outline";
 }
 
 export default function NotificationsScreen() {
@@ -103,7 +104,7 @@ export default function NotificationsScreen() {
         </View>
       ) : notifications.length === 0 ? (
         <View className="flex-1 items-center justify-center py-20">
-          <Text className="text-3xl mb-3">🔔</Text>
+          <Ionicons name="notifications-outline" size={36} color="#9CA3AF" style={{ marginBottom: 12 }} />
           <Text className="text-sm font-bold text-slate-600">No notifications yet</Text>
           <Text className="text-xs text-slate-400 mt-1">
             You'll see assignment updates here
@@ -121,7 +122,7 @@ export default function NotificationsScreen() {
                   : "bg-blue-50 border-blue-100 border-l-4 border-l-blue-500"
               }`}
             >
-              <Text className="text-xl mt-0.5">{notifIcon(notif.type)}</Text>
+              <Ionicons name={notifIcon(notif.type)} size={24} color="#64748B" />
               <View className="flex-1">
                 <Text className="text-sm font-bold text-slate-800">
                   {notif.title}

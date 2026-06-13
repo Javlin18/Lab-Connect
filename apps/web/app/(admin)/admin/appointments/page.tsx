@@ -246,7 +246,7 @@ export default function AppointmentsPage() {
                   <option value="">— Choose employee —</option>
                   {(employeesQ.data?.data ?? []).map((emp) => (
                     <option key={emp.id} value={emp.id}>
-                      {emp.name} {emp.employee?.isAvailable ? "✓ Free" : "· Busy"} — {emp.employee?.zone ?? "No zone"}
+                      {emp.name} {emp.employee?.isAvailable ? "— Free" : "— Busy"} — {emp.employee?.zone ?? "No zone"}
                     </option>
                   ))}
                 </select>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Calendar, MapPin } from "lucide-react";
 import { getReassignRequests, resolveReassign } from "@/api/reassign";
 import { listEmployees } from "@/api/employees";
 import { PageHeader } from "@/components/app/page-header";
@@ -78,7 +78,7 @@ export default function ReassignRequestsPage() {
               <CardContent className="pt-4 space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-semibold text-red-700 text-sm">⚠️ Reassign Needed</p>
+                    <p className="font-semibold text-red-700 text-sm flex items-center gap-1"><AlertTriangle className="h-4 w-4" /> Reassign Needed</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       <span className="font-medium text-foreground">
                         {req.appointment.patient?.name ?? "Patient"}
@@ -86,7 +86,7 @@ export default function ReassignRequestsPage() {
                       — {req.appointment.testTypes.join(", ")}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      📅 {req.appointment.slot} &nbsp;|&nbsp; 📍 {req.appointment.address}
+                      <Calendar className="inline-block h-3 w-3 mr-1" /> {req.appointment.slot} &nbsp;|&nbsp; <MapPin className="inline-block h-3 w-3 mr-1" /> {req.appointment.address}
                     </p>
                   </div>
                   <span className="text-xs bg-red-100 text-red-700 font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">

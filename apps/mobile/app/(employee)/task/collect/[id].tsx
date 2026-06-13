@@ -12,6 +12,7 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import OTPTextInput from "react-native-otp-textinput";
+import { Ionicons } from "@expo/vector-icons";
 
 import { getAppointment } from "@/api/appointments";
 import { updateStatus } from "@/api/employee";
@@ -133,18 +134,22 @@ export default function CollectScreen() {
           <Text className="text-xs text-slate-500 mt-1">Phone: {patientPhone}</Text>
           <Text className="text-xs text-slate-500 mt-0.5">Address: {appointment.address}</Text>
         </View>
-        <View className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-8">
+        <View className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-8 flex-row items-center justify-center gap-2">
+          <Ionicons name="warning-outline" size={16} color="#92400E" />
           <Text className="text-xs font-bold text-amber-800 text-center leading-relaxed">
-            ⚠️ Confirm you are at the correct patient's home before proceeding
+            Confirm you are at the correct patient's home before proceeding
           </Text>
         </View>
         <TouchableOpacity
           className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center"
           onPress={() => setStep(2)}
         >
-          <Text className="text-white font-black text-sm">
-            ✓ Yes, this is the correct patient
-          </Text>
+          <View className="flex-row items-center gap-2">
+            <Ionicons name="checkmark" size={16} color="white" />
+            <Text className="text-white font-black text-sm">
+              Yes, this is the correct patient
+            </Text>
+          </View>
         </TouchableOpacity>
       </Screen>
     );
@@ -199,9 +204,11 @@ export default function CollectScreen() {
                       justifyContent: "center",
                     }}
                   >
-                    <Text style={{ fontSize: 20 }}>
-                      {barcodes[test] ? "✓" : "📷"}
-                    </Text>
+                    {barcodes[test] ? (
+                      <Ionicons name="checkmark" size={24} color="#065f46" />
+                    ) : (
+                      <Ionicons name="camera-outline" size={24} color="white" />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -288,9 +295,12 @@ export default function CollectScreen() {
           {sendOtpMutation.isPending ? (
             <ActivityIndicator color={otpSent ? "#0F6E56" : "#fff"} />
           ) : (
-            <Text className={`font-black text-sm ${otpSent ? "text-emerald-700" : "text-white"}`}>
-              {otpSent ? "✓ OTP Sent Successfully" : "Send OTP to Patient"}
-            </Text>
+            <View className="flex-row items-center gap-1.5">
+              {otpSent && <Ionicons name="checkmark" size={16} color="#047857" />}
+              <Text className={`font-black text-sm ${otpSent ? "text-emerald-700" : "text-white"}`}>
+                {otpSent ? "OTP Sent Successfully" : "Send OTP to Patient"}
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
 
@@ -364,7 +374,7 @@ export default function CollectScreen() {
           style={{ opacity: opacityAnim, transform: [{ scale: scaleAnim }] }}
         >
           <View className="h-24 w-24 bg-emerald-100 rounded-full items-center justify-center border-4 border-emerald-300 mb-4">
-            <Text className="text-5xl">✓</Text>
+            <Ionicons name="checkmark" size={64} color="#059669" />
           </View>
           <Text className="text-2xl font-black text-emerald-800">Collection Confirmed!</Text>
           <Text className="text-xs text-slate-400 mt-1">
@@ -392,9 +402,12 @@ export default function CollectScreen() {
           <View className="py-2 border-b border-slate-50">
             <Text className="text-xs text-slate-500 font-semibold mb-2">Tests & Barcodes</Text>
             {appointment.testTypes.map((t) => (
-              <Text className="text-xs text-emerald-700 font-bold" key={t}>
-                ✓ {t} — {barcodes[t] ?? "—"}
-              </Text>
+              <View className="flex-row items-center gap-1 mt-1" key={t}>
+                <Ionicons name="checkmark-circle" size={14} color="#047857" />
+                <Text className="text-xs text-emerald-700 font-bold">
+                  {t} — {barcodes[t] ?? "—"}
+                </Text>
+              </View>
             ))}
           </View>
           {notes ? (

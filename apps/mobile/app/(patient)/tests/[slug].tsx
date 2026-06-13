@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { getTestBySlug } from "@/api/patient";
 import { useServerCart } from "@/hooks/useServerCart";
@@ -47,7 +48,12 @@ export default function TestDetailScreen() {
           <View className="bg-blue-50 rounded-2xl p-4 mt-5"><Text className="font-bold text-blue-900">How to prepare</Text><Text className="text-blue-800 mt-2">{test.preparationInstructions}</Text></View>
         ) : null}
         <Text className="text-lg font-black mt-6">What's tested ({test.parameters.length} parameters)</Text>
-        {test.parameters.map((item) => <Text key={item} className="bg-white rounded-xl p-3 mt-2 border border-gray-100">✓ {item}</Text>)}
+        {test.parameters.map((item) => (
+          <View key={item} className="bg-white rounded-xl p-3 mt-2 border border-gray-100 flex-row items-center gap-2">
+            <Ionicons name="checkmark-circle" size={16} color="#0F6E56" />
+            <Text className="text-gray-800">{item}</Text>
+          </View>
+        ))}
       </ScrollView>
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 flex-row items-center gap-3">
         <Text className="text-[#C41E3A] text-xl font-black">₹{currentPrice}</Text>

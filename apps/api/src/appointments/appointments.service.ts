@@ -349,6 +349,19 @@ export class AppointmentsService {
         where: { userId: employeeId },
         data: { isAvailable: true }
       });
+
+      // Send feedback request notification after 30 min (non-blocking)
+      const patientId = appointment.patientId;
+      const appointmentId = updated.id;
+      const notifService = this.notificationsService;
+      setTimeout(() => {
+        notifService.createNotification(
+          patientId,
+          "How was your experience?",
+          "Tap to rate your sample collector.",
+          "feedback_request"
+        ).catch(() => {});
+      }, 30 * 60 * 1000);
     }
 
     // Send sample collected email (non-blocking)

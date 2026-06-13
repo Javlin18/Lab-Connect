@@ -354,7 +354,7 @@ export default function CartPage() {
                     {location.city && <p className="text-[10px] text-slate-500 mt-0.5">{location.city} — {location.pincode}</p>}
                     {location.latitude && (
                       <p className="text-[10px] text-emerald-600 mt-1 flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> GPS Pinned ✓
+                        <MapPin className="h-3 w-3" /> GPS Pinned
                       </p>
                     )}
                   </div>

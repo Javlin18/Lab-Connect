@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 import { googleLogin, sendEmailOtp, verifyEmailOtp } from "@/api/auth";
 import { useAuthStore } from "@/store/auth-store";
@@ -46,14 +47,11 @@ export default function PatientLoginScreen() {
   const [error, setError]         = useState("");
 
   // ── Expo Auth Session (Google) ───────────────────────────────────────────
-  // useProxy=true works in both Expo Go and standalone builds
-  const redirectUri = AuthSession.makeRedirectUri({
-    useProxy: true,
-  });
+  const redirectUri = AuthSession.makeRedirectUri();
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
-      // Use Web Client ID with proxy — works in Expo Go
+      // Use Web Client ID with Expo redirect URI
       clientId: GOOGLE_CLIENT_ID,
       redirectUri,
       scopes: ["openid", "profile", "email"],
@@ -153,7 +151,7 @@ export default function PatientLoginScreen() {
             {/* Header */}
             <View className="items-center mb-10">
               <View className="w-20 h-20 rounded-3xl bg-[#0F766E] items-center justify-center mb-4">
-                <Text className="text-4xl">🏥</Text>
+                <Ionicons name="medkit" size={40} color="white" />
               </View>
               <Text className="text-xs font-bold text-[#0F766E] uppercase tracking-widest mb-3">
                 Patient Portal
@@ -268,7 +266,7 @@ export default function PatientLoginScreen() {
               <View className="gap-5">
                 {/* Info box */}
                 <View className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-4 items-center">
-                  <Text className="text-2xl mb-2">📬</Text>
+                  <Ionicons name="mail-unread-outline" size={32} color="#0F766E" style={{ marginBottom: 8 }} />
                   <Text className="text-sm font-bold text-[#101828]">OTP sent to</Text>
                   <Text className="text-sm text-[#0F766E] font-semibold mt-0.5">{email}</Text>
                   <Text className="text-[11px] text-[#9CA3AF] mt-1">
@@ -322,7 +320,7 @@ export default function PatientLoginScreen() {
             {/* Error banner */}
             {!!error && (
               <View className="bg-red-50 border border-red-200 rounded-xl p-3 flex-row items-center mt-4">
-                <Text className="text-red-500 text-base mr-2">⚠️</Text>
+                <Ionicons name="warning-outline" size={20} color="#EF4444" style={{ marginRight: 8 }} />
                 <Text className="flex-1 text-sm text-red-700 font-medium">{error}</Text>
                 <Pressable onPress={() => setError("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Text className="text-red-400 text-base font-bold">✕</Text>

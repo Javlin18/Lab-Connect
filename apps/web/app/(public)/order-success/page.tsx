@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, ClipboardList, Home, Phone, ShieldCheck } from "lucide-react";
+import { Check, CheckCircle2, ClipboardList, Home, Phone, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -58,7 +58,7 @@ export default function OrderSuccessPage() {
                   <div className={`h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
                     step.done ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"
                   }`}>
-                    {step.done ? "✓" : i + 1}
+                    {step.done ? <Check className="h-4 w-4" /> : i + 1}
                   </div>
                   <p className={`text-sm font-medium ${step.done ? "text-slate-800" : "text-slate-400"}`}>
                     {step.label}

@@ -34,7 +34,15 @@ export function PaymentQrCard({
       </View>
       <TouchableOpacity
         className="w-full bg-orange-600 rounded-2xl py-3 items-center"
-        onPress={() => Linking.openURL(upiLink)}
+        onPress={async () => {
+          const supported = await Linking.canOpenURL(upiLink);
+          if (supported) {
+            Linking.openURL(upiLink);
+          } else {
+            const { Alert } = require("react-native");
+            Alert.alert("No UPI App", "No UPI payment app found on this device. Please install Google Pay, PhonePe, or similar.");
+          }
+        }}
       >
         <Text className="text-white font-black text-sm">Open UPI App</Text>
       </TouchableOpacity>

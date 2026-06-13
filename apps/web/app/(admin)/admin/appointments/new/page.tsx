@@ -306,7 +306,7 @@ export default function NewAppointmentPage() {
                 <option value="">— Assign later —</option>
                 {employees.map((emp) => (
                   <option key={emp.id} value={emp.id}>
-                    {emp.name} {emp.employee?.isAvailable ? "✓ Available" : "· Busy"}
+                    {emp.name} {emp.employee?.isAvailable ? "— Available" : "— Busy"}
                   </option>
                 ))}
               </select>
