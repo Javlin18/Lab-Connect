@@ -25,7 +25,7 @@ export default function AdminTestsPage() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [discountPrice, setDiscountPrice] = useState("");
-  const [category, setCategory] = useState("Blood Tests");
+  const [category, setCategory] = useState("");
   const [sampleType, setSampleType] = useState("Blood");
   const [preparationInstructions, setPreparationInstructions] = useState("");
   const [parameters, setParameters] = useState("");
@@ -89,7 +89,7 @@ export default function AdminTestsPage() {
     setDescription("");
     setPrice("");
     setDiscountPrice("");
-    setCategory("Blood Tests");
+    setCategory("");
     setSampleType("Blood");
     setPreparationInstructions("");
     setParameters("");
@@ -115,8 +115,8 @@ export default function AdminTestsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !slug || !price) {
-      toast({ title: "Validation Error", description: "Name, slug, and price are required", variant: "destructive" });
+    if (!name || !slug || !price || !category) {
+      toast({ title: "Validation Error", description: "Name, slug, price, and category are required", variant: "destructive" });
       return;
     }
 
@@ -187,18 +187,7 @@ export default function AdminTestsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="testCategory">Category</Label>
-                  <select
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
-                    id="testCategory"
-                    onChange={(e) => setCategory(e.target.value)}
-                    value={category}
-                  >
-                    <option value="Blood Tests">Blood Tests</option>
-                    <option value="Diabetes">Diabetes</option>
-                    <option value="Heart">Heart</option>
-                    <option value="Thyroid">Thyroid</option>
-                    <option value="Vitamins">Vitamins</option>
-                  </select>
+                  <Input id="testCategory" onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Blood Tests" required value={category} />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="testSample">Sample Type</Label>
