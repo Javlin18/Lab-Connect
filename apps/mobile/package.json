@@ -2,6 +2,7 @@
   "name": "@lab-app/mobile",
   "version": "0.0.0",
   "private": true,
+  "packageManager": "pnpm@9.12.3",
   "main": "expo-router/entry",
   "scripts": {
     "build": "expo export --platform android",
