@@ -5,7 +5,6 @@
     "scheme": "labconnect",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "labconnect",
     "platforms": [
       "android"
     ],
@@ -36,8 +35,16 @@
         "POST_NOTIFICATIONS",
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e5df510e-baca-4108-9987-7aacafad63f1"
+      }
     }
   }
 }
