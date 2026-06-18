@@ -8,17 +8,23 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug"
-      }
+      },
+      "node": "20.19.4",
+      "pnpm": "9.12.3"
     },
     "preview": {
       "android": {
         "buildType": "apk"
-      }
+      },
+      "node": "20.19.4",
+      "pnpm": "9.12.3"
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "node": "20.19.4",
+      "pnpm": "9.12.3"
     }
   },
   "submit": {
