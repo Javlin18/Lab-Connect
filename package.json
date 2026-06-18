@@ -1,6 +1,7 @@
 {
   "name": "lab-app",
   "private": true,
+  "packageManager": "pnpm@11.2.2",
   "scripts": {
     "build": "pnpm --filter @lab-app/api build && pnpm --filter @lab-app/web build",
     "build:mobile": "pnpm --filter @lab-app/mobile build",
