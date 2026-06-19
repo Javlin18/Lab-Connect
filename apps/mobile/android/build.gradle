@@ -1,5 +1,18 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
+// Find node_modules by walking up from android/ dir (monorepo support)
+def findNodeModules(baseDir) {
+    def dir = baseDir
+    while (dir != null) {
+        def nm = new File(dir, "node_modules")
+        if (nm.exists()) return nm
+        dir = dir.parentFile
+    }
+    return null
+}
+
+def nodeModulesDir = findNodeModules(rootDir)
+
 buildscript {
   repositories {
     google()
@@ -20,5 +33,13 @@ allprojects {
   }
 }
 
+// Make REACT_NATIVE_NODE_MODULES_DIR available to all subprojects
+// This tells react-native-reanimated and other libs where to find react-native
+if (nodeModulesDir != null) {
+    ext.REACT_NATIVE_NODE_MODULES_DIR = new File(nodeModulesDir, "react-native").absolutePath
+    ext.NODE_MODULES_DIR = nodeModulesDir.absolutePath
+}
+
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
+
