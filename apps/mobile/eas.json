@@ -20,7 +20,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://192.168.1.19:3001/api"
+        "EXPO_PUBLIC_API_URL": "http://192.168.1.19:3001/api",
+        "NODE_PATH": "../../node_modules"
       },
       "node": "22.16.0",
       "pnpm": "11.2.2"
