@@ -5,6 +5,7 @@
     "scheme": "labconnect",
     "version": "1.0.0",
     "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
     "platforms": [
       "android"
     ],
@@ -17,12 +18,20 @@
           "locationAlwaysAndWhenInUsePermission": "Allow Labconnect to access your location to auto-fill your collection address.",
           "locationWhenInUsePermission": "Allow Labconnect to access your location to auto-fill your collection address."
         }
+      ],
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
       ]
     ],
     "android": {
       "package": "com.yourlab.app",
       "versionCode": 1,
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F766E"
