@@ -8,17 +8,29 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug"
-      }
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://192.168.1.19:3001/api"
+      },
+      "node": "20.19.4",
+      "pnpm": "11.2.2"
     },
     "preview": {
       "android": {
         "buildType": "apk"
-      }
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://192.168.1.19:3001/api"
+      },
+      "node": "20.19.4",
+      "pnpm": "11.2.2"
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "node": "20.19.4",
+      "pnpm": "11.2.2"
     }
   },
   "submit": {

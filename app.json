@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "99ba51aa-e7b9-4eab-934a-bdbbddc2ed20"
+      }
+    },
+    "android": {
+      "package": "com.notjay.labapp"
+    }
+  }
+}
