@@ -1,18 +1,4 @@
-def findNodeModules(baseDir) {
-  def dir = baseDir
-  while (dir != null) {
-    def nm = new File(dir, "node_modules")
-    if (nm.exists()) return nm
-    dir = dir.parentFile
-  }
-  throw new GradleException("Could not find node_modules from ${baseDir}")
-}
-
-def nodeModules = findNodeModules(rootDir)
-def projectRoot = rootDir.parentFile // apps/mobile
-
 pluginManagement {
-  def projectRoot = rootDir.parentFile
   def nm = null
   def d = rootDir
   while (d != null) {
@@ -20,7 +6,7 @@ pluginManagement {
     if (candidate.exists()) { nm = candidate; break }
     d = d.parentFile
   }
-  if (nm == null) throw new GradleException("node_modules not found")
+  if (nm == null) throw new GradleException("node_modules not found from ${rootDir}")
 
   def reactNativeGradlePlugin = new File(nm, "@react-native/gradle-plugin").absolutePath
   includeBuild(reactNativeGradlePlugin)
@@ -52,4 +38,3 @@ expoAutolinking.useExpoVersionCatalog()
 
 include ':app'
 includeBuild(expoAutolinking.reactNativeGradlePlugin)
-
