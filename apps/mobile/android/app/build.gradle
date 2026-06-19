@@ -4,23 +4,6 @@ apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
-// Find node_modules by walking up from android/ dir (monorepo support)
-def findNodeModulesDir(baseDir) {
-    def dir = baseDir
-    while (dir != null) {
-        def nm = new File(dir, "node_modules")
-        if (nm.exists()) return nm
-        dir = dir.parentFile
-    }
-    return null
-}
-
-def nodeModulesDir = findNodeModulesDir(rootDir)
-if (nodeModulesDir != null) {
-    project.ext.set("REACT_NATIVE_NODE_MODULES_DIR", new File(nodeModulesDir, "react-native").absolutePath)
-    project.ext.set("NODE_MODULES_DIR", nodeModulesDir.absolutePath)
-}
-
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.

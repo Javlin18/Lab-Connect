@@ -1,19 +1,18 @@
 pluginManagement {
-  def nm = null
-  def d = rootDir
-  while (d != null) {
-    def candidate = new File(d, "node_modules")
-    if (candidate.exists()) { nm = candidate; break }
-    d = d.parentFile
-  }
-  if (nm == null) throw new GradleException("node_modules not found from ${rootDir}")
-
-  def reactNativeGradlePlugin = new File(nm, "@react-native/gradle-plugin").absolutePath
+  def reactNativeGradlePlugin = new File(
+    providers.exec {
+      workingDir(rootDir)
+      commandLine("node", "--print", "require.resolve('@react-native/gradle-plugin/package.json', { paths: [require.resolve('react-native/package.json')] })")
+    }.standardOutput.asText.get().trim()
+  ).getParentFile().absolutePath
   includeBuild(reactNativeGradlePlugin)
-
+  
   def expoPluginsPath = new File(
-    new File(nm, "expo-modules-autolinking"),
-    "android/expo-gradle-plugin"
+    providers.exec {
+      workingDir(rootDir)
+      commandLine("node", "--print", "require.resolve('expo-modules-autolinking/package.json', { paths: [require.resolve('expo/package.json')] })")
+    }.standardOutput.asText.get().trim(),
+    "../android/expo-gradle-plugin"
   ).absolutePath
   includeBuild(expoPluginsPath)
 }
