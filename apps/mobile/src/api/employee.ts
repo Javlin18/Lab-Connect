@@ -24,11 +24,23 @@ export async function claimAppointment(id: string) {
 export async function updateStatus(
   id: string,
   status: "en_route" | "collected",
-  data?: { sampleId?: string; collectionNotes?: string; collectedAt?: string }
+  data?: {
+    sampleId?: string;
+    collectionNotes?: string;
+    collectedAt?: string;
+    otp?: string;
+    barcodes?: Array<{ testName: string; barcodeId: string }>;
+  }
 ) {
   return apiFetch<Appointment>(`/appointments/${id}/status`, {
     method: "PUT",
     body: { status, ...data }
+  });
+}
+
+export async function sendCollectionOtp(id: string) {
+  return apiFetch<{ appointmentId: string }>(`/appointments/${id}/collection-otp`, {
+    method: "POST"
   });
 }
 

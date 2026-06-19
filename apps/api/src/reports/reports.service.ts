@@ -15,20 +15,20 @@ export class ReportsService {
   ) {}
 
   async upload(appointmentId: string, file: Express.Multer.File | undefined, uploaderId: string) {
-    if (!file) throw new BadRequestException("PDF file required");
+    if (!file) throw new BadRequestException("Report file required");
 
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: appointmentId }
     });
     if (!appointment) throw new NotFoundException("Appointment not found");
 
-    // Validate employee owns this appointment
     const uploader = await this.prisma.user.findUnique({ where: { id: uploaderId } });
-    if (uploader?.role === "employee" && appointment.employeeId !== uploaderId) {
-      throw new ForbiddenException("Not your appointment");
+    if (uploader?.role !== "admin") {
+      throw new ForbiddenException("Only admin users can upload medical reports");
     }
 
-    const objectKey = `reports/${appointmentId}-${Date.now()}.pdf`;
+    const extension = file.mimetype === "application/pdf" ? "pdf" : file.mimetype.split("/")[1] || "bin";
+    const objectKey = `reports/${appointmentId}-${Date.now()}.${extension}`;
     await this.storageService.uploadPdf(objectKey, file.buffer, file.mimetype);
 
     const result = await this.prisma.testResult.upsert({
@@ -40,6 +40,22 @@ export class ReportsService {
     await this.prisma.appointment.update({
       where: { id: appointmentId },
       data: { status: "processing" }
+    });
+
+    await (this.prisma as any).systemAuditLog.create({
+      data: {
+        action: "REPORT_UPLOADED",
+        actorId: uploaderId,
+        actorRole: "admin",
+        appointmentId,
+        patientId: appointment.patientId,
+        employeeId: appointment.employeeId,
+        metadata: {
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size
+        }
+      }
     });
 
     // Notify patient
@@ -82,11 +98,7 @@ export class ReportsService {
       throw new ForbiddenException("Forbidden");
     }
 
-    if (user.role === "employee" && result.appointment.employeeId !== user.sub) {
-      throw new ForbiddenException("Forbidden");
-    }
-
-    if (!["admin", "patient", "employee"].includes(user.role)) {
+    if (!["admin", "patient"].includes(user.role)) {
       throw new ForbiddenException("Forbidden");
     }
 

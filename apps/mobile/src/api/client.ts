@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/store/auth-store";
 
-import { API_URL } from "@/lib/env";
+import { API_URL, getNetworkErrorMessage } from "@/lib/env";
 
 export type ApiResponse<T> = {
   data: T;
@@ -32,11 +32,16 @@ export async function apiFetch<T>(path: string, init: RequestOptions = {}) {
       : init.body
   ) as BodyInit | null | undefined;
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    body,
-    headers
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...init,
+      body,
+      headers
+    });
+  } catch {
+    throw new Error(getNetworkErrorMessage());
+  }
 
   const payload = (await response.json().catch(() => null)) as ApiResponse<T> | null;
 

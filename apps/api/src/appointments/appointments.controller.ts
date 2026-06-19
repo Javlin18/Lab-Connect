@@ -81,10 +81,20 @@ export class AppointmentsController {
     return this.appointmentsService.updateStatus(id, user.sub, dto);
   }
 
+  @Roles("employee")
+  @Post(":id/collection-otp")
+  sendCollectionOtp(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.appointmentsService.sendCollectionOtp(id, user.sub);
+  }
+
   @Roles("admin")
   @Put(":id/complete")
-  complete(@Param("id") id: string, @Body() dto: CompleteAppointmentDto) {
-    return this.appointmentsService.complete(id, dto);
+  complete(
+    @Param("id") id: string,
+    @Body() dto: CompleteAppointmentDto,
+    @CurrentUser() user: AuthenticatedUser
+  ) {
+    return this.appointmentsService.complete(id, dto, user);
   }
 
   @Roles("employee")

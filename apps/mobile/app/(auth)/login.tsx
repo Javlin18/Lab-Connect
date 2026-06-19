@@ -13,10 +13,8 @@ import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { Ionicons } from "@expo/vector-icons";
 
+import { login } from "@/api/auth";
 import { useAuthStore } from "@/store/auth-store";
-
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:4000/api";
 
 const APP_VERSION = "1.0.0";
 
@@ -74,55 +72,20 @@ export default function LoginScreen() {
 
   // ── Login handler ───────────────────────────────────────────────────────
   async function handleLogin() {
+    if (isLoading) return;
     if (!validate()) return;
 
     setIsLoading(true);
     setError("");
 
     try {
-      const body =
+      const credentials =
         method === "phone"
           ? { phone: phone.trim(), password }
           : { email: email.trim().toLowerCase(), password };
 
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const json = await response.json().catch(() => null);
-
-      if (response.status === 401) {
-        setError(
-          method === "phone"
-            ? "Incorrect phone number or password"
-            : "Incorrect email or password"
-        );
-        return;
-      }
-
-      if (response.status === 403) {
-        setError("Your account has been deactivated. Contact admin.");
-        return;
-      }
-
-      if (!response.ok || !json?.success) {
-        setError(json?.message ?? "Something went wrong. Please try again.");
-        return;
-      }
-
-      const { accessToken, user } = json.data as {
-        accessToken: string;
-        user: {
-          id: string;
-          name: string;
-          email: string;
-          phone: string;
-          role: string;
-          createdAt: string;
-        };
-      };
+      const { data } = await login(credentials);
+      const { accessToken, user } = data;
 
       // Persist to SecureStore
       await Promise.all([
@@ -149,8 +112,12 @@ export default function LoginScreen() {
       } else {
         router.replace("/(patient)");
       }
-    } catch {
-      setError("No internet connection. Please try again.");
+    } catch (err) {
+      const fallback =
+        method === "phone"
+          ? "Incorrect phone number or password"
+          : "Incorrect email or password";
+      setError(err instanceof Error ? err.message : fallback);
     } finally {
       setIsLoading(false);
     }
@@ -393,7 +360,9 @@ export default function LoginScreen() {
               accessibilityRole="alert"
             >
               <Ionicons name="warning-outline" size={20} color="#EF4444" style={{ marginRight: 8 }} />
-              <Text className="flex-1 text-sm text-red-700 font-medium">{error}</Text>
+              <Text className="flex-1 text-sm text-red-700 font-medium" numberOfLines={3}>
+                {error}
+              </Text>
               <TouchableOpacity
                 onPress={() => setError("")}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

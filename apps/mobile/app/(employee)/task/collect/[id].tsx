@@ -15,8 +15,7 @@ import OTPTextInput from "react-native-otp-textinput";
 import { Ionicons } from "@expo/vector-icons";
 
 import { getAppointment } from "@/api/appointments";
-import { updateStatus } from "@/api/employee";
-import { sendOtp, verifyOtp } from "@/api/auth";
+import { sendCollectionOtp, updateStatus } from "@/api/employee";
 import { createOtpAssistanceRequest, listOtpAssistanceRequests } from "@/api/otp-assistance";
 import { Screen } from "@/components/screen";
 import { StepIndicator } from "@/components/employee/StepIndicator";
@@ -53,10 +52,7 @@ export default function CollectScreen() {
   });
 
   const appointment = query.data?.data;
-  const patientPhone = appointment?.patient?.phone ?? "";
-  const maskedPhone = patientPhone
-    ? patientPhone.slice(0, 3) + "XXXXXX" + patientPhone.slice(-4)
-    : "XXXXXXXXXX";
+  const companyContact = appointment?.patient?.phone || "company number";
 
   const primaryBarcode = appointment?.testTypes[0]
     ? (barcodes[appointment.testTypes[0]] ?? "")
@@ -90,34 +86,39 @@ export default function CollectScreen() {
   }, [step]);
 
   const sendOtpMutation = useMutation({
-    mutationFn: () => sendOtp(patientPhone),
+    mutationFn: () => sendCollectionOtp(id as string),
     onSuccess: () => { setOtpSent(true); setResendCountdown(30); },
     onError: (err: Error) => Alert.alert("Failed", err.message),
   });
 
   const verifyMutation = useMutation({
-    mutationFn: () => verifyOtp({ phone: patientPhone, otp }),
+    mutationFn: () => Promise.resolve(),
     onSuccess: () => {
       const ts = new Date().toISOString();
       setCollectedAt(ts);
-      confirmMutation.mutate(ts);
+      confirmMutation.mutate({ ts, otp });
     },
     onError: () => setOtpError("Incorrect OTP, please try again"),
   });
 
   const confirmMutation = useMutation({
-    mutationFn: (ts: string) =>
+    mutationFn: ({ ts, otp }: { ts: string; otp: string }) =>
       updateStatus(id as string, "collected", {
         sampleId: primaryBarcode,
         collectionNotes: notes,
         collectedAt: ts,
+        otp,
+        barcodes: Object.entries(barcodes).map(([testName, barcodeId]) => ({ testName, barcodeId })),
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["appointment", id] });
       await queryClient.invalidateQueries({ queryKey: ["appointments", "assigned"] });
       setStep(4);
     },
-    onError: (err: Error) => Alert.alert("Error", err.message),
+    onError: (err: Error) => {
+      setOtpError(err.message || "OTP verification failed");
+      Alert.alert("Error", err.message);
+    },
   });
 
   const askAdminMutation = useMutation({
@@ -165,7 +166,7 @@ export default function CollectScreen() {
           <Text className="text-lg font-black text-slate-800">
             {appointment.patient?.name ?? "Patient"}
           </Text>
-          <Text className="text-xs text-slate-500 mt-1">Phone: {patientPhone}</Text>
+          <Text className="text-xs text-slate-500 mt-1">Contact via: {companyContact}</Text>
           <Text className="text-xs text-slate-500 mt-0.5">Address: {appointment.address}</Text>
         </View>
         <View className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-8 flex-row items-center justify-center gap-2">
@@ -313,7 +314,7 @@ export default function CollectScreen() {
           </Text>
           <Text className="text-xs text-slate-500 leading-relaxed">
             We will send a 4-digit OTP to{" "}
-            <Text className="font-bold text-slate-700">+91 {maskedPhone}</Text>
+            <Text className="font-bold text-slate-700">the booking owner's registered number</Text>
           </Text>
         </View>
 
@@ -437,7 +438,7 @@ export default function CollectScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text className="text-white text-sm font-black">
-                {assistanceRequest ? "Admin Request Created" : "Ask Admin OTP"}
+                {assistanceRequest ? "Admin Request Created" : "Request Admin OTP"}
               </Text>
             )}
           </TouchableOpacity>

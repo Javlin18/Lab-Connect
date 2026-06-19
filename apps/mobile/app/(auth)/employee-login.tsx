@@ -13,11 +13,8 @@ import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { Ionicons } from "@expo/vector-icons";
 
-import { registerEmployee } from "@/api/auth";
+import { login, registerEmployee } from "@/api/auth";
 import { useAuthStore } from "@/store/auth-store";
-
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:4000/api";
 
 const APP_VERSION = "1.0.0";
 
@@ -87,39 +84,15 @@ export default function EmployeeLoginScreen() {
 
   // ── Login handler ─────────────────────────────────────────────────────────
   async function handleLogin() {
+    if (isLoading) return;
     if (!validate()) return;
 
     setIsLoading(true);
     setError("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phone.trim(), password }),
-      });
-
-      const json = await response.json().catch(() => null);
-
-      if (response.status === 401) {
-        setError("Incorrect phone number or password");
-        return;
-      }
-
-      if (response.status === 403) {
-        setError("Your account has been deactivated. Contact admin.");
-        return;
-      }
-
-      if (!response.ok || !json?.success) {
-        setError(json?.message ?? "Something went wrong. Please try again.");
-        return;
-      }
-
-      const { accessToken, user } = json.data as {
-        accessToken: string;
-        user: { id: string; name: string; email: string; phone: string; role: string; createdAt: string };
-      };
+      const { data } = await login({ phone: phone.trim(), password });
+      const { accessToken, user } = data;
 
       if (user.role !== "employee") {
         setError("Access denied. This login is for employees only.");
@@ -144,8 +117,8 @@ export default function EmployeeLoginScreen() {
       });
 
       router.replace("/(employee)");
-    } catch {
-      setError("No internet connection. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Incorrect phone number or password");
     } finally {
       setIsLoading(false);
     }
@@ -437,7 +410,9 @@ export default function EmployeeLoginScreen() {
               accessibilityRole="alert"
             >
               <Ionicons name="warning-outline" size={20} color="#EF4444" style={{ marginRight: 8 }} />
-              <Text className="flex-1 text-sm text-red-700 font-medium">{error}</Text>
+              <Text className="flex-1 text-sm text-red-700 font-medium" numberOfLines={3}>
+                {error}
+              </Text>
               <TouchableOpacity
                 onPress={() => setError("")}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -450,7 +425,7 @@ export default function EmployeeLoginScreen() {
           {success ? (
             <View className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex-row items-center mt-4">
               <Ionicons name="checkmark-circle-outline" size={20} color="#059669" style={{ marginRight: 8 }} />
-              <Text className="flex-1 text-sm text-emerald-700 font-medium">
+              <Text className="flex-1 text-sm text-emerald-700 font-medium" numberOfLines={3}>
                 {success}
               </Text>
               <TouchableOpacity

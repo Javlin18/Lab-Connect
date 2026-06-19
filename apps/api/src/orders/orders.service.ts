@@ -14,6 +14,10 @@ export class OrdersService {
     private readonly autoAssignService: AutoAssignService
   ) {}
 
+  private get maskedContactNumber() {
+    return process.env.MASKED_COMPANY_PHONE ?? process.env.TWILIO_COMPANY_PHONE ?? process.env.TWILIO_PHONE ?? process.env.OFFICE_FALLBACK_PHONE ?? "";
+  }
+
   async create(patientId: string, dto: CreateOrderDto) {
     // 1. Fetch patient cart
     const cartRes = await this.cartService.getOrCreateCart(patientId);
@@ -348,7 +352,7 @@ export class OrdersService {
 
     return {
       success: true,
-      data,
+      data: data.map((order: any) => this.maskOrderPhones(order, "patient")),
       message: "Patient orders retrieved"
     };
   }
@@ -375,7 +379,7 @@ export class OrdersService {
 
   // --- Payment helpers used by PaymentsController ---
 
-  async findById(orderId: string) {
+  async findById(orderId: string, viewerRole: "admin" | "employee" = "admin") {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -387,7 +391,25 @@ export class OrdersService {
       throw new NotFoundException("Order not found");
     }
     const employeeId = (order.appointment as any)?.employeeId ?? null;
-    return { ...order, employeeId } as typeof order & { employeeId: string | null };
+    return this.maskOrderPhones({ ...order, employeeId }, viewerRole) as typeof order & { employeeId: string | null };
+  }
+
+  private maskOrderPhones(order: any, viewerRole: "admin" | "employee" | "patient") {
+    if (viewerRole === "admin") return order;
+
+    const masked = { ...order };
+    if (viewerRole === "patient" && masked.appointment?.employee) {
+      masked.appointment = {
+        ...masked.appointment,
+        employee: { ...masked.appointment.employee, phone: this.maskedContactNumber }
+      };
+    }
+
+    if (viewerRole === "employee" && masked.patient) {
+      masked.patient = { ...masked.patient, phone: this.maskedContactNumber };
+    }
+
+    return masked;
   }
 
   async markAsPaid(

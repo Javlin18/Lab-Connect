@@ -5,7 +5,7 @@ import type { EmployeeRecord, LoginResponse } from "@/types/domain";
 
 import { apiFetch } from "./client";
 
-export function login(input: { password: string; phone: string }) {
+export function login(input: { email?: string; password: string; phone?: string }) {
   return apiFetch<LoginResponse>("/auth/login", {
     body: input,
     method: "POST"

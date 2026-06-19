@@ -141,7 +141,7 @@ export default function EmployeeAppointmentsScreen() {
                   </Text>
                   {appointment.patient?.phone ? (
                     <Text className="text-sm font-semibold text-slate-600">
-                      Mobile: <Text className="font-normal">{appointment.patient.phone}</Text>
+                      Contact: <Text className="font-normal">{appointment.patient.phone}</Text>
                     </Text>
                   ) : null}
                 </View>

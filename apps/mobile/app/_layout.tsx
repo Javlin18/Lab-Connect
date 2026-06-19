@@ -1,13 +1,13 @@
 import "../global.css";
 
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 
 import { Providers } from "@/components/providers";
 
 export default function RootLayout() {
   return (
     <Providers>
-      <Slot />
+      <Stack screenOptions={{ headerShown: false }} />
     </Providers>
   );
 }

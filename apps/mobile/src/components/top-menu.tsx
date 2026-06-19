@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { Animated, Dimensions, Modal, Pressable, Text, View } from "react-native";
 import { router, usePathname } from "expo-router";
 
+import { useAuthStore } from "@/store/auth-store";
+
 type MenuItem = {
   label: string;
   href: string;
@@ -17,6 +19,7 @@ export function TopMenu({ items, tintColor = "#111827" }: TopMenuProps) {
   const pathname = usePathname();
   const panelWidth = Math.round(Dimensions.get("window").width * 0.54);
   const slide = useRef(new Animated.Value(-panelWidth)).current;
+  const logout = useAuthStore((s) => s.logout);
 
   const show = () => {
     setOpen(true);
@@ -38,6 +41,12 @@ export function TopMenu({ items, tintColor = "#111827" }: TopMenuProps) {
   const goTo = (href: string) => {
     hide();
     router.push(href as never);
+  };
+
+  const handleLogout = async () => {
+    hide();
+    await logout();
+    router.replace("/(auth)/login");
   };
 
   return (
@@ -80,6 +89,17 @@ export function TopMenu({ items, tintColor = "#111827" }: TopMenuProps) {
                 </Text>
               </Pressable>
             ))}
+
+            {/* Divider */}
+            <View className="my-3 h-px bg-slate-100 mx-3" />
+
+            {/* Logout */}
+            <Pressable
+              className="mb-1 rounded-lg px-3 py-3 flex-row items-center gap-2"
+              onPress={handleLogout}
+            >
+              <Text className="text-base font-semibold text-red-600">⎋ Logout</Text>
+            </Pressable>
           </Animated.View>
           <Pressable className="flex-1" onPress={hide} />
         </View>

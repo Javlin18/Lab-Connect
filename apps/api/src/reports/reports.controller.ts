@@ -21,13 +21,13 @@ import { ReportsService } from "./reports.service";
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-  @Roles("employee")
+  @Roles("admin")
   @ApiConsumes("multipart/form-data")
   @UseInterceptors(
     FileInterceptor("file", {
       storage: memoryStorage(),
       fileFilter: (_request, file, callback) => {
-        callback(null, file.mimetype === "application/pdf");
+        callback(null, ["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(file.mimetype));
       },
       limits: { fileSize: 10 * 1024 * 1024 }
     })
@@ -41,7 +41,7 @@ export class ReportsController {
     return this.reportsService.upload(appointmentId, file, user.sub);
   }
 
-  @Roles("patient", "admin", "employee")
+  @Roles("patient", "admin")
   @Get(":appointmentId")
   getReport(
     @Param("appointmentId") appointmentId: string,

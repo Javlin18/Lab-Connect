@@ -20,4 +20,8 @@ export class UpdateAppointmentStatusDto {
   @IsArray()
   @IsOptional()
   barcodes?: Array<{ testName: string; barcodeId: string }>;
+
+  @IsString()
+  @IsOptional()
+  otp?: string;
 }

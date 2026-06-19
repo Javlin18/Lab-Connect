@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 
+import { AuthService } from "../auth/auth.service";
 import { toSharedAppointment } from "../common/mappers/entity.mappers";
 import type { AuthenticatedUser } from "../common/types/authenticated-user";
 import { EmailService } from "../email/email.service";
@@ -42,8 +43,13 @@ export class AppointmentsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly autoAssignService: AutoAssignService,
-    private readonly emailService: EmailService
+    private readonly emailService: EmailService,
+    private readonly authService: AuthService
   ) {}
+
+  private get maskedContactNumber() {
+    return process.env.MASKED_COMPANY_PHONE ?? process.env.TWILIO_COMPANY_PHONE ?? process.env.TWILIO_PHONE ?? process.env.OFFICE_FALLBACK_PHONE ?? "";
+  }
 
   async create(dto: CreateAppointmentDto, creator: AuthenticatedUser) {
     const patientId = creator.role === "patient" ? creator.sub : dto.patientId;
@@ -103,6 +109,14 @@ export class AppointmentsService {
       }
     }
 
+    await this.audit("APPOINTMENT_CREATED", {
+      actorId: creator.sub,
+      actorRole: creator.role,
+      appointmentId: appointment.id,
+      patientId,
+      employeeId: assignedEmployeeId
+    });
+
     return { data: toSharedAppointment(appointment), message: "Appointment created" };
   }
 
@@ -124,7 +138,7 @@ export class AppointmentsService {
     });
 
     return {
-      data: appointments.map(toSharedAppointment),
+      data: appointments.map((appointment) => this.presentAppointment(appointment, "admin")),
       message: "Appointments fetched"
     };
   }
@@ -141,7 +155,7 @@ export class AppointmentsService {
     });
 
     return {
-      data: appointments.map(toSharedAppointment),
+      data: appointments.map((appointment) => this.presentAppointment(appointment, "patient")),
       message: "Patient appointments fetched"
     };
   }
@@ -158,7 +172,7 @@ export class AppointmentsService {
     });
 
     return {
-      data: appointments.map(toSharedAppointment),
+      data: appointments.map((appointment) => this.presentAppointment(appointment, "employee")),
       message: "Assigned appointments fetched"
     };
   }
@@ -185,7 +199,7 @@ export class AppointmentsService {
     });
 
     return {
-      data: appointments.map(toSharedAppointment),
+      data: appointments.map((appointment) => this.presentAppointment(appointment, "employee")),
       message: "Available appointments fetched"
     };
   }
@@ -209,7 +223,7 @@ export class AppointmentsService {
     }
 
     return {
-      data: toSharedAppointment(appointment),
+      data: this.presentAppointment(appointment, user.role),
       message: "Appointment fetched"
     };
   }
@@ -297,7 +311,7 @@ export class AppointmentsService {
     );
 
     return {
-      data: toSharedAppointment(appointment!),
+      data: this.presentAppointment(appointment!, "employee"),
       message: "Appointment selected"
     };
   }
@@ -327,6 +341,14 @@ export class AppointmentsService {
     if (dto.collectionNotes) notes += `\n[Collection Notes: ${dto.collectionNotes}]`;
     if (dto.collectedAt) notes += `\n[Collected At: ${dto.collectedAt}]`;
 
+    const collectionOtpSource = dto.status === "collected"
+      ? await this.verifyCollectionOtp(appointment, employeeId, dto.otp)
+      : null;
+
+    if (collectionOtpSource) {
+      notes += `\n[Collection Verified]\n[OTP Verification: ${collectionOtpSource === "admin" ? "Admin OTP approval" : "Patient OTP"}]`;
+    }
+
     const updated = await this.prisma.appointment.update({
       where: { id: appointment.id },
       data: {
@@ -345,6 +367,15 @@ export class AppointmentsService {
     );
 
     if (dto.status === "collected") {
+      await this.audit("SAMPLE_COLLECTION_COMPLETED", {
+        actorId: employeeId,
+        actorRole: "employee",
+        appointmentId: appointment.id,
+        patientId: appointment.patientId,
+        employeeId,
+        metadata: { otpSource: collectionOtpSource }
+      });
+
       await this.prisma.employee.update({
         where: { userId: employeeId },
         data: { isAvailable: true }
@@ -375,13 +406,38 @@ export class AppointmentsService {
     }
 
     return {
-      data: toSharedAppointment(updated),
+      data: this.presentAppointment(updated, "employee"),
       message: "Appointment status updated"
     };
   }
 
-  async complete(id: string, dto: CompleteAppointmentDto) {
-    await this.ensureAppointmentExists(id);
+  async sendCollectionOtp(id: string, employeeId: string) {
+    const appointment = await this.assertEmployeeOwnsAppointment(id, employeeId);
+    if (!["accepted", "en_route"].includes(appointment.status)) {
+      throw new BadRequestException("Collection OTP can only be sent for an active visit");
+    }
+
+    await this.authService.sendOtp({ phone: appointment.patient.phone });
+    await this.audit("COLLECTION_OTP_SENT", {
+      actorId: employeeId,
+      actorRole: "employee",
+      appointmentId: appointment.id,
+      patientId: appointment.patientId,
+      employeeId
+    });
+
+    return {
+      data: { appointmentId: appointment.id },
+      message: "Collection OTP sent to patient"
+    };
+  }
+
+  async complete(id: string, dto: CompleteAppointmentDto, user?: AuthenticatedUser) {
+    const appointment = await this.ensureAppointmentExists(id);
+
+    if (!appointment.notes.includes("[Collection Verified]")) {
+      throw new BadRequestException("Sample collection must be OTP verified before completion");
+    }
 
     const updated = await this.prisma.appointment.update({
       where: { id },
@@ -390,6 +446,15 @@ export class AppointmentsService {
         notes: dto.notes
       },
       include: this.appointmentInclude
+    });
+
+    await this.audit("APPOINTMENT_COMPLETED", {
+      actorId: user?.sub ?? null,
+      actorRole: user?.role ?? null,
+      appointmentId: updated.id,
+      patientId: updated.patientId,
+      employeeId: updated.employeeId,
+      metadata: { notes: dto.notes ?? null }
     });
 
     await this.notificationsService.createNotification(
@@ -568,5 +633,94 @@ export class AppointmentsService {
     }
 
     return employee;
+  }
+
+  private async verifyCollectionOtp(appointment: any, employeeId: string, otp?: string) {
+    const cleanOtp = otp?.trim();
+    if (!cleanOtp) {
+      throw new BadRequestException("OTP verification is required to complete sample collection");
+    }
+
+    const assistance = await (this.prisma as any).otpAssistanceRequest.findFirst({
+      where: {
+        appointmentId: appointment.id,
+        employeeId,
+        status: "approved",
+        otpShared: cleanOtp
+      },
+      orderBy: { resolvedAt: "desc" }
+    });
+
+    if (assistance) {
+      if (assistance.adminOtpExpiresAt && assistance.adminOtpExpiresAt < new Date()) {
+        throw new BadRequestException("Admin OTP expired");
+      }
+
+      await (this.prisma as any).otpAssistanceRequest.update({
+        where: { id: assistance.id },
+        data: { status: "verified_by_admin", resolvedAt: new Date() }
+      });
+
+      await this.audit("ADMIN_OTP_VERIFIED", {
+        actorId: employeeId,
+        actorRole: "employee",
+        appointmentId: appointment.id,
+        patientId: appointment.patientId,
+        employeeId,
+        metadata: { otpAssistanceRequestId: assistance.id }
+      });
+
+      return "admin";
+    }
+
+    await this.authService.verifyOtp({ phone: appointment.patient.phone, otp: cleanOtp });
+    await this.audit("PATIENT_OTP_VERIFIED", {
+      actorId: employeeId,
+      actorRole: "employee",
+      appointmentId: appointment.id,
+      patientId: appointment.patientId,
+      employeeId
+    });
+
+    return "patient";
+  }
+
+  private presentAppointment(appointment: any, viewerRole: AuthenticatedUser["role"]) {
+    const shared = toSharedAppointment(appointment);
+    const maskedPhone = this.maskedContactNumber;
+
+    if (viewerRole === "employee" && shared.patient) {
+      shared.patient = { ...shared.patient, phone: maskedPhone };
+    }
+
+    if (viewerRole === "patient" && shared.employee) {
+      shared.employee = { ...shared.employee, phone: maskedPhone };
+    }
+
+    return shared;
+  }
+
+  private async audit(
+    action: string,
+    input: {
+      actorId?: string | null;
+      actorRole?: "admin" | "employee" | "patient" | null;
+      appointmentId?: string | null;
+      patientId?: string | null;
+      employeeId?: string | null;
+      metadata?: Record<string, unknown>;
+    }
+  ) {
+    await (this.prisma as any).systemAuditLog.create({
+      data: {
+        action,
+        actorId: input.actorId ?? null,
+        actorRole: input.actorRole ?? null,
+        appointmentId: input.appointmentId ?? null,
+        patientId: input.patientId ?? null,
+        employeeId: input.employeeId ?? null,
+        metadata: input.metadata ?? undefined
+      }
+    });
   }
 }

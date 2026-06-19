@@ -17,7 +17,7 @@ export function Screen({
   headerRight?: React.ReactNode;
 }) {
   const content = (
-    <View style={{ flex: 1, gap: 16, paddingHorizontal: 20, paddingBottom: 32 }}>
+    <View style={{ flex: 1, gap: 16, paddingHorizontal: 16, paddingBottom: 32 }}>
       <View
         style={{
           flexDirection: "row",
@@ -55,7 +55,12 @@ export function Screen({
       }}
     >
       {scroll ? (
-        <ScrollView showsVerticalScrollIndicator={false}>{content}</ScrollView>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          {content}
+        </ScrollView>
       ) : (
         content
       )}

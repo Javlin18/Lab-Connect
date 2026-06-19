@@ -463,16 +463,6 @@ export default function EmployeeTaskDetailScreen() {
                   Sample Collected Successfully
                 </Text>
               </View>
-              {/* Upload Report button */}
-              <TouchableOpacity
-                className="w-full bg-orange-500 rounded-2xl py-4 items-center justify-center"
-                onPress={() => router.push(`/(employee)/task/upload-report/${id}`)}
-              >
-                <View className="flex-row items-center gap-1.5">
-                  <Ionicons name="document-text-outline" size={16} color="white" />
-                  <Text className="text-white font-black text-sm">Upload Report</Text>
-                </View>
-              </TouchableOpacity>
             </>
           )}
         </View>

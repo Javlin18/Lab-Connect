@@ -131,6 +131,8 @@ model OtpAssistanceRequest {
   reason             String
   collectionLocation String
   otpShared          String?
+  adminOtp           String?
+  adminOtpExpiresAt  DateTime?
   requestedAt        DateTime            @default(now())
   resolvedAt         DateTime?
   resolvedBy         String?
@@ -165,6 +167,23 @@ model OtpAssistanceAuditLog {
   request       OtpAssistanceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
   @@index([requestId])
+  @@index([appointmentId])
+  @@index([createdAt])
+}
+
+model SystemAuditLog {
+  id            String   @id @default(cuid())
+  action        String
+  actorId       String?
+  actorRole     UserRole?
+  appointmentId String?
+  patientId     String?
+  employeeId    String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([action])
+  @@index([actorId])
   @@index([appointmentId])
   @@index([createdAt])
 }

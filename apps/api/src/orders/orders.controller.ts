@@ -40,8 +40,8 @@ export class OrdersController {
 
   @Roles("employee", "admin")
   @Get(":id")
-  async findOne(@Param("id") id: string) {
-    const order = await this.ordersService.findById(id);
+  async findOne(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    const order = await this.ordersService.findById(id, user.role === "admin" ? "admin" : "employee");
     return {
       success: true,
       data: order,

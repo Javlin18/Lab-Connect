@@ -20,7 +20,10 @@ export function TaskCard({ appointment, onPress, showDistance = true, distanceTe
   const payment = appointment.payment;
 
   return (
-    <View className="bg-slate-50 border border-slate-100 rounded-2xl p-4 shadow-sm mb-3">
+    <View
+      className="bg-white border border-slate-100 rounded-2xl p-4 mb-4"
+      style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}
+    >
       <View className="flex-row justify-between items-start mb-2">
         <View className="flex-1 pr-2">
           <Text className="text-base font-bold text-slate-800">

@@ -218,6 +218,18 @@ export class AuthService {
 
     await this.twilioService.sendOtp(dto.phone, code);
 
+    const user = await this.prisma.user.findFirst({ where: { phone: dto.phone }, select: { id: true, role: true } });
+    await (this.prisma as any).systemAuditLog.create({
+      data: {
+        action: "OTP_GENERATED",
+        actorId: user?.id ?? null,
+        actorRole: user?.role ?? null,
+        patientId: user?.role === "patient" ? user.id : null,
+        employeeId: user?.role === "employee" ? user.id : null,
+        metadata: { channel: "sms", purpose: "collection_or_login" }
+      }
+    });
+
     return {
       data: {
         phone: dto.phone
@@ -256,6 +268,18 @@ export class AuthService {
     }
 
     this.otpStore.delete(dto.phone);
+
+    const user = await this.prisma.user.findFirst({ where: { phone: dto.phone }, select: { id: true, role: true } });
+    await (this.prisma as any).systemAuditLog.create({
+      data: {
+        action: "OTP_VERIFIED",
+        actorId: user?.id ?? null,
+        actorRole: user?.role ?? null,
+        patientId: user?.role === "patient" ? user.id : null,
+        employeeId: user?.role === "employee" ? user.id : null,
+        metadata: { channel: "sms" }
+      }
+    });
 
     return {
       data: {

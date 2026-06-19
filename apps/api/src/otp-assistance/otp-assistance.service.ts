@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { randomInt } from "crypto";
 
-import { AuthService } from "../auth/auth.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-user";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -24,8 +24,7 @@ const requestInclude = {
 export class OtpAssistanceService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
-    private readonly authService: AuthService
+    private readonly notificationsService: NotificationsService
   ) {}
 
   async create(user: AuthenticatedUser, appointmentId: string, reason: string) {
@@ -48,6 +47,8 @@ export class OtpAssistanceService {
     if (open) return { data: this.toDto(open), message: "OTP assistance request already open" };
 
     const cleanReason = reason?.trim() || "Booking owner unavailable to share OTP";
+    const adminOtp = this.generateOtp();
+    const adminOtpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const request = await (this.prisma as any).otpAssistanceRequest.create({
       data: {
         appointmentId,
@@ -57,6 +58,8 @@ export class OtpAssistanceService {
         bookingOwnerId: appointment.patientId,
         reason: cleanReason,
         collectionLocation: appointment.address,
+        adminOtp,
+        adminOtpExpiresAt,
         auditLogs: {
           create: {
             appointmentId,
@@ -73,6 +76,14 @@ export class OtpAssistanceService {
       include: requestInclude
     });
 
+    await this.auditSystem("ADMIN_OTP_GENERATED", {
+      actorId: user.sub,
+      actorRole: "employee",
+      appointmentId,
+      patientId: appointment.patientId,
+      employeeId: user.sub,
+      metadata: { otpAssistanceRequestId: request.id }
+    });
     await this.appendTimeline(appointmentId, "OTP Assistance Requested", cleanReason);
     const admins = await this.prisma.user.findMany({ where: { role: "admin" } });
     await Promise.all(
@@ -80,7 +91,7 @@ export class OtpAssistanceService {
         this.notificationsService.createNotification(
           admin.id,
           "OTP Assistance Request",
-          `${appointment.employee?.name ?? "Employee"} requested OTP help for ${appointment.patient?.name ?? "patient"} at ${appointment.address}.`,
+          `${appointment.employee?.name ?? "Employee"} requested OTP help for ${appointment.patient?.name ?? "patient"} at ${appointment.address}. Admin OTP: ${adminOtp}`,
           `otp_assistance:${request.id}`
         )
       )
@@ -106,23 +117,36 @@ export class OtpAssistanceService {
 
   async viewOtp(user: AuthenticatedUser, id: string) {
     const request = await this.getRequest(id);
-    const otp = this.authService.getActiveOtp(request.patient.phone);
+    const otp = await this.ensureAdminOtp(request);
     await this.audit(request, user, "VIEW_OTP", "Admin viewed OTP");
-    return { data: { otp: otp?.code ?? null, expiresAt: otp?.expiresAt ?? null }, message: otp ? "OTP fetched" : "No active OTP found" };
+    return { data: { otp: otp.code, expiresAt: otp.expiresAt.toISOString() }, message: "OTP fetched" };
   }
 
   async resendOtp(user: AuthenticatedUser, id: string, reason?: string) {
     const request = await this.getRequest(id);
-    await this.authService.sendOtp({ phone: request.patient.phone });
-    await this.audit(request, user, "RESEND_OTP", reason ?? "Admin resent OTP");
-    await this.appendTimeline(request.appointmentId, "OTP Sent", "Admin resent OTP to booking owner");
-    return { data: this.toDto(request), message: "OTP resent to booking owner" };
+    const adminOtp = this.generateOtp();
+    const adminOtpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const updated = await (this.prisma as any).otpAssistanceRequest.update({
+      where: { id },
+      data: { adminOtp, adminOtpExpiresAt, otpShared: null, status: "pending" },
+      include: requestInclude
+    });
+    await this.audit(request, user, "RESEND_ADMIN_OTP", reason ?? "Admin regenerated OTP");
+    await this.auditSystem("ADMIN_OTP_GENERATED", {
+      actorId: user.sub,
+      actorRole: user.role,
+      appointmentId: request.appointmentId,
+      patientId: request.patientId,
+      employeeId: request.employeeId,
+      metadata: { otpAssistanceRequestId: request.id, regenerated: true }
+    });
+    await this.appendTimeline(request.appointmentId, "Admin OTP Generated", "Admin regenerated collection OTP");
+    return { data: this.toDto(updated), message: "Admin OTP regenerated" };
   }
 
   async shareOtp(user: AuthenticatedUser, id: string, reason?: string) {
     const request = await this.getRequest(id);
-    const otp = this.authService.getActiveOtp(request.patient.phone);
-    if (!otp) throw new BadRequestException("No active OTP. Resend OTP first.");
+    const otp = await this.ensureAdminOtp(request);
 
     const updated = await (this.prisma as any).otpAssistanceRequest.update({
       where: { id },
@@ -130,6 +154,14 @@ export class OtpAssistanceService {
       include: requestInclude
     });
     await this.audit(updated, user, "SHARE_OTP", reason ?? "Admin shared OTP with employee");
+    await this.auditSystem("ADMIN_OTP_APPROVED", {
+      actorId: user.sub,
+      actorRole: "admin",
+      appointmentId: request.appointmentId,
+      patientId: request.patientId,
+      employeeId: request.employeeId,
+      metadata: { otpAssistanceRequestId: request.id }
+    });
     await this.appendTimeline(request.appointmentId, "Admin Approved Verification", "OTP shared with employee");
     await this.notifyEmployee(updated, `Admin shared OTP ${otp.code} for booking #${request.appointmentId.slice(0, 8)}.`);
     return { data: this.toDto(updated), message: "OTP shared with employee" };
@@ -137,38 +169,46 @@ export class OtpAssistanceService {
 
   async approve(user: AuthenticatedUser, id: string, reason?: string) {
     const request = await this.getRequest(id);
+    const otp = await this.ensureAdminOtp(request);
     const updated = await (this.prisma as any).otpAssistanceRequest.update({
       where: { id },
-      data: { status: "approved", resolvedBy: user.sub, resolvedAt: new Date(), adminReason: reason ?? null },
+      data: { otpShared: otp.code, status: "approved", resolvedBy: user.sub, resolvedAt: new Date(), adminReason: reason ?? null },
       include: requestInclude
     });
     await this.audit(updated, user, "APPROVE_VERIFICATION", reason ?? "Admin approved OTP assistance");
+    await this.auditSystem("ADMIN_OTP_APPROVED", {
+      actorId: user.sub,
+      actorRole: "admin",
+      appointmentId: request.appointmentId,
+      patientId: request.patientId,
+      employeeId: request.employeeId,
+      metadata: { otpAssistanceRequestId: request.id }
+    });
     await this.appendTimeline(request.appointmentId, "Admin Approved Verification", reason ?? "Admin approved verification assistance");
-    await this.notifyEmployee(updated, "Admin approved your OTP assistance request. Use the shared OTP or wait for force verification.");
+    await this.notifyEmployee(updated, `Admin approved your OTP assistance request. Use OTP ${otp.code} to complete collection.`);
     return { data: this.toDto(updated), message: "Verification assistance approved" };
   }
 
   async forceVerify(user: AuthenticatedUser, id: string, reason?: string) {
     const request = await this.getRequest(id);
-    const note = `[Collection Notes: Verified by Admin Override${reason ? ` - ${reason}` : ""}]`;
-    const appointment = await this.prisma.appointment.update({
-      where: { id: request.appointmentId },
-      data: {
-        status: "collected",
-        notes: `${request.appointment.notes ?? ""}\n${note}\n[Collection Verified]\n[Collection Force Verified by Admin: ${user.email}]`
-      }
-    });
-    await this.prisma.employee.updateMany({ where: { userId: request.employeeId }, data: { isAvailable: true } });
+    const otp = await this.ensureAdminOtp(request);
     const updated = await (this.prisma as any).otpAssistanceRequest.update({
       where: { id },
-      data: { status: "verified_by_admin", resolvedBy: user.sub, resolvedAt: new Date(), adminReason: reason ?? null },
+      data: { otpShared: otp.code, status: "approved", resolvedBy: user.sub, resolvedAt: new Date(), adminReason: reason ?? null },
       include: requestInclude
     });
-    await this.audit(updated, user, "FORCE_VERIFY_COLLECTION", reason ?? "Collection force verified by admin");
-    await this.appendTimeline(appointment.id, "Collection Force Verified by Admin", reason ?? "Admin override");
-    await this.notifyEmployee(updated, "Collection was verified by Admin Override. You can continue.");
-    await this.notificationsService.createNotification(request.patientId, "Collection verified", "Your sample collection was verified by admin override.", "collection_verified_admin");
-    return { data: this.toDto(updated), message: "Collection force verified by admin" };
+    await this.audit(updated, user, "ADMIN_OTP_APPROVED", reason ?? "Admin approved OTP assistance");
+    await this.auditSystem("ADMIN_OTP_APPROVED", {
+      actorId: user.sub,
+      actorRole: "admin",
+      appointmentId: request.appointmentId,
+      patientId: request.patientId,
+      employeeId: request.employeeId,
+      metadata: { otpAssistanceRequestId: request.id, forceVerifyConvertedToOtp: true }
+    });
+    await this.appendTimeline(request.appointmentId, "Admin OTP Approved", reason ?? "Admin approved OTP assistance");
+    await this.notifyEmployee(updated, `Admin approved collection OTP ${otp.code}. Enter it to complete the collection.`);
+    return { data: this.toDto(updated), message: "Admin OTP approved. Employee must enter OTP to complete collection." };
   }
 
   async reject(user: AuthenticatedUser, id: string, reason?: string) {
@@ -187,6 +227,30 @@ export class OtpAssistanceService {
     const request = await (this.prisma as any).otpAssistanceRequest.findUnique({ where: { id }, include: requestInclude });
     if (!request) throw new NotFoundException("OTP assistance request not found");
     return request;
+  }
+
+  private generateOtp() {
+    return String(randomInt(1000, 10000));
+  }
+
+  private async ensureAdminOtp(request: any) {
+    if (request.adminOtp && request.adminOtpExpiresAt && request.adminOtpExpiresAt > new Date()) {
+      return { code: request.adminOtp, expiresAt: request.adminOtpExpiresAt };
+    }
+
+    const adminOtp = this.generateOtp();
+    const adminOtpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await (this.prisma as any).otpAssistanceRequest.update({
+      where: { id: request.id },
+      data: { adminOtp, adminOtpExpiresAt, otpShared: null, status: "pending" }
+    });
+    await this.auditSystem("ADMIN_OTP_GENERATED", {
+      appointmentId: request.appointmentId,
+      patientId: request.patientId,
+      employeeId: request.employeeId,
+      metadata: { otpAssistanceRequestId: request.id, regenerated: true }
+    });
+    return { code: adminOtp, expiresAt: adminOtpExpiresAt };
   }
 
   private async audit(request: any, user: AuthenticatedUser, action: string, reason?: string) {
@@ -213,6 +277,30 @@ export class OtpAssistanceService {
     await this.prisma.appointment.update({
       where: { id: appointmentId },
       data: { notes: `${appointment?.notes ?? ""}\n${entry}` }
+    });
+  }
+
+  private async auditSystem(
+    action: string,
+    input: {
+      actorId?: string | null;
+      actorRole?: "admin" | "employee" | "patient" | null;
+      appointmentId?: string | null;
+      patientId?: string | null;
+      employeeId?: string | null;
+      metadata?: Record<string, unknown>;
+    }
+  ) {
+    await (this.prisma as any).systemAuditLog.create({
+      data: {
+        action,
+        actorId: input.actorId ?? null,
+        actorRole: input.actorRole ?? null,
+        appointmentId: input.appointmentId ?? null,
+        patientId: input.patientId ?? null,
+        employeeId: input.employeeId ?? null,
+        metadata: input.metadata ?? undefined
+      }
     });
   }
 

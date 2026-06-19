@@ -169,24 +169,43 @@ export default function OtpAssistancePage() {
                     </button>
 
                     <div className="flex flex-wrap gap-2 xl:justify-end">
+                      {/* View OTP — always visible */}
                       <Button className="h-9 rounded-xl text-xs" onClick={() => viewMutation.mutate(request.id)} variant="outline">
                         <Eye className="mr-1.5 h-3.5 w-3.5" /> View OTP
                       </Button>
-                      <Button className="h-9 rounded-xl text-xs" onClick={() => actionMutation.mutate({ id: request.id, action: "resend" })} variant="outline">
-                        <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Resend OTP
-                      </Button>
-                      <Button className="h-9 rounded-xl text-xs" onClick={() => actionMutation.mutate({ id: request.id, action: "share" })}>
-                        Share OTP
-                      </Button>
-                      <Button className="h-9 rounded-xl bg-blue-600 text-xs text-white hover:bg-blue-700" onClick={() => actionMutation.mutate({ id: request.id, action: "approve" })}>
-                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Approve
-                      </Button>
-                      <Button className="h-9 rounded-xl bg-emerald-600 text-xs text-white hover:bg-emerald-700" onClick={() => actionMutation.mutate({ id: request.id, action: "force" })}>
-                        <ShieldCheck className="mr-1.5 h-3.5 w-3.5" /> Force Verify
-                      </Button>
-                      <Button className="h-9 rounded-xl text-xs" onClick={() => actionMutation.mutate({ id: request.id, action: "reject" })} variant="destructive">
-                        <XCircle className="mr-1.5 h-3.5 w-3.5" /> Reject
-                      </Button>
+
+                      {/* Action buttons — only for pending/approved */}
+                      {(request.status === "pending" || request.status === "approved") && (
+                        <>
+                          <Button className="h-9 rounded-xl text-xs" onClick={() => actionMutation.mutate({ id: request.id, action: "resend" })} variant="outline">
+                            <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Resend OTP
+                          </Button>
+                          <Button className="h-9 rounded-xl text-xs" onClick={() => actionMutation.mutate({ id: request.id, action: "share" })}>
+                            Share OTP
+                          </Button>
+                          <Button className="h-9 rounded-xl bg-blue-600 text-xs text-white hover:bg-blue-700" onClick={() => actionMutation.mutate({ id: request.id, action: "approve" })}>
+                            <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Approve
+                          </Button>
+                          <Button className="h-9 rounded-xl bg-emerald-600 text-xs text-white hover:bg-emerald-700" onClick={() => actionMutation.mutate({ id: request.id, action: "force" })}>
+                            <ShieldCheck className="mr-1.5 h-3.5 w-3.5" /> Force Verify
+                          </Button>
+                          <Button className="h-9 rounded-xl text-xs" onClick={() => actionMutation.mutate({ id: request.id, action: "reject" })} variant="destructive">
+                            <XCircle className="mr-1.5 h-3.5 w-3.5" /> Reject
+                          </Button>
+                        </>
+                      )}
+
+                      {/* Completed state indicators */}
+                      {request.status === "rejected" && (
+                        <span className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600">
+                          <XCircle className="h-3.5 w-3.5" /> Rejected — no further action
+                        </span>
+                      )}
+                      {request.status === "verified_by_admin" && (
+                        <span className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+                          <ShieldCheck className="h-3.5 w-3.5" /> Verified — completed
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
