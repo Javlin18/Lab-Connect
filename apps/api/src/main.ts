@@ -8,8 +8,14 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { join, resolve } from "node:path";
 
 config({
-  path: resolve(process.cwd(), "../../.env")
+  path: resolve(process.cwd(), "../../.env"),
+  override: false
 });
+
+// Also try local .env if root one not found
+if (!process.env.DATABASE_URL) {
+  config({ path: resolve(process.cwd(), ".env"), override: false });
+}
 
 import { AppModule } from "./app.module";
 
