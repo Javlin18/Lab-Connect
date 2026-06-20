@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { listAppointments } from "@/api/appointments";
+import { listMyAppointments } from "@/api/appointments";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Appointment } from "@lab-app/shared";
@@ -149,7 +149,7 @@ function TimelineCard({ appointment }: { appointment: Appointment }) {
 export default function TrackCollectionPage() {
   const appointmentsQ = useQuery({
     queryKey: ["appointments", "mine"],
-    queryFn:  listAppointments,
+    queryFn:  listMyAppointments,
   });
 
   const appointments = appointmentsQ.data?.data ?? [];
