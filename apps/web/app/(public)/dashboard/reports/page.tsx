@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, FileText, TestTube2, X } from "lucide-react";
 import { useState } from "react";
 
-import { listMyAppointments } from "@/api/appointments";
+import { listAppointments } from "@/api/appointments";
 import { getReport } from "@/api/reports";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +18,7 @@ export default function MyReportsPage() {
 
   const appointmentsQ = useQuery({
     queryKey: ["appointments", "mine"],
-    queryFn:  listMyAppointments,
+    queryFn:  listAppointments,
   });
 
   const completed = (appointmentsQ.data?.data ?? []).filter((a) => a.status === "completed");
