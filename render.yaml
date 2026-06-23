@@ -3,7 +3,7 @@ services:
     name: labconnect-web
     env: node
     plan: free
-    buildCommand: pnpm install && npx turbo run build --filter=@lab-app/web && cp -r apps/web/public apps/web/.next/standalone/apps/web/public && cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
+    buildCommand: pnpm install && npx turbo run build --filter=@lab-app/web && (cp -r apps/web/public apps/web/.next/standalone/apps/web/public 2>/dev/null || true) && cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
     startCommand: cd apps/web/.next/standalone/apps/web && HOSTNAME=0.0.0.0 PORT=10000 node server.js
     envVars:
       - key: NODE_VERSION
