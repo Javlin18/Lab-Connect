@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: pnpm install && npx turbo run build --filter=@lab-app/web
-    startCommand: HOST=0.0.0.0 PORT=10000 node apps/web/.next/standalone/apps/web/server.js
+    startCommand: HOSTNAME=0.0.0.0 node apps/web/.next/standalone/apps/web/server.js
     envVars:
       - key: NODE_VERSION
         value: 22.x
