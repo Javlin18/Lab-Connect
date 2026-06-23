@@ -5,7 +5,7 @@ import { Droplet, FlaskConical, Search, ShoppingCart, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import { addToCart } from "@/api/cart";
 import { listPackages } from "@/api/packages";
@@ -33,7 +33,7 @@ const FALLBACK_PACKAGES = [
 // Check if ID is a real DB id (cuid — starts with 'c') vs fallback
 const isRealId = (id: string) => id && id.startsWith("c");
 
-export default function TestsPage() {
+function TestsPageInner() {
   const router = useRouter();
   const { data: session } = useSession();
   const searchParams = useSearchParams();
@@ -225,5 +225,17 @@ export default function TestsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function TestsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <TestsPageInner />
+    </Suspense>
   );
 }

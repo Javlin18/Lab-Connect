@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 import { getCart } from "@/api/cart";
 import { PatientSidebar } from "@/components/app/patient-sidebar";
@@ -26,7 +26,7 @@ const NAV_LINKS = [
   { label: "Home Collection", href: "/tests" },
 ];
 
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+function PublicLayoutInner({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const pathname    = usePathname();
   const router      = useRouter();
@@ -304,5 +304,17 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function PublicLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <PublicLayoutInner>{children}</PublicLayoutInner>
+    </Suspense>
   );
 }

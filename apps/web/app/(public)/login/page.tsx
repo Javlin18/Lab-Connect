@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import { registerPatient, sendEmailOtp, verifyEmailOtp } from "@/api/auth";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 type Tab      = "login" | "register";
 type RegStep  = "details" | "otp" | "done";
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { toast }    = useToast();
@@ -377,5 +377,17 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginPageInner />
+    </Suspense>
   );
 }

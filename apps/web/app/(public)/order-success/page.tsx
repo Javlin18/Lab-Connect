@@ -3,6 +3,7 @@
 import { Check, CheckCircle2, ClipboardList, Home, Phone, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
 
@@ -14,7 +15,7 @@ const steps = [
   { label: "Report Ready",           done: false },
 ];
 
-export default function OrderSuccessPage() {
+function OrderSuccessPageInner() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("id") || "—";
 
@@ -106,5 +107,17 @@ export default function OrderSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <OrderSuccessPageInner />
+    </Suspense>
   );
 }
