@@ -18,10 +18,10 @@ export default function MyReportsPage() {
 
   const appointmentsQ = useQuery({
     queryKey: ["appointments", "mine"],
-    queryFn:  listAppointments,
+    queryFn:  () => listAppointments(),
   });
 
-  const completed = (appointmentsQ.data?.data ?? []).filter((a) => a.status === "completed");
+  const completed = (appointmentsQ.data?.data as Appointment[] ?? []).filter((a: Appointment) => a.status === "completed");
 
   const openReport = async (a: Appointment) => {
     setSelected(a);
@@ -139,7 +139,7 @@ export default function MyReportsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {completed.map((a) => (
+          {completed.map((a: Appointment) => (
             <Card
               className="rounded-2xl border-slate-200 shadow-sm hover:shadow-md transition cursor-pointer group overflow-hidden"
               key={a.id}
@@ -153,7 +153,7 @@ export default function MyReportsPage() {
                   </div>
                   <div>
                     <div className="flex flex-wrap gap-1.5 mb-1.5">
-                      {a.testTypes.map((t) => (
+                      {a.testTypes.map((t: string) => (
                         <span className="flex items-center gap-1 text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full" key={t}>
                           <TestTube2 className="h-2.5 w-2.5" /> {t}
                         </span>

@@ -238,8 +238,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <PatientSidebar
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
-          userName={session?.user?.name}
-          userEmail={session?.user?.email}
+          userName={session?.user?.name || undefined}
+          userEmail={session?.user?.email || undefined}
         />
       )}
 

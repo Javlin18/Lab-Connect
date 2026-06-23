@@ -149,12 +149,12 @@ function TimelineCard({ appointment }: { appointment: Appointment }) {
 export default function TrackCollectionPage() {
   const appointmentsQ = useQuery({
     queryKey: ["appointments", "mine"],
-    queryFn:  listAppointments,
+    queryFn:  () => listAppointments(),
   });
 
-  const appointments = appointmentsQ.data?.data ?? [];
-  const active = appointments.filter((a) => a.status !== "completed").slice(0, 3);
-  const completed = appointments.filter((a) => a.status === "completed");
+  const appointments = appointmentsQ.data?.data as Appointment[] ?? [];
+  const active = appointments.filter((a: Appointment) => a.status !== "completed").slice(0, 3);
+  const completed = appointments.filter((a: Appointment) => a.status === "completed");
 
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -187,7 +187,7 @@ export default function TrackCollectionPage() {
           {active.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Active ({active.length})</h2>
-              {active.map((a) => <TimelineCard appointment={a} key={a.id} />)}
+              {active.map((a: Appointment) => <TimelineCard appointment={a} key={a.id} />)}
             </div>
           )}
 
@@ -202,7 +202,7 @@ export default function TrackCollectionPage() {
                 <FileText className="h-4 w-4" />
                 {showCompleted ? "Hide" : "Show"} Completed ({completed.length})
               </button>
-              {showCompleted && completed.slice(0, 5).map((a) => (
+              {showCompleted && completed.slice(0, 5).map((a: Appointment) => (
                 <TimelineCard appointment={a} key={a.id} />
               ))}
             </div>

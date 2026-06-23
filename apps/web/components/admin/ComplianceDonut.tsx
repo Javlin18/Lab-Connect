@@ -45,7 +45,10 @@ export function ComplianceDonut({
               <Cell fill={colorNo} />
             </Pie>
             <Tooltip
-              formatter={(v: number, n: string) => [`${v.toFixed(1)}%`, n]}
+              formatter={(v: any, n: any) => [
+                `${typeof v === "number" ? v.toFixed(1) : v}%`,
+                n,
+              ]}
             />
           </PieChart>
         </ResponsiveContainer>

@@ -183,7 +183,7 @@ export default function EmployeeFeedbackDetailPage({
                     tick={{ fontSize: 11 }}
                   />
                   <Tooltip
-                    formatter={(value) => [value, "Ratings"]}
+                    formatter={(v: any) => [v, "Ratings"]}
                     cursor={{ fill: "#F1F5F9" }}
                   />
                   <Bar dataKey="count" radius={[0, 6, 6, 0]}>
