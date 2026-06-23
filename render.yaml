@@ -7,7 +7,7 @@ services:
     startCommand: HOST=0.0.0.0 PORT=10000 node apps/web/.next/standalone/apps/web/server.js
     envVars:
       - key: NODE_VERSION
-        value: 20.x
+        value: 22.x
       - key: PNPM_VERSION
         value: 10.x
       # Add your Next.js environment variables below in the Render Dashboard
