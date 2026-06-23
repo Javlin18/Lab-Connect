@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,14 +15,9 @@ const errorCopy: Record<string, string> = {
   Default: "Login failed."
 };
 
-export default function AuthErrorPage({
-  searchParams
-}: {
-  searchParams?: {
-    error?: string;
-  };
-}) {
-  const code = searchParams?.error ?? "Default";
+function AuthErrorInner() {
+  const searchParams = useSearchParams();
+  const code = searchParams.get("error") ?? "Default";
   const message = errorCopy[code] ?? errorCopy.Default;
 
   return (
@@ -35,5 +34,17 @@ export default function AuthErrorPage({
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-slate-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <AuthErrorInner />
+    </Suspense>
   );
 }
