@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Clipboard,
@@ -12,18 +12,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
-
-let MapView: any = null;
-let Marker: any = null;
-try {
-  const maps = require("react-native-maps");
-  MapView = maps.default;
-  Marker = maps.Marker;
-} catch {
-  // react-native-maps not available or misconfigured
-}
 
 import { getAppointment } from "@/api/appointments";
 import { acceptAppointment, claimAppointment, updateStatus } from "@/api/employee";
@@ -170,13 +159,6 @@ export default function EmployeeTaskDetailScreen() {
   const queryClient = useQueryClient();
   const [showReassign, setShowReassign] = useState(false);
 
-  const [region, setRegion] = useState({
-    latitude: 23.2599,
-    longitude: 77.4126,
-    latitudeDelta: 0.015,
-    longitudeDelta: 0.015,
-  });
-
   const query = useQuery({
     enabled: Boolean(id),
     queryKey: ["appointment", id],
@@ -184,21 +166,6 @@ export default function EmployeeTaskDetailScreen() {
   });
 
   const appointment = query.data?.data;
-
-  useEffect(() => {
-    if (appointment?.address) {
-      void (async () => {
-        const geocoded = await Location.geocodeAsync(appointment.address).catch(() => []);
-        if (geocoded.length > 0) {
-          setRegion((prev) => ({
-            ...prev,
-            latitude: geocoded[0].latitude,
-            longitude: geocoded[0].longitude,
-          }));
-        }
-      })();
-    }
-  }, [appointment?.address]);
 
   const acceptMutation = useMutation({
     mutationFn: () => acceptAppointment(id as string),
@@ -306,29 +273,16 @@ export default function EmployeeTaskDetailScreen() {
             <Ionicons name="location-outline" size={14} color="#475569" /> {appointment.address}
           </Text>
 
-          <View className="h-40 w-full overflow-hidden rounded-2xl border border-slate-100 mt-3">
-            {MapView ? (
-              <MapView
-                initialRegion={region}
-                region={region}
-                scrollEnabled={false}
-                style={{ height: "100%", width: "100%" }}
-                zoomEnabled={false}
-              >
-                {Marker && (
-                  <Marker
-                    coordinate={{ latitude: region.latitude, longitude: region.longitude }}
-                    title={appointment.patient?.name ?? "Patient"}
-                  />
-                )}
-              </MapView>
-            ) : (
-              <View className="flex-1 bg-slate-100 items-center justify-center">
-                <Ionicons name="map-outline" size={24} color="#94A3B8" />
-                <Text className="text-xs text-slate-400 mt-1">Map unavailable</Text>
-              </View>
-            )}
-          </View>
+          <TouchableOpacity
+            className="mt-3 bg-blue-50 border border-blue-200 rounded-2xl p-4 flex-row items-center justify-center gap-2"
+            onPress={() => {
+              const addr = encodeURIComponent(appointment.address);
+              Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${addr}`);
+            }}
+          >
+            <Ionicons name="navigate-outline" size={18} color="#2563EB" />
+            <Text className="text-sm font-bold text-blue-600">Open in Google Maps</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Tests */}
