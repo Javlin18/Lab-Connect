@@ -13,8 +13,17 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
-import MapView, { Marker } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
+
+let MapView: any = null;
+let Marker: any = null;
+try {
+  const maps = require("react-native-maps");
+  MapView = maps.default;
+  Marker = maps.Marker;
+} catch {
+  // react-native-maps not available or misconfigured
+}
 
 import { getAppointment } from "@/api/appointments";
 import { acceptAppointment, claimAppointment, updateStatus } from "@/api/employee";
@@ -298,18 +307,27 @@ export default function EmployeeTaskDetailScreen() {
           </Text>
 
           <View className="h-40 w-full overflow-hidden rounded-2xl border border-slate-100 mt-3">
-            <MapView
-              initialRegion={region}
-              region={region}
-              scrollEnabled={false}
-              style={{ height: "100%", width: "100%" }}
-              zoomEnabled={false}
-            >
-              <Marker
-                coordinate={{ latitude: region.latitude, longitude: region.longitude }}
-                title={appointment.patient?.name ?? "Patient"}
-              />
-            </MapView>
+            {MapView ? (
+              <MapView
+                initialRegion={region}
+                region={region}
+                scrollEnabled={false}
+                style={{ height: "100%", width: "100%" }}
+                zoomEnabled={false}
+              >
+                {Marker && (
+                  <Marker
+                    coordinate={{ latitude: region.latitude, longitude: region.longitude }}
+                    title={appointment.patient?.name ?? "Patient"}
+                  />
+                )}
+              </MapView>
+            ) : (
+              <View className="flex-1 bg-slate-100 items-center justify-center">
+                <Ionicons name="map-outline" size={24} color="#94A3B8" />
+                <Text className="text-xs text-slate-400 mt-1">Map unavailable</Text>
+              </View>
+            )}
           </View>
         </View>
 
