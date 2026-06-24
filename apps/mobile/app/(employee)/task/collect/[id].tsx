@@ -13,6 +13,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import OTPTextInput from "react-native-otp-textinput";
 import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
 
 import { getAppointment } from "@/api/appointments";
 import { sendCollectionOtp, updateStatus } from "@/api/employee";
@@ -92,23 +93,35 @@ export default function CollectScreen() {
   });
 
   const verifyMutation = useMutation({
-    mutationFn: () => Promise.resolve(),
-    onSuccess: () => {
+    mutationFn: async () => {
+      // Capture high-accuracy GPS at the moment of collection
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      let coords: { latitude: number; longitude: number } | null = null;
+      if (status === "granted") {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      }
+      return coords;
+    },
+    onSuccess: (coords) => {
       const ts = new Date().toISOString();
       setCollectedAt(ts);
-      confirmMutation.mutate({ ts, otp });
+      confirmMutation.mutate({ ts, otp, coords });
     },
     onError: () => setOtpError("Incorrect OTP, please try again"),
   });
 
   const confirmMutation = useMutation({
-    mutationFn: ({ ts, otp }: { ts: string; otp: string }) =>
+    mutationFn: ({ ts, otp, coords }: { ts: string; otp: string; coords: { latitude: number; longitude: number } | null }) =>
       updateStatus(id as string, "collected", {
         sampleId: primaryBarcode,
         collectionNotes: notes,
         collectedAt: ts,
         otp,
         barcodes: Object.entries(barcodes).map(([testName, barcodeId]) => ({ testName, barcodeId })),
+        ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}),
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["appointment", id] });

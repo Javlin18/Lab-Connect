@@ -30,6 +30,8 @@ export async function updateStatus(
     collectedAt?: string;
     otp?: string;
     barcodes?: Array<{ testName: string; barcodeId: string }>;
+    latitude?: number;
+    longitude?: number;
   }
 ) {
   return apiFetch<Appointment>(`/appointments/${id}/status`, {
