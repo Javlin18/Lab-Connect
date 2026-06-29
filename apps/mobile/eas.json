@@ -10,7 +10,7 @@
         "gradleCommand": ":app:assembleDebug"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://lab-connect-9aby.onrender.com/api"
+        "EXPO_PUBLIC_API_URL": "https://labconnect-api.onrender.com/api"
       },
       "node": "22.16.0",
       "pnpm": "11.2.2"
@@ -20,7 +20,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://lab-connect-9aby.onrender.com/api",
+        "EXPO_PUBLIC_API_URL": "https://labconnect-api.onrender.com/api",
         "NODE_PATH": "../../node_modules"
       },
       "node": "22.16.0",
