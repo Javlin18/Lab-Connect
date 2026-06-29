@@ -30,14 +30,15 @@ export class EmailService {
 
   async send(to: string, subject: string, html: string): Promise<void> {
     if (!this.transporter) {
-      this.logger.log(`[EMAIL SKIPPED — no SMTP] To: ${to} | Subject: ${subject}`);
-      return;
+      this.logger.error(`[EMAIL SKIPPED — no SMTP] To: ${to} | Subject: ${subject}`);
+      throw new Error("SMTP credentials are not configured on the server.");
     }
     try {
       await this.transporter.sendMail({ from: this.from(), to, subject, html });
       this.logger.log(`Email sent → ${to} | ${subject}`);
     } catch (err) {
       this.logger.error(`Email failed → ${to} | ${err}`);
+      throw err;
     }
   }
 

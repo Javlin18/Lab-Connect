@@ -187,12 +187,17 @@ export class AuthService {
       update: { code: otp, expiresAt, verified: false },
     });
 
-    // Do not await the email sending so it doesn't block the request if SMTP hangs
-    this.emailService.sendPasswordResetOTP({
-      to:   email,
-      name: "User",
-      otp,
-    }).catch(err => this.logger.error(`Failed to send OTP email to ${email}:`, err));
+    // Await the email sending so it throws an error if SMTP fails
+    try {
+      await this.emailService.sendPasswordResetOTP({
+        to:   email,
+        name: "User",
+        otp,
+      });
+    } catch (err) {
+      this.logger.error(`Failed to send OTP email to ${email}:`, err);
+      throw new BadRequestException("Failed to send OTP email. Please check SMTP configuration or email address.");
+    }
 
     this.logger.debug(`\n=========================================\n[DEV] Generated OTP for ${email}: ${otp}\n=========================================\n`);
     
