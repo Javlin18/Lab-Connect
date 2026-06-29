@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_Uljqd62oOQ5km7e51aKSW0t15jkP",
+  "orgId": "team_0GjjuEKjpnC66o3ReqgJoBdE",
+  "projectName": "lab-app",
+  "settings": {
+    "createdAt": 1782191759007,
+    "framework": "nextjs",
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": null,
+    "outputDirectory": null,
+    "rootDirectory": "apps/web",
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}

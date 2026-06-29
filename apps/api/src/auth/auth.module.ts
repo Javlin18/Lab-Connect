@@ -15,7 +15,13 @@ import { TwilioService } from "./twilio.service";
     PassportModule,
     EmailModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || "dev-secret",
+      secret: (() => {
+        const secret = process.env.JWT_SECRET;
+        if (!secret || secret === "change_me" || secret === "dev-secret") {
+          throw new Error("JWT_SECRET must be set to a strong random value in the environment.");
+        }
+        return secret;
+      })(),
       signOptions: {
         expiresIn: "7d"
       }

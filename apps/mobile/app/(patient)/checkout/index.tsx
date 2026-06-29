@@ -157,12 +157,15 @@ export default function CheckoutScreen() {
         return;
       }
 
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+        maximumAge: 0, // never use a cached position
+      });
       const { latitude, longitude } = loc.coords;
 
-      // 2. Reverse geocode via Nominatim (OpenStreetMap) — better India coverage
+      // 2. Reverse geocode via Nominatim — zoom=18 gives street-level precision
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1&zoom=18`,
         { headers: { "Accept-Language": "en-IN,en", "User-Agent": "LabconnectApp/1.0" } }
       );
       const data = await res.json();
@@ -170,7 +173,8 @@ export default function CheckoutScreen() {
 
       const line1 = [a.house_number, a.road || a.pedestrian || a.footway]
         .filter(Boolean).join(", ") || a.amenity || a.building || "";
-      const line2 = a.suburb || a.neighbourhood || a.village || a.county || "";
+      // Prefer finer-grained fields (quarter, city_block) before broad suburb/neighbourhood
+      const line2 = a.quarter || a.city_block || a.suburb || a.neighbourhood || a.village || a.county || "";
       const cityVal = a.city || a.town || a.city_district || a.state_district || a.state || "";
       const pin    = (a.postcode ?? "").replace(/\D/g, "").slice(0, 6);
 

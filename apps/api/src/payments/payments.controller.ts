@@ -139,7 +139,7 @@ export class PaymentsController {
     @Req() req: any,
     @Headers("x-razorpay-signature") signature: string
   ) {
-    const rawBody = JSON.stringify(req.body);
+    const rawBody = req.rawBody?.toString() ?? JSON.stringify(req.body);
     const isValid = this.paymentsService.verifyWebhookSignature(
       rawBody,
       signature

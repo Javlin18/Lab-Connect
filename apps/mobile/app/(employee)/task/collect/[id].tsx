@@ -321,138 +321,310 @@ export default function CollectScreen() {
     return (
       <Screen title="Sample Collection">
         <StepIndicator currentStep={3} totalSteps={4} />
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-          <Text className="text-base font-black text-slate-800 mb-2">
-            Confirm with Patient OTP
-          </Text>
-          <Text className="text-xs text-slate-500 leading-relaxed">
-            We will send a 4-digit OTP to{" "}
-            <Text className="font-bold text-slate-700">the booking owner's registered number</Text>
-          </Text>
+
+        {/* ── Info card ── */}
+        <View style={{
+          backgroundColor: "white",
+          borderWidth: 1,
+          borderColor: "#F1F5F9",
+          borderRadius: 24,
+          padding: 20,
+          marginBottom: 16,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 2,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 }}>
+            <View style={{
+              width: 42,
+              height: 42,
+              borderRadius: 14,
+              backgroundColor: "#ECFDF5",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <Ionicons name="mail-outline" size={22} color="#059669" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: "900", color: "#0F172A" }}>
+                Confirm with Patient OTP
+              </Text>
+              <Text style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+                Step 3 of 4 — Identity Verification
+              </Text>
+            </View>
+          </View>
+          <View style={{
+            backgroundColor: "#F8FAFC",
+            borderRadius: 12,
+            padding: 10,
+            borderWidth: 1,
+            borderColor: "#E2E8F0",
+          }}>
+            <Text style={{ fontSize: 12, color: "#64748B", lineHeight: 18 }}>
+              A 4-digit OTP will be sent to{" "}
+              <Text style={{ fontWeight: "800", color: "#334155" }}>
+                the booking owner's registered email.
+              </Text>
+              {" "}Ask them to share it with you.
+            </Text>
+          </View>
         </View>
 
+        {/* ── Send OTP button ── */}
         <TouchableOpacity
-          className={`w-full rounded-2xl py-4 items-center justify-center mb-4 border ${
-            otpSent
-              ? "bg-emerald-50 border-emerald-200"
-              : "bg-emerald-800 border-emerald-800"
-          }`}
+          style={{
+            width: "100%",
+            borderRadius: 18,
+            paddingVertical: 15,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 16,
+            borderWidth: 1.5,
+            backgroundColor: otpSent ? "#F0FDF4" : "#065F46",
+            borderColor: otpSent ? "#86EFAC" : "#065F46",
+            shadowColor: otpSent ? "transparent" : "#065F46",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.25,
+            shadowRadius: 8,
+            elevation: otpSent ? 0 : 4,
+          }}
           disabled={sendOtpMutation.isPending}
           onPress={() => sendOtpMutation.mutate()}
         >
           {sendOtpMutation.isPending ? (
-            <ActivityIndicator color={otpSent ? "#0F6E56" : "#fff"} />
+            <ActivityIndicator color={otpSent ? "#059669" : "#fff"} />
           ) : (
-            <View className="flex-row items-center gap-1.5">
-              {otpSent && <Ionicons name="checkmark" size={16} color="#047857" />}
-              <Text className={`font-black text-sm ${otpSent ? "text-emerald-700" : "text-white"}`}>
-                {otpSent ? "OTP Sent Successfully" : "Send OTP to Patient"}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons
+                name={otpSent ? "checkmark-circle" : "send-outline"}
+                size={18}
+                color={otpSent ? "#16A34A" : "white"}
+              />
+              <Text style={{
+                fontWeight: "800",
+                fontSize: 14,
+                color: otpSent ? "#16A34A" : "white",
+              }}>
+                {otpSent ? "OTP Sent — Tap to Resend" : "Send OTP to Patient"}
               </Text>
             </View>
           )}
         </TouchableOpacity>
 
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4 items-center" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-          <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
+        {/* ── OTP Input card ── */}
+        <View style={{
+          backgroundColor: "white",
+          borderWidth: 1,
+          borderColor: "#F1F5F9",
+          borderRadius: 24,
+          paddingVertical: 24,
+          paddingHorizontal: 20,
+          marginBottom: 16,
+          alignItems: "center",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 2,
+        }}>
+          <Text style={{
+            fontSize: 11,
+            fontWeight: "800",
+            color: "#94A3B8",
+            textTransform: "uppercase",
+            letterSpacing: 1.5,
+            marginBottom: 20,
+          }}>
             Enter 4-Digit OTP
           </Text>
           <OTPTextInput
             handleTextChange={(text) => { setOtp(text); setOtpError(""); }}
             inputCount={4}
             keyboardType="numeric"
-            tintColor="#0F6E56"
-            offTintColor="#e2e8f0"
+            tintColor="#059669"
+            offTintColor="#E2E8F0"
             textInputStyle={{
               borderWidth: 2,
-              borderRadius: 12,
-              width: 52,
-              height: 56,
-              fontSize: 20,
-              fontWeight: "800",
-              color: "#1e293b",
+              borderRadius: 16,
+              width: 58,
+              height: 64,
+              fontSize: 24,
+              fontWeight: "900",
+              color: "#0F172A",
+              backgroundColor: "#F8FAFC",
             } as any}
           />
           {otpError ? (
-            <Text className="text-xs text-red-500 font-bold mt-3">{otpError}</Text>
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 12,
+              backgroundColor: "#FEF2F2",
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderWidth: 1,
+              borderColor: "#FECACA",
+            }}>
+              <Ionicons name="alert-circle-outline" size={14} color="#EF4444" />
+              <Text style={{ fontSize: 12, color: "#DC2626", fontWeight: "700" }}>{otpError}</Text>
+            </View>
           ) : null}
         </View>
 
+        {/* ── Verify button ── */}
         <TouchableOpacity
-          className={`w-full rounded-2xl py-4 items-center justify-center mb-4 ${
-            otp.length === 4 && !isVerifying ? "bg-emerald-800" : "bg-slate-200"
-          }`}
+          style={{
+            width: "100%",
+            borderRadius: 18,
+            paddingVertical: 16,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 12,
+            backgroundColor: otp.length === 4 && !isVerifying ? "#065F46" : "#E2E8F0",
+            shadowColor: otp.length === 4 ? "#065F46" : "transparent",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: otp.length === 4 ? 4 : 0,
+          }}
           disabled={otp.length !== 4 || isVerifying}
           onPress={() => verifyMutation.mutate()}
         >
           {isVerifying ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className={`font-black text-sm ${otp.length === 4 ? "text-white" : "text-slate-400"}`}>
-              Verify & Confirm Collection
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={18}
+                color={otp.length === 4 ? "white" : "#94A3B8"}
+              />
+              <Text style={{
+                fontWeight: "800",
+                fontSize: 14,
+                color: otp.length === 4 ? "white" : "#94A3B8",
+              }}>
+                Verify & Confirm Collection
+              </Text>
+            </View>
           )}
         </TouchableOpacity>
 
+        {/* ── Resend ── */}
         {otpSent && (
-          <View className="items-center">
+          <View style={{ alignItems: "center", marginBottom: 20 }}>
             {resendCountdown > 0 ? (
-              <Text className="text-xs text-slate-400">
+              <Text style={{ fontSize: 12, color: "#94A3B8" }}>
                 Resend OTP in{" "}
-                <Text className="font-bold text-slate-600">{resendCountdown}s</Text>
+                <Text style={{ fontWeight: "800", color: "#475569" }}>{resendCountdown}s</Text>
               </Text>
             ) : (
               <TouchableOpacity onPress={() => sendOtpMutation.mutate()}>
-                <Text className="text-xs font-bold text-emerald-700 underline">
-                  Resend OTP
+                <Text style={{ fontSize: 12, fontWeight: "800", color: "#059669" }}>
+                  Didn't receive it? Resend OTP
                 </Text>
               </TouchableOpacity>
             )}
           </View>
         )}
 
-        <View className="mt-5 bg-blue-50 border border-blue-200 rounded-3xl p-4">
-          <View className="flex-row items-start gap-3">
-            <View className="h-10 w-10 rounded-2xl bg-blue-600 items-center justify-center">
-              <Ionicons name="shield-checkmark-outline" size={20} color="white" />
+        {/* ── Admin Assistance Card ── */}
+        <View style={{
+          backgroundColor: "#EFF6FF",
+          borderWidth: 1,
+          borderColor: "#BFDBFE",
+          borderRadius: 24,
+          padding: 16,
+          marginBottom: 32,
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <View style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              backgroundColor: "#1D4ED8",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              <Ionicons name="shield-checkmark-outline" size={22} color="white" />
             </View>
-            <View className="flex-1">
-              <Text className="text-sm font-black text-slate-800">Booking owner unavailable?</Text>
-              <Text className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Ask admin for OTP assistance when the booking owner cannot provide the OTP.
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: "900", color: "#1E293B" }}>
+                Booking owner unavailable?
               </Text>
-              {assistanceRequest ? (
-                <View className="mt-3 rounded-2xl bg-white border border-blue-100 p-3">
-                  <Text className="text-[10px] font-bold uppercase tracking-wider text-blue-500">
-                    Request Status
-                  </Text>
-                  <Text className="mt-1 text-sm font-black text-slate-800">
-                    {assistanceRequest.status.replace(/_/g, " ").toUpperCase()}
-                  </Text>
-                  {assistanceRequest.otpShared ? (
-                    <Text className="mt-2 text-sm font-black text-emerald-700">
-                      Admin OTP: {assistanceRequest.otpShared}
-                    </Text>
-                  ) : null}
-                  {assistanceRequest.adminReason ? (
-                    <Text className="mt-1 text-xs text-slate-500">{assistanceRequest.adminReason}</Text>
-                  ) : null}
-                </View>
-              ) : null}
+              <Text style={{ fontSize: 11, color: "#64748B", marginTop: 2, lineHeight: 16 }}>
+                Request OTP assistance from admin.
+              </Text>
             </View>
           </View>
+
+          {assistanceRequest ? (
+            <View style={{
+              backgroundColor: "white",
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: "#BFDBFE",
+              padding: 12,
+              marginBottom: 12,
+            }}>
+              <Text style={{ fontSize: 10, fontWeight: "700", color: "#3B82F6", textTransform: "uppercase", letterSpacing: 0.8 }}>
+                Request Status
+              </Text>
+              <Text style={{ fontSize: 13, fontWeight: "900", color: "#1E293B", marginTop: 4 }}>
+                {assistanceRequest.status.replace(/_/g, " ").toUpperCase()}
+              </Text>
+              {assistanceRequest.otpShared ? (
+                <View style={{
+                  marginTop: 8,
+                  backgroundColor: "#ECFDF5",
+                  borderRadius: 12,
+                  padding: 12,
+                  borderWidth: 1,
+                  borderColor: "#A7F3D0",
+                  alignItems: "center",
+                }}>
+                  <Text style={{ fontSize: 11, color: "#065F46", fontWeight: "700", marginBottom: 4 }}>Admin OTP</Text>
+                  <Text style={{ fontSize: 28, fontWeight: "900", color: "#047857", letterSpacing: 12 }}>
+                    {assistanceRequest.otpShared}
+                  </Text>
+                </View>
+              ) : null}
+              {assistanceRequest.adminReason ? (
+                <Text style={{ marginTop: 6, fontSize: 11, color: "#64748B" }}>
+                  {assistanceRequest.adminReason}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
           <TouchableOpacity
-            className={`mt-4 rounded-2xl py-3 items-center justify-center ${
-              askAdminMutation.isPending || assistanceRequest ? "bg-slate-300" : "bg-blue-700"
-            }`}
+            style={{
+              borderRadius: 16,
+              paddingVertical: 13,
+              alignItems: "center",
+              backgroundColor: askAdminMutation.isPending || assistanceRequest ? "#CBD5E1" : "#1D4ED8",
+            }}
             disabled={askAdminMutation.isPending || Boolean(assistanceRequest)}
             onPress={() => askAdminMutation.mutate()}
           >
             {askAdminMutation.isPending ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-white text-sm font-black">
-                {assistanceRequest ? "Admin Request Created" : "Request Admin OTP"}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Ionicons
+                  name={assistanceRequest ? "checkmark-circle-outline" : "headset-outline"}
+                  size={16}
+                  color="white"
+                />
+                <Text style={{ color: "white", fontSize: 13, fontWeight: "900" }}>
+                  {assistanceRequest ? "Admin Request Sent" : "Request Admin OTP"}
+                </Text>
+              </View>
             )}
           </TouchableOpacity>
         </View>
@@ -473,8 +645,8 @@ export default function CollectScreen() {
           </View>
           <Text className="text-2xl font-black text-emerald-800">Collection Confirmed!</Text>
           {adminOverrideVerified ? (
-            <View className="mt-3 rounded-full bg-blue-50 border border-blue-200 px-4 py-2">
-              <Text className="text-xs font-black text-blue-700">Verified by Admin Override</Text>
+            <View className="mt-3 rounded-full bg-blue-50 border border-blue-200 px-4 py-1.5 self-center">
+              <Text className="text-xs font-black text-blue-700 text-center">Verified by Admin</Text>
             </View>
           ) : null}
           <Text className="text-xs text-slate-400 mt-1">

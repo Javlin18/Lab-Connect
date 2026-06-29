@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { hash } from "bcryptjs";
 
 import { toSharedEmployee, toSharedUser } from "../common/mappers/entity.mappers";
 import { PrismaService } from "../prisma/prisma.service";
@@ -40,7 +41,7 @@ export class UsersService {
           email: dto.email,
           phone: dto.phone,
           role: "employee",
-          passwordHash: dto.password
+          passwordHash: await hash(dto.password, 12)
         }
       });
 
@@ -84,7 +85,7 @@ export class UsersService {
         email: dto.email,
         phone: dto.phone,
         role: dto.role,
-        passwordHash: dto.password
+        ...(dto.password ? { passwordHash: await hash(dto.password, 12) } : {})
       },
       include: {
         employeeProfile: true

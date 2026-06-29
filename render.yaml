@@ -1,4 +1,42 @@
 services:
+  # ── API Backend ──────────────────────────────────────────────────────────────
+  - type: web
+    name: labconnect-api
+    env: node
+    plan: free
+    buildCommand: pnpm install && pnpm --filter @lab-app/api run build
+    startCommand: node apps/api/dist/main.js
+    envVars:
+      - key: NODE_VERSION
+        value: 22.x
+      - key: PNPM_VERSION
+        value: 10.x
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+  # ── Web Frontend ─────────────────────────────────────────────────────────────
   - type: web
     name: labconnect-web
     env: node

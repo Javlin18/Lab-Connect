@@ -21,3 +21,7 @@ coverage
 *.br
 *.bin
 *.ndjson
+
+# JDK
+.jdk17/
+.jdk17.tar.gz

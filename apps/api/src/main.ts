@@ -5,6 +5,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import helmet from "helmet";
 import { join, resolve } from "node:path";
 
 config({
@@ -12,18 +13,34 @@ config({
   override: false
 });
 
-// Also try local .env if root one not found
-if (!process.env.DATABASE_URL) {
-  config({ path: resolve(process.cwd(), ".env"), override: false });
-}
+// Always load local .env with override so API-specific secrets win
+config({ path: resolve(process.cwd(), ".env"), override: true });
 
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
 
   app.useStaticAssets(join(process.cwd(), "uploads"), { prefix: "/uploads/" });
-  app.enableCors();
+
+  // Security headers
+  app.use(helmet());
+
+  // CORS — restrict to known origins
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:4000",
+    process.env.WEB_URL,
+    process.env.NEXTAUTH_URL,
+  ].filter(Boolean) as string[];
+
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+  });
+
   app.setGlobalPrefix("api");
   app.useGlobalPipes(
     new ValidationPipe({

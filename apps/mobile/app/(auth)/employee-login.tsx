@@ -183,10 +183,10 @@ export default function EmployeeLoginScreen() {
             <Text className="text-xs font-bold text-[#0F6E56] uppercase tracking-widest mb-3">
               Employee Portal
             </Text>
-            <Text className="text-2xl font-bold text-[#101828]">
+            <Text className="text-2xl font-bold text-[#101828] text-center">
               {mode === "login" ? "Welcome Back" : "Create Account"}
             </Text>
-            <Text className="text-sm text-[#9CA3AF] mt-1">
+            <Text className="text-sm text-[#9CA3AF] mt-1 text-center">
               {mode === "login" ? "Sign in to your account" : "Employee signup"}
             </Text>
           </View>

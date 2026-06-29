@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -9,12 +9,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, Link } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { Ionicons } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
 
-import { login } from "@/api/auth";
+import { login, googleLogin } from "@/api/auth";
 import { useAuthStore } from "@/store/auth-store";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const APP_VERSION = "1.0.0";
 
@@ -23,7 +27,7 @@ type LoginMethod = "phone" | "email";
 export default function LoginScreen() {
   const setSession = useAuthStore((s) => s.setSession);
 
-  const [method, setMethod] = useState<LoginMethod>("phone");
+  const [method, setMethod] = useState<LoginMethod>("email");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,6 +39,46 @@ export default function LoginScreen() {
   const [passwordError, setPasswordError] = useState("");
 
   const passwordRef = useRef<TextInput>(null);
+
+  // ── Google Auth ─────────────────────────────────────────────────────────
+  const clientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || "";
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId,
+    webClientId: clientId,
+  });
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { authentication } = response;
+      if (authentication?.accessToken) {
+        handleGoogleSignIn(authentication.accessToken);
+      }
+    } else if (response?.type === "error") {
+      setError("Google sign in failed. Please try again.");
+    }
+  }, [response]);
+
+  async function handleGoogleSignIn(token: string) {
+    setIsLoading(true);
+    setError("");
+    try {
+      const userInfoResponse = await fetch("https://www.googleapis.com/userinfo/v2/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const userInfo = await userInfoResponse.json();
+
+      if (!userInfo.email) {
+        throw new Error("Could not retrieve email from Google.");
+      }
+
+      const { data } = await googleLogin({ email: userInfo.email, name: userInfo.name });
+      await completeLogin(data.accessToken, data.user);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Google login failed");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   // ── Validation ──────────────────────────────────────────────────────────
   function validate(): boolean {
@@ -85,33 +129,7 @@ export default function LoginScreen() {
           : { email: email.trim().toLowerCase(), password };
 
       const { data } = await login(credentials);
-      const { accessToken, user } = data;
-
-      // Persist to SecureStore
-      await Promise.all([
-        SecureStore.setItemAsync("jwt_token", accessToken),
-        SecureStore.setItemAsync("user_role", user.role),
-        SecureStore.setItemAsync("user_id", user.id),
-      ]);
-
-      // Update Zustand auth store
-      await setSession(accessToken, {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role as "employee" | "patient" | "admin",
-        createdAt: user.createdAt,
-      });
-
-      // Redirect based on role
-      if (user.role === "admin") {
-        router.replace("/(admin)");
-      } else if (user.role === "employee") {
-        router.replace("/(employee)");
-      } else {
-        router.replace("/(patient)");
-      }
+      await completeLogin(data.accessToken, data.user);
     } catch (err) {
       const fallback =
         method === "phone"
@@ -120,6 +138,34 @@ export default function LoginScreen() {
       setError(err instanceof Error ? err.message : fallback);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function completeLogin(accessToken: string, user: any) {
+    // Persist to SecureStore
+    await Promise.all([
+      SecureStore.setItemAsync("jwt_token", accessToken),
+      SecureStore.setItemAsync("user_role", user.role),
+      SecureStore.setItemAsync("user_id", user.id),
+    ]);
+
+    // Update Zustand auth store
+    await setSession(accessToken, {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role as "employee" | "patient" | "admin",
+      createdAt: user.createdAt,
+    });
+
+    // Redirect based on role
+    if (user.role === "admin") {
+      router.replace("/(admin)");
+    } else if (user.role === "employee") {
+      router.replace("/(employee)");
+    } else {
+      router.replace("/(patient)");
     }
   }
 
@@ -146,101 +192,87 @@ export default function LoginScreen() {
         <View className="flex-1 px-6 pt-14 pb-10">
 
           {/* ── Header ── */}
-          <View className="items-center mb-10">
+          <View className="items-center mb-8">
             <View className="w-20 h-20 rounded-3xl bg-[#0F6E56] items-center justify-center mb-4 shadow-lg">
               <Ionicons name="flask" size={40} color="white" />
             </View>
 
-            <Text className="text-2xl font-bold text-[#101828]">
-              LabConnect
+            <Text className="text-2xl font-bold text-[#101828] text-center">
+              Welcome
             </Text>
-            <Text className="text-sm text-[#9CA3AF] mt-1">
-              Sign in to your account
+            <Text className="text-sm text-[#9CA3AF] mt-1 text-center">
+              Sign in to LabConnect
             </Text>
           </View>
 
           {/* ── Method toggle ── */}
           <View className="flex-row bg-[#F3F4F6] rounded-xl p-1 mb-6">
             <TouchableOpacity
-              onPress={() => switchMethod("phone")}
-              className={`flex-1 rounded-lg py-2.5 items-center ${
-                method === "phone" ? "bg-white shadow-sm" : ""
-              }`}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="call-outline" size={16} color={method === "phone" ? "#0F6E56" : "#9CA3AF"} />
-                <Text
-                  className={`text-sm font-semibold ${
-                    method === "phone" ? "text-[#0F6E56]" : "text-[#9CA3AF]"
-                  }`}
-                >
-                  Phone
-                </Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
               onPress={() => switchMethod("email")}
-              className={`flex-1 rounded-lg py-2.5 items-center ${
-                method === "email" ? "bg-white shadow-sm" : ""
-              }`}
+              style={{
+                flex: 1,
+                borderRadius: 8,
+                paddingVertical: 10,
+                alignItems: "center",
+                backgroundColor: method === "email" ? "white" : "transparent",
+                shadowColor: method === "email" ? "#000" : "transparent",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: method === "email" ? 0.05 : 0,
+                shadowRadius: 2,
+                elevation: method === "email" ? 1 : 0,
+              }}
               activeOpacity={0.7}
             >
               <View className="flex-row items-center gap-2">
                 <Ionicons name="mail-outline" size={16} color={method === "email" ? "#0F6E56" : "#9CA3AF"} />
                 <Text
-                  className={`text-sm font-semibold ${
-                    method === "email" ? "text-[#0F6E56]" : "text-[#9CA3AF]"
-                  }`}
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    color: method === "email" ? "#0F6E56" : "#9CA3AF",
+                  }}
                 >
                   Email
+                </Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={() => switchMethod("phone")}
+              style={{
+                flex: 1,
+                borderRadius: 8,
+                paddingVertical: 10,
+                alignItems: "center",
+                backgroundColor: method === "phone" ? "white" : "transparent",
+                shadowColor: method === "phone" ? "#000" : "transparent",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: method === "phone" ? 0.05 : 0,
+                shadowRadius: 2,
+                elevation: method === "phone" ? 1 : 0,
+              }}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center gap-2">
+                <Ionicons name="call-outline" size={16} color={method === "phone" ? "#0F6E56" : "#9CA3AF"} />
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontWeight: "600",
+                    color: method === "phone" ? "#0F6E56" : "#9CA3AF",
+                  }}
+                >
+                  Phone
                 </Text>
               </View>
             </TouchableOpacity>
           </View>
 
           {/* ── Form ── */}
-          <View className="gap-5">
+          <View className="gap-4">
 
-            {/* Phone field */}
-            {method === "phone" ? (
-              <View>
-                <Text className="text-sm font-semibold text-[#374151] mb-1.5">
-                  Phone Number
-                </Text>
-                <View
-                  className={`bg-[#F8F9FA] border rounded-xl flex-row items-center px-4 h-[52px] ${
-                    phoneError ? "border-[#EF4444]" : "border-[#E5E7EB]"
-                  }`}
-                >
-                  <Ionicons name="call-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
-                  <TextInput
-                    className="flex-1 text-sm text-[#101828]"
-                    value={phone}
-                    onChangeText={(t) => {
-                      setPhone(t.replace(/[^\d+]/g, "").slice(0, 15));
-                      setPhoneError("");
-                    }}
-                    placeholder="Enter your phone number"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="phone-pad"
-                    maxLength={15}
-                    returnKeyType="next"
-                    onSubmitEditing={() => passwordRef.current?.focus()}
-                    accessibilityLabel="Phone number input"
-                    editable={!isLoading}
-                  />
-                </View>
-                {phoneError ? (
-                  <Text
-                    className="text-xs text-[#EF4444] mt-1 ml-1"
-                    accessibilityRole="alert"
-                  >
-                    {phoneError}
-                  </Text>
-                ) : null}
-              </View>
-            ) : (
+            {/* Email field */}
+            {method === "email" && (
               <View>
                 <Text className="text-sm font-semibold text-[#374151] mb-1.5">
                   Email Address
@@ -270,11 +302,45 @@ export default function LoginScreen() {
                   />
                 </View>
                 {emailError ? (
-                  <Text
-                    className="text-xs text-[#EF4444] mt-1 ml-1"
-                    accessibilityRole="alert"
-                  >
+                  <Text className="text-xs text-[#EF4444] mt-1 ml-1" accessibilityRole="alert">
                     {emailError}
+                  </Text>
+                ) : null}
+              </View>
+            )}
+
+            {/* Phone field */}
+            {method === "phone" && (
+              <View>
+                <Text className="text-sm font-semibold text-[#374151] mb-1.5">
+                  Phone Number
+                </Text>
+                <View
+                  className={`bg-[#F8F9FA] border rounded-xl flex-row items-center px-4 h-[52px] ${
+                    phoneError ? "border-[#EF4444]" : "border-[#E5E7EB]"
+                  }`}
+                >
+                  <Ionicons name="call-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
+                  <TextInput
+                    className="flex-1 text-sm text-[#101828]"
+                    value={phone}
+                    onChangeText={(t) => {
+                      setPhone(t.replace(/[^\d+]/g, "").slice(0, 15));
+                      setPhoneError("");
+                    }}
+                    placeholder="Enter your phone number"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="phone-pad"
+                    maxLength={15}
+                    returnKeyType="next"
+                    onSubmitEditing={() => passwordRef.current?.focus()}
+                    accessibilityLabel="Phone number input"
+                    editable={!isLoading}
+                  />
+                </View>
+                {phoneError ? (
+                  <Text className="text-xs text-[#EF4444] mt-1 ml-1" accessibilityRole="alert">
+                    {phoneError}
                   </Text>
                 ) : null}
               </View>
@@ -315,10 +381,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
               {passwordError ? (
-                <Text
-                  className="text-xs text-[#EF4444] mt-1 ml-1"
-                  accessibilityRole="alert"
-                >
+                <Text className="text-xs text-[#EF4444] mt-1 ml-1" accessibilityRole="alert">
                   {passwordError}
                 </Text>
               ) : null}
@@ -336,21 +399,37 @@ export default function LoginScreen() {
           <TouchableOpacity
             onPress={handleLogin}
             disabled={isLoading}
-            className={`w-full rounded-xl items-center justify-center mt-8 h-[52px] ${
+            className={`w-full rounded-xl items-center justify-center mt-6 h-[52px] ${
               isLoading ? "bg-[#0F6E56]/50" : "bg-[#0F6E56]"
             }`}
             accessibilityLabel="Login button"
             accessibilityRole="button"
-            accessibilityState={{ disabled: isLoading, busy: isLoading }}
-            accessibilityHint={isLoading ? "Logging in" : "Tap to login"}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <Text className="text-white font-semibold text-base">
-                Login
+                Sign In
               </Text>
             )}
+          </TouchableOpacity>
+
+          {/* ── Google Login ── */}
+          <View className="mt-6 flex-row items-center">
+            <View className="flex-1 h-[1px] bg-gray-200" />
+            <Text className="mx-4 text-sm text-gray-500 font-medium">OR</Text>
+            <View className="flex-1 h-[1px] bg-gray-200" />
+          </View>
+
+          <TouchableOpacity
+            onPress={() => promptAsync()}
+            disabled={!request || isLoading}
+            className="w-full flex-row items-center justify-center mt-6 h-[52px] border border-gray-200 rounded-xl bg-white"
+          >
+            <Ionicons name="logo-google" size={20} color="#DB4437" style={{ marginRight: 10 }} />
+            <Text className="text-gray-700 font-semibold text-base">
+              Continue with Google
+            </Text>
           </TouchableOpacity>
 
           {/* ── Error banner ── */}
@@ -375,12 +454,22 @@ export default function LoginScreen() {
           {/* ── Spacer ── */}
           <View className="flex-1" />
 
-          {/* ── Bottom ── */}
-          <View className="items-center mt-10 gap-2">
-            <Text className="text-sm text-[#9CA3AF] text-center">
-              Having trouble? Contact your admin
-            </Text>
-            <Text className="text-xs text-[#D1D5DB]">v{APP_VERSION}</Text>
+          {/* ── Bottom Links ── */}
+          <View className="items-center mt-8 gap-3">
+            <View className="flex-row items-center">
+              <Text className="text-sm text-[#6B7280]">Don't have an account? </Text>
+              <Link href="/(auth)/register" asChild>
+                <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text className="text-sm font-semibold text-[#0F6E56]">Sign Up</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+            <Link href="/(auth)/employee-login" asChild>
+              <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text className="text-sm font-semibold text-[#0F6E56] mt-2">Employee Portal</Text>
+              </TouchableOpacity>
+            </Link>
+            <Text className="text-xs text-[#D1D5DB] mt-2">v{APP_VERSION}</Text>
           </View>
 
         </View>

@@ -2,10 +2,11 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { compare } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { randomInt } from "crypto";
 
 import { toSharedEmployee, toSharedUser } from "../common/mappers/entity.mappers";
@@ -20,8 +21,7 @@ import { TwilioService } from "./twilio.service";
 
 @Injectable()
 export class AuthService {
-  private readonly otpStore      = new Map<string, { code: string; expiresAt: number }>();
-  private readonly emailOtpStore = new Map<string, { code: string; expiresAt: number; verified: boolean }>();
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -34,9 +34,11 @@ export class AuthService {
     await this.ensureUniqueContact(dto.email, dto.phone);
 
     // Require email OTP verification before registration
-    if (!this.isEmailVerified(dto.email)) {
+    if (!(await this.isEmailVerified(dto.email))) {
       throw new BadRequestException("Email not verified. Please verify your email with OTP first.");
     }
+
+    const hashedPassword = await hash(dto.password, 12);
 
     const user = await this.prisma.user.create({
       data: {
@@ -44,15 +46,17 @@ export class AuthService {
         email: dto.email,
         phone: dto.phone,
         role: "patient",
-        passwordHash: dto.password
+        passwordHash: hashedPassword
       }
     });
 
     // Send welcome email (non-blocking)
-    this.emailService.sendWelcome({ to: dto.email, name: dto.name }).catch(() => {});
+    this.emailService.sendWelcome({ to: dto.email, name: dto.name }).catch((err) => {
+      new Logger("AuthService").error(`Failed to send welcome email to ${dto.email}:`, err);
+    });
 
     // Clear used OTP
-    this.emailOtpStore.delete(dto.email);
+    await this.prisma.emailOtp.deleteMany({ where: { email: dto.email } });
 
     return {
       data: toSharedUser(user),
@@ -63,6 +67,8 @@ export class AuthService {
   async registerEmployee(dto: RegisterEmployeeDto) {
     await this.ensureUniqueContact(dto.email, dto.phone);
 
+    const hashedPassword = await hash(dto.password, 12);
+
     const result = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -70,7 +76,7 @@ export class AuthService {
           email: dto.email,
           phone: dto.phone,
           role: "employee",
-          passwordHash: dto.password
+          passwordHash: hashedPassword
         }
       });
 
@@ -96,9 +102,13 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    const orConditions = [];
+    if (dto.email) orConditions.push({ email: dto.email });
+    if (dto.phone) orConditions.push({ phone: dto.phone });
+
     const user = await this.prisma.user.findFirst({
       where: {
-        OR: [{ email: dto.email }, { phone: dto.phone }]
+        OR: orConditions
       }
     });
 
@@ -135,18 +145,21 @@ export class AuthService {
     if (!user) {
       // Auto-register as patient
       const randomPass = Math.random().toString(36).slice(-12);
+      const hashedRandomPass = await hash(randomPass, 12);
       user = await this.prisma.user.create({
         data: {
           name:         name ?? email.split("@")[0],
           email,
           phone:        `google_${Date.now()}`, // placeholder — can update later
           role:         "patient",
-          passwordHash: randomPass,
+          passwordHash: hashedRandomPass,
         },
       });
 
       // Send welcome email
-      this.emailService.sendWelcome({ to: email, name: user.name }).catch(() => {});
+      this.emailService.sendWelcome({ to: email, name: user.name }).catch((err) => {
+        new Logger("AuthService").error(`Failed to send welcome email to ${email}:`, err);
+      });
     }
 
     const accessToken = await this.jwtService.signAsync({
@@ -162,34 +175,47 @@ export class AuthService {
     };
   }
 
-  // ── Email OTP: Send ─────────────────────────────────────────────────────────
+  // ── Email OTP: Send ─────────────────────────────────────────────────────────────────
   async sendEmailOtp(email: string) {
     const otp = String(randomInt(100000, 999999));
-    this.emailOtpStore.set(email, {
-      code:      otp,
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
-      verified:  false,
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Upsert: replace any existing OTP for this email
+    await this.prisma.emailOtp.upsert({
+      where: { email },
+      create: { email, code: otp, expiresAt, verified: false },
+      update: { code: otp, expiresAt, verified: false },
     });
 
-    await this.emailService.sendPasswordResetOTP({
+    // Do not await the email sending so it doesn't block the request if SMTP hangs
+    this.emailService.sendPasswordResetOTP({
       to:   email,
       name: "User",
       otp,
-    });
+    }).catch(err => this.logger.error(`Failed to send OTP email to ${email}:`, err));
 
-    return { data: { email }, message: "OTP sent to email" };
+    this.logger.debug(`\n=========================================\n[DEV] Generated OTP for ${email}: ${otp}\n=========================================\n`);
+    
+    const isDev = process.env.NODE_ENV !== "production";
+    return { 
+      data: { 
+        email, 
+        ...(isDev ? { devOtp: otp } : {}) 
+      }, 
+      message: "OTP sent to email" 
+    };
   }
 
-  // ── Email OTP: Verify ────────────────────────────────────────────────────────
+  // ── Email OTP: Verify ────────────────────────────────────────────────────────────────
   async verifyEmailOtp(email: string, otp: string) {
-    const record = this.emailOtpStore.get(email);
+    const record = await this.prisma.emailOtp.findUnique({ where: { email } });
 
     if (!record) {
       throw new BadRequestException("OTP not found. Please request a new OTP.");
     }
 
-    if (record.expiresAt < Date.now()) {
-      this.emailOtpStore.delete(email);
+    if (record.expiresAt < new Date()) {
+      await this.prisma.emailOtp.delete({ where: { email } });
       throw new BadRequestException("OTP expired. Please request a new one.");
     }
 
@@ -198,27 +224,52 @@ export class AuthService {
     }
 
     // Mark as verified — allow registration
-    this.emailOtpStore.set(email, { ...record, verified: true });
+    await this.prisma.emailOtp.update({
+      where: { email },
+      data: { verified: true },
+    });
 
     return { data: { email, verified: true }, message: "Email verified successfully" };
   }
 
-  // ── Check if email OTP was verified ─────────────────────────────────────────
-  private isEmailVerified(email: string): boolean {
-    const record = this.emailOtpStore.get(email);
-    return !!(record?.verified && record.expiresAt > Date.now());
+  // ── Check if email OTP was verified ─────────────────────────────────────────────────
+  private async isEmailVerified(email: string): Promise<boolean> {
+    const record = await this.prisma.emailOtp.findUnique({ where: { email } });
+    return !!(record?.verified && record.expiresAt > new Date());
   }
 
   async sendOtp(dto: SendOtpDto) {
     const code = String(randomInt(1000, 10000));
-    this.otpStore.set(dto.phone, {
-      code,
-      expiresAt: Date.now() + 5 * 60 * 1000
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    // Upsert: replace any existing OTP for this phone
+    await this.prisma.phoneOtp.upsert({
+      where: { phone: dto.phone },
+      create: { phone: dto.phone, code, expiresAt },
+      update: { code, expiresAt },
     });
 
-    await this.twilioService.sendOtp(dto.phone, code);
+    // Look up the patient's email from their phone number
+    const user = await this.prisma.user.findFirst({
+      where: { phone: dto.phone },
+      select: { id: true, role: true, email: true, name: true },
+    });
 
-    const user = await this.prisma.user.findFirst({ where: { phone: dto.phone }, select: { id: true, role: true } });
+    if (user?.email) {
+      await this.emailService.sendCollectionOtp({
+        to: user.email,
+        patientName: user.name ?? "Patient",
+        otp: code,
+      });
+    } else {
+      this.logger.warn(`No email found for phone ${dto.phone}. OTP: ${code}`);
+    }
+
+    const isDev = process.env.NODE_ENV !== "production";
+    if (isDev) {
+      this.logger.debug(`\n=========================================\n[DEV] Generated OTP for phone ${dto.phone}: ${code}\n=========================================\n`);
+    }
+
     await (this.prisma as any).systemAuditLog.create({
       data: {
         action: "OTP_GENERATED",
@@ -226,40 +277,41 @@ export class AuthService {
         actorRole: user?.role ?? null,
         patientId: user?.role === "patient" ? user.id : null,
         employeeId: user?.role === "employee" ? user.id : null,
-        metadata: { channel: "sms", purpose: "collection_or_login" }
+        metadata: { channel: "email", purpose: "collection_or_login" }
       }
     });
 
     return {
       data: {
-        phone: dto.phone
+        phone: dto.phone,
+        ...(isDev ? { devOtp: code } : {})
       },
-      message: "OTP sent"
+      message: "OTP sent to patient's email"
     };
   }
 
-  getActiveOtp(phone: string) {
-    const record = this.otpStore.get(phone);
+  async getActiveOtp(phone: string) {
+    const record = await this.prisma.phoneOtp.findUnique({ where: { phone } });
     if (!record) return null;
-    if (record.expiresAt < Date.now()) {
-      this.otpStore.delete(phone);
+    if (record.expiresAt < new Date()) {
+      await this.prisma.phoneOtp.delete({ where: { phone } });
       return null;
     }
     return {
       code: record.code,
-      expiresAt: new Date(record.expiresAt).toISOString()
+      expiresAt: record.expiresAt.toISOString()
     };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
-    const record = this.otpStore.get(dto.phone);
+    const record = await this.prisma.phoneOtp.findUnique({ where: { phone: dto.phone } });
 
     if (!record) {
       throw new BadRequestException("OTP not found");
     }
 
-    if (record.expiresAt < Date.now()) {
-      this.otpStore.delete(dto.phone);
+    if (record.expiresAt < new Date()) {
+      await this.prisma.phoneOtp.delete({ where: { phone: dto.phone } });
       throw new BadRequestException("OTP expired");
     }
 
@@ -267,7 +319,7 @@ export class AuthService {
       throw new BadRequestException("Invalid OTP");
     }
 
-    this.otpStore.delete(dto.phone);
+    await this.prisma.phoneOtp.delete({ where: { phone: dto.phone } });
 
     const user = await this.prisma.user.findFirst({ where: { phone: dto.phone }, select: { id: true, role: true } });
     await (this.prisma as any).systemAuditLog.create({

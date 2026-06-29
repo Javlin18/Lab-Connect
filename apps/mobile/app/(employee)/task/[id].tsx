@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   Alert,
-  Clipboard,
   Linking,
   Modal,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
@@ -259,8 +259,8 @@ export default function EmployeeTaskDetailScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               className="flex-1 bg-slate-50 border border-slate-100 rounded-xl p-2.5 items-center flex-row justify-center gap-1.5"
-              onPress={() => {
-                Clipboard.setString(appointment.address);
+              onPress={async () => {
+                await Clipboard.setStringAsync(appointment.address);
                 Alert.alert("Copied", "Address copied!");
               }}
             >

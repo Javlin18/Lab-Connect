@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { AppController } from "./app.controller";
 import { AppointmentsModule } from "./appointments/appointments.module";
@@ -24,6 +25,10 @@ import { OtpAssistanceModule } from "./otp-assistance/otp-assistance.module";
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 30,
+    }]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -42,6 +47,7 @@ import { OtpAssistanceModule } from "./otp-assistance/otp-assistance.module";
   ],
   controllers: [AppController],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },

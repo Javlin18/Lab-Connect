@@ -7,7 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
   pages: { signIn: "/login", error: "/auth-error" },
-  secret: process.env.NEXTAUTH_SECRET ?? "labconnect-web-secret",
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     // ── Google OAuth ───────────────────────────────────────────────────────────
     GoogleProvider({

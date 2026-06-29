@@ -1,0 +1,16 @@
+{
+  "handler": "apps/web/api/otp-assistance.js",
+  "runtime": "nodejs24.x",
+  "architecture": "arm64",
+  "environment": {},
+  "shouldDisableAutomaticFetchInstrumentation": false,
+  "launcherType": "Nodejs",
+  "shouldAddHelpers": true,
+  "shouldAddSourcemapSupport": true,
+  "awsLambdaHandler": "",
+  "filePathMap": {
+    "apps/web/node_modules/next-auth": "apps/web/node_modules/next-auth",
+    "node_modules/.pnpm/next-auth@4.24.14_next@14.2.35_@babel+core@7.29.0_@opentelemetry+api@1.9.1_react-dom@18_c4903afe5ae3891e4db943e919a3ac74/node_modules/react": "node_modules/.pnpm/next-auth@4.24.14_next@14.2.35_@babel+core@7.29.0_@opentelemetry+api@1.9.1_react-dom@18_c4903afe5ae3891e4db943e919a3ac74/node_modules/react",
+    "node_modules/.pnpm/next-auth@4.24.14_next@14.2.35_@babel+core@7.29.0_@opentelemetry+api@1.9.1_react-dom@18_c4903afe5ae3891e4db943e919a3ac74/node_modules/@babel/runtime": "node_modules/.pnpm/next-auth@4.24.14_next@14.2.35_@babel+core@7.29.0_@opentelemetry+api@1.9.1_react-dom@18_c4903afe5ae3891e4db943e919a3ac74/node_modules/@babel/runtime"
+  }
+}

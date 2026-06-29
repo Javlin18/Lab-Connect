@@ -213,4 +213,26 @@ export class EmailService {
     `;
     await this.send(opts.to, "Welcome to Lab Connect!", html);
   }
+
+  // ── Collection OTP (sent to patient email) ──────────────────────────────────
+  async sendCollectionOtp(opts: { to: string; patientName: string; otp: string }) {
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto;border:1px solid #f0f0f0;border-radius:12px;overflow:hidden">
+        <div style="background:#0F6E56;padding:24px 28px">
+          <h1 style="color:#fff;margin:0;font-size:22px">Lab Connect</h1>
+          <p style="color:#a7f3d0;margin:4px 0 0;font-size:13px">Sample Collection Verification</p>
+        </div>
+        <div style="padding:28px;text-align:center">
+          <h2 style="color:#111;margin:0 0 8px">Your Collection OTP</h2>
+          <p style="color:#555;font-size:14px">Hi <strong>${opts.patientName}</strong>, our phlebotomist is ready to collect your sample. Please share this OTP with them to verify your identity.</p>
+          <div style="background:#f0fdf4;border:2px dashed #86efac;border-radius:12px;padding:24px;margin:24px 0">
+            <p style="font-size:40px;font-weight:900;letter-spacing:10px;color:#0F6E56;margin:0">${opts.otp}</p>
+            <p style="font-size:12px;color:#aaa;margin:8px 0 0">Valid for 5 minutes</p>
+          </div>
+          <p style="font-size:12px;color:#aaa">If you did not request a home collection, please ignore this email.</p>
+        </div>
+      </div>
+    `;
+    await this.send(opts.to, "Collection OTP — Lab Connect", html);
+  }
 }

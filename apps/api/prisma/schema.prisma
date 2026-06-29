@@ -317,3 +317,24 @@ model EmployeeFeedback {
   @@index([employeeId])
   @@index([patientId])
 }
+
+model EmailOtp {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  code      String
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model PhoneOtp {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}

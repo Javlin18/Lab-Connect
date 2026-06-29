@@ -490,12 +490,11 @@ export default function HomePage() {
               </p>
               <a
                 className="inline-flex items-center gap-3 bg-white text-slate-900 rounded-xl px-5 py-3 hover:bg-slate-100 transition font-semibold text-sm"
-                href="https://play.google.com/store"
-                rel="noreferrer"
-                target="_blank"
+                download="labconnect.apk"
+                href="/downloads/labconnect.apk"
               >
                 <Smartphone className="h-5 w-5 text-red-600" />
-                Download on Google Play
+                Download Android APK
               </a>
             </div>
             <div className="hidden md:flex items-center justify-center">

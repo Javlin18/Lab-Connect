@@ -32,15 +32,15 @@ export default function PatientLayout() {
           options={{ title: "Home" }}
         />
         <Tabs.Screen
-          name="tests"
+          name="tests/index"
           options={{ title: "Book Test" }}
         />
         <Tabs.Screen
-          name="cart"
+          name="cart/index"
           options={{ title: "Cart" }}
         />
         <Tabs.Screen
-          name="orders"
+          name="orders/index"
           options={{ title: "Orders" }}
         />
         <Tabs.Screen
@@ -49,8 +49,8 @@ export default function PatientLayout() {
         />
         {/* Hidden screens */}
         <Tabs.Screen name="notifications" options={{ href: null }} />
-        <Tabs.Screen name="packages" options={{ href: null }} />
-        <Tabs.Screen name="checkout" options={{ href: null }} />
+        <Tabs.Screen name="packages/index" options={{ href: null }} />
+        <Tabs.Screen name="checkout/index" options={{ href: null }} />
         <Tabs.Screen name="appointments" options={{ href: null }} />
         <Tabs.Screen name="reports" options={{ href: null }} />
         <Tabs.Screen name="book" options={{ href: null }} />

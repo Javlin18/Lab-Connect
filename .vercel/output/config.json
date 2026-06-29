@@ -1,0 +1,502 @@
+{
+  "version": 3,
+  "routes": [
+    {
+      "src": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$",
+      "headers": {
+        "Location": "/$1"
+      },
+      "status": 308,
+      "continue": true
+    },
+    {
+      "src": "/_next/__private/trace",
+      "dest": "/404",
+      "status": 404,
+      "continue": true
+    },
+    {
+      "src": "/(?!_next/data(?:/|$))(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "delete",
+          "target": {
+            "key": "x-nextjs-data"
+          }
+        }
+      ],
+      "continue": true
+    },
+    {
+      "src": "/_next/data/(.*)",
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "transforms": [
+        {
+          "type": "request.headers",
+          "op": "append",
+          "target": {
+            "key": "x-nextjs-data"
+          },
+          "args": "1"
+        }
+      ],
+      "continue": true
+    },
+    {
+      "src": "/404/?",
+      "status": 404,
+      "continue": true,
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate"
+        }
+      ]
+    },
+    {
+      "src": "/500",
+      "status": 500,
+      "continue": true
+    },
+    {
+      "src": "^/_next/data/wjept6BnD9\\-4N0H2zgPM2/(.*).json",
+      "dest": "/$1",
+      "override": true,
+      "continue": true,
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ]
+    },
+    {
+      "src": "^/index(?:/)?",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/",
+      "override": true,
+      "continue": true
+    },
+    {
+      "continue": true,
+      "src": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/admin(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(.json)?[\\/#\\?]?$",
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate",
+          "value": "30d66ad85fcf59ccb8fdb07493464ef9"
+        }
+      ],
+      "middlewarePath": "middleware",
+      "middlewareRawSrc": [
+        "/admin/:path*"
+      ],
+      "override": true
+    },
+    {
+      "continue": true,
+      "src": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/dashboard(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(.json)?[\\/#\\?]?$",
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate",
+          "value": "30d66ad85fcf59ccb8fdb07493464ef9"
+        }
+      ],
+      "middlewarePath": "middleware",
+      "middlewareRawSrc": [
+        "/dashboard/:path*"
+      ],
+      "override": true
+    },
+    {
+      "continue": true,
+      "src": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/checkout(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(.json)?[\\/#\\?]?$",
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate",
+          "value": "30d66ad85fcf59ccb8fdb07493464ef9"
+        }
+      ],
+      "middlewarePath": "middleware",
+      "middlewareRawSrc": [
+        "/checkout/:path*"
+      ],
+      "override": true
+    },
+    {
+      "continue": true,
+      "src": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/order-success(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(.json)?[\\/#\\?]?$",
+      "missing": [
+        {
+          "type": "header",
+          "key": "x-prerender-revalidate",
+          "value": "30d66ad85fcf59ccb8fdb07493464ef9"
+        }
+      ],
+      "middlewarePath": "middleware",
+      "middlewareRawSrc": [
+        "/order-success/:path*"
+      ],
+      "override": true
+    },
+    {
+      "src": "^/$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/wjept6BnD9-4N0H2zgPM2/index.json",
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/((?!_next/)(?:.*[^/]|.*))/?$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/wjept6BnD9-4N0H2zgPM2/$1.json",
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/?",
+      "has": [
+        {
+          "type": "header",
+          "key": "rsc",
+          "value": "1"
+        }
+      ],
+      "dest": "/index.rsc",
+      "headers": {
+        "vary": "RSC, Next-Router-State-Tree, Next-Router-Prefetch"
+      },
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/((?!.+\\.rsc).+?)(?:/)?$",
+      "has": [
+        {
+          "type": "header",
+          "key": "rsc",
+          "value": "1"
+        }
+      ],
+      "dest": "/$1.rsc",
+      "headers": {
+        "vary": "RSC, Next-Router-State-Tree, Next-Router-Prefetch"
+      },
+      "continue": true,
+      "override": true
+    },
+    {
+      "handle": "miss"
+    },
+    {
+      "src": "^/api/(.+)(?:\\.(?:ts))$",
+      "dest": "/api/$1",
+      "check": true
+    },
+    {
+      "src": "/_next/static/.+",
+      "status": 404,
+      "check": true,
+      "dest": "/_next/static/not-found.txt",
+      "headers": {
+        "content-type": "text/plain; charset=utf-8"
+      }
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "^/_next/data/wjept6BnD9\\-4N0H2zgPM2/(.*).json",
+      "dest": "/$1",
+      "continue": true,
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ]
+    },
+    {
+      "src": "^/index(?:/)?",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/",
+      "continue": true
+    },
+    {
+      "src": "/index(\\.action|\\.rsc)",
+      "dest": "/",
+      "continue": true
+    },
+    {
+      "src": "/\\.prefetch\\.rsc$",
+      "dest": "/__index.prefetch.rsc",
+      "check": true
+    },
+    {
+      "src": "/(.+)/\\.prefetch\\.rsc$",
+      "dest": "/$1.prefetch.rsc",
+      "check": true
+    },
+    {
+      "src": "/\\.rsc$",
+      "dest": "/index.rsc",
+      "check": true
+    },
+    {
+      "src": "/(.+)/\\.rsc$",
+      "dest": "/$1.rsc",
+      "check": true
+    },
+    {
+      "handle": "resource"
+    },
+    {
+      "src": "/.*",
+      "status": 404
+    },
+    {
+      "handle": "rewrite"
+    },
+    {
+      "src": "^/$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/wjept6BnD9-4N0H2zgPM2/index.json",
+      "continue": true
+    },
+    {
+      "src": "^/((?!_next/)(?:.*[^/]|.*))/?$",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-nextjs-data"
+        }
+      ],
+      "dest": "/_next/data/wjept6BnD9-4N0H2zgPM2/$1.json",
+      "continue": true
+    },
+    {
+      "src": "^/_next/data/wjept6BnD9\\-4N0H2zgPM2/admin/appointments/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/admin/appointments/[id]?nxtPid=$nxtPid"
+    },
+    {
+      "src": "^/_next/data/wjept6BnD9\\-4N0H2zgPM2/admin/employees/(?<nxtPid>[^/]+?)/feedback(?:/)?.json$",
+      "dest": "/admin/employees/[id]/feedback?nxtPid=$nxtPid"
+    },
+    {
+      "src": "^/_next/data/wjept6BnD9\\-4N0H2zgPM2/api/auth/(?<nxtPnextauth>.+?)(?:/)?.json$",
+      "dest": "/api/auth/[...nextauth]?nxtPnextauth=$nxtPnextauth"
+    },
+    {
+      "src": "^/_next/data/wjept6BnD9\\-4N0H2zgPM2/dashboard/order/(?<nxtPid>[^/]+?)(?:/)?.json$",
+      "dest": "/dashboard/order/[id]?nxtPid=$nxtPid"
+    },
+    {
+      "src": "^/_next/data/wjept6BnD9\\-4N0H2zgPM2/tests/(?<nxtPslug>[^/]+?)(?:/)?.json$",
+      "dest": "/tests/[slug]?nxtPslug=$nxtPslug"
+    },
+    {
+      "src": "^/admin/appointments/(?<nxtPid>[^/]+?)(?:\\.rsc)(?:/)?$",
+      "dest": "/admin/appointments/[id].rsc?nxtPid=$nxtPid"
+    },
+    {
+      "src": "^/admin/appointments/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/admin/appointments/[id]?nxtPid=$nxtPid"
+    },
+    {
+      "src": "^/admin/employees/(?<nxtPid>[^/]+?)/feedback(?:\\.rsc)(?:/)?$",
+      "dest": "/admin/employees/[id]/feedback.rsc?nxtPid=$nxtPid"
+    },
+    {
+      "src": "^/admin/employees/(?<nxtPid>[^/]+?)/feedback(?:/)?$",
+      "dest": "/admin/employees/[id]/feedback?nxtPid=$nxtPid"
+    },
+    {
+      "src": "^/api/auth/(?<nxtPnextauth>.+?)(?:\\.rsc)(?:/)?$",
+      "dest": "/api/auth/[...nextauth].rsc?nxtPnextauth=$nxtPnextauth"
+    },
+    {
+      "src": "^/api/auth/(?<nxtPnextauth>.+?)(?:/)?$",
+      "dest": "/api/auth/[...nextauth]?nxtPnextauth=$nxtPnextauth"
+    },
+    {
+      "src": "^/dashboard/order/(?<nxtPid>[^/]+?)(?:\\.rsc)(?:/)?$",
+      "dest": "/dashboard/order/[id].rsc?nxtPid=$nxtPid"
+    },
+    {
+      "src": "^/dashboard/order/(?<nxtPid>[^/]+?)(?:/)?$",
+      "dest": "/dashboard/order/[id]?nxtPid=$nxtPid"
+    },
+    {
+      "src": "^/tests/(?<nxtPslug>[^/]+?)(?:\\.rsc)(?:/)?$",
+      "dest": "/tests/[slug].rsc?nxtPslug=$nxtPslug"
+    },
+    {
+      "src": "^/tests/(?<nxtPslug>[^/]+?)(?:/)?$",
+      "dest": "/tests/[slug]?nxtPslug=$nxtPslug"
+    },
+    {
+      "src": "^/_next/data/wjept6BnD9\\-4N0H2zgPM2/(.*).json",
+      "headers": {
+        "x-nextjs-matched-path": "/$1"
+      },
+      "continue": true,
+      "override": true
+    },
+    {
+      "src": "^/_next/data/wjept6BnD9\\-4N0H2zgPM2/(.*).json",
+      "dest": "__next_data_catchall"
+    },
+    {
+      "handle": "hit"
+    },
+    {
+      "src": "/_next/static/(?:[^/]+/pages|pages|chunks|runtime|css|image|media|wjept6BnD9\\-4N0H2zgPM2)/.+",
+      "headers": {
+        "cache-control": "public,max-age=31536000,immutable"
+      },
+      "continue": true,
+      "important": true
+    },
+    {
+      "src": "/index(?:/)?",
+      "headers": {
+        "x-matched-path": "/"
+      },
+      "continue": true,
+      "important": true
+    },
+    {
+      "src": "/((?!index$).*?)(?:/)?",
+      "headers": {
+        "x-matched-path": "/$1"
+      },
+      "continue": true,
+      "important": true
+    },
+    {
+      "handle": "error"
+    },
+    {
+      "src": "/.*",
+      "dest": "/404",
+      "status": 404,
+      "headers": {
+        "x-next-error-status": "404"
+      }
+    },
+    {
+      "src": "/.*",
+      "dest": "/500",
+      "status": 500,
+      "headers": {
+        "x-next-error-status": "500"
+      }
+    }
+  ],
+  "images": {
+    "domains": [],
+    "sizes": [
+      640,
+      750,
+      828,
+      1080,
+      1200,
+      1920,
+      2048,
+      3840,
+      16,
+      32,
+      48,
+      64,
+      96,
+      128,
+      256,
+      384
+    ],
+    "remotePatterns": [],
+    "minimumCacheTTL": 60,
+    "formats": [
+      "image/webp"
+    ],
+    "dangerouslyAllowSVG": false,
+    "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;",
+    "contentDispositionType": "inline"
+  },
+  "overrides": {
+    "404.html": {
+      "path": "404",
+      "contentType": "text/html; charset=utf-8"
+    },
+    "500.html": {
+      "path": "500",
+      "contentType": "text/html; charset=utf-8"
+    },
+    "_app.rsc.json": {
+      "path": "_app.rsc",
+      "contentType": "application/json"
+    },
+    "_error.rsc.json": {
+      "path": "_error.rsc",
+      "contentType": "application/json"
+    },
+    "_document.rsc.json": {
+      "path": "_document.rsc",
+      "contentType": "application/json"
+    },
+    "404.rsc.json": {
+      "path": "404.rsc",
+      "contentType": "application/json"
+    },
+    "__next_data_catchall.json": {
+      "path": "__next_data_catchall",
+      "contentType": "application/json"
+    },
+    "_next/static/not-found.txt": {
+      "contentType": "text/plain"
+    }
+  },
+  "framework": {
+    "slug": "nextjs",
+    "version": "14.2.35"
+  },
+  "crons": []
+}
