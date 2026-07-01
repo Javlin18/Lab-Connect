@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@11.8.0",
   "scripts": {
-    "build": "cd apps/api && npx prisma generate --schema prisma/schema.prisma && npx tsc -p tsconfig.json && cd ../web && npx next build",
+    "build": "cd apps/api && npx prisma generate --schema prisma/schema.prisma && npx tsc -p tsconfig.json && cd ../web && npx next build && cp -r .next/static .next/standalone/apps/web/.next/static && cp -r public .next/standalone/apps/web/public",
     "build:mobile": "pnpm --filter @lab-app/mobile build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
