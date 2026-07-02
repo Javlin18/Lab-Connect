@@ -10,7 +10,8 @@
         "gradleCommand": ":app:assembleDebug"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://labconnect-api.onrender.com/api"
+        "EXPO_PUBLIC_API_URL": "https://lightsalmon-armadillo-524531.hostingersite.com/api",
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_T0dvjBJKABOmlG"
       },
       "node": "22.16.0",
       "pnpm": "11.2.2"
@@ -20,7 +21,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://labconnect-api.onrender.com/api",
+        "EXPO_PUBLIC_API_URL": "https://lightsalmon-armadillo-524531.hostingersite.com/api",
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_T0dvjBJKABOmlG",
         "NODE_PATH": "../../node_modules"
       },
       "node": "22.16.0",
@@ -29,6 +31,10 @@
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://lightsalmon-armadillo-524531.hostingersite.com/api",
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_T0dvjBJKABOmlG"
       },
       "node": "22.16.0",
       "pnpm": "11.2.2"
