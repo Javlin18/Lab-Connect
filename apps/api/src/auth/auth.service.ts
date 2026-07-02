@@ -261,13 +261,23 @@ export class AuthService {
     });
 
     if (user?.email) {
-      await this.emailService.sendCollectionOtp({
-        to: user.email,
-        patientName: user.name ?? "Patient",
-        otp: code,
-      });
+      try {
+        await this.emailService.sendCollectionOtp({
+          to: user.email,
+          patientName: user.name ?? "Patient",
+          otp: code,
+        });
+      } catch (e) {
+        this.logger.warn(`Failed to send email OTP to ${user.email}: ${e.message}`);
+      }
     } else {
       this.logger.warn(`No email found for phone ${dto.phone}. OTP: ${code}`);
+    }
+
+    try {
+      await this.twilioService.sendOtp(dto.phone, code);
+    } catch (e) {
+      this.logger.warn(`Failed to send SMS to ${dto.phone}: ${e.message}`);
     }
 
     const isDev = process.env.NODE_ENV !== "production";
