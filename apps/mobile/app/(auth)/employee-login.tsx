@@ -13,7 +13,7 @@ import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { Ionicons } from "@expo/vector-icons";
 
-import { login, registerEmployee } from "@/api/auth";
+import { login } from "@/api/auth";
 import { useAuthStore } from "@/store/auth-store";
 
 const APP_VERSION = "1.0.0";
@@ -21,18 +21,10 @@ const APP_VERSION = "1.0.0";
 export default function EmployeeLoginScreen() {
   const setSession = useAuthStore((s) => s.setSession);
 
-  const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [zone, setZone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [nameError, setNameError] = useState("");
-  const [emailError, setEmailError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
@@ -41,27 +33,9 @@ export default function EmployeeLoginScreen() {
   // ── Validation ────────────────────────────────────────────────────────────
   function validate(): boolean {
     let valid = true;
-    setNameError("");
-    setEmailError("");
     setPhoneError("");
     setPasswordError("");
     setError("");
-    setSuccess("");
-
-    if (mode === "signup") {
-      if (!name.trim()) {
-        setNameError("Name is required");
-        valid = false;
-      }
-
-      if (!email.trim()) {
-        setEmailError("Email is required");
-        valid = false;
-      } else if (!email.includes("@")) {
-        setEmailError("Enter a valid email");
-        valid = false;
-      }
-    }
 
     if (!phone.trim()) {
       setPhoneError("Phone number is required");
@@ -73,9 +47,6 @@ export default function EmployeeLoginScreen() {
 
     if (!password) {
       setPasswordError("Password is required");
-      valid = false;
-    } else if (mode === "signup" && password.length < 6) {
-      setPasswordError("Minimum 6 chars");
       valid = false;
     }
 
@@ -124,40 +95,7 @@ export default function EmployeeLoginScreen() {
     }
   }
 
-  async function handleSignup() {
-    if (!validate()) return;
 
-    setIsLoading(true);
-    setError("");
-
-    try {
-      await registerEmployee({
-        email: email.trim(),
-        name: name.trim(),
-        password,
-        phone: phone.trim(),
-        zone: zone.trim() || undefined,
-      });
-
-      setMode("login");
-      setPassword("");
-      setSuccess("Account created. Login now.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function toggleMode(nextMode: "login" | "signup") {
-    setMode(nextMode);
-    setError("");
-    setSuccess("");
-    setNameError("");
-    setEmailError("");
-    setPhoneError("");
-    setPasswordError("");
-  }
 
   // ── UI ────────────────────────────────────────────────────────────────────
   return (
@@ -184,81 +122,17 @@ export default function EmployeeLoginScreen() {
               Employee Portal
             </Text>
             <Text className="text-2xl font-bold text-[#101828] text-center">
-              {mode === "login" ? "Welcome Back" : "Create Account"}
+              Welcome Back
             </Text>
             <Text className="text-sm text-[#9CA3AF] mt-1 text-center">
-              {mode === "login" ? "Sign in to your account" : "Employee signup"}
+              Sign in to your account
             </Text>
           </View>
 
           {/* ── Form ── */}
           <View className="gap-5">
 
-            {mode === "signup" ? (
-              <>
-                <View>
-                  <Text className="text-sm font-semibold text-[#374151] mb-1.5">
-                    Name
-                  </Text>
-                  <View
-                    className={`bg-[#F8F9FA] border rounded-xl flex-row items-center px-4 h-[52px] ${
-                      nameError ? "border-[#EF4444]" : "border-[#E5E7EB]"
-                    }`}
-                  >
-                    <Ionicons name="person-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
-                    <TextInput
-                      className="flex-1 text-sm text-[#101828]"
-                      value={name}
-                      onChangeText={(t) => {
-                        setName(t);
-                        setNameError("");
-                      }}
-                      placeholder="Enter your name"
-                      placeholderTextColor="#9CA3AF"
-                      returnKeyType="next"
-                      editable={!isLoading}
-                    />
-                  </View>
-                  {nameError ? (
-                    <Text className="text-xs text-[#EF4444] mt-1 ml-1">
-                      {nameError}
-                    </Text>
-                  ) : null}
-                </View>
 
-                <View>
-                  <Text className="text-sm font-semibold text-[#374151] mb-1.5">
-                    Email
-                  </Text>
-                  <View
-                    className={`bg-[#F8F9FA] border rounded-xl flex-row items-center px-4 h-[52px] ${
-                      emailError ? "border-[#EF4444]" : "border-[#E5E7EB]"
-                    }`}
-                  >
-                    <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
-                    <TextInput
-                      autoCapitalize="none"
-                      className="flex-1 text-sm text-[#101828]"
-                      keyboardType="email-address"
-                      value={email}
-                      onChangeText={(t) => {
-                        setEmail(t);
-                        setEmailError("");
-                      }}
-                      placeholder="Enter your email"
-                      placeholderTextColor="#9CA3AF"
-                      returnKeyType="next"
-                      editable={!isLoading}
-                    />
-                  </View>
-                  {emailError ? (
-                    <Text className="text-xs text-[#EF4444] mt-1 ml-1">
-                      {emailError}
-                    </Text>
-                  ) : null}
-                </View>
-              </>
-            ) : null}
 
             {/* Phone field */}
             <View>
@@ -342,39 +216,19 @@ export default function EmployeeLoginScreen() {
               ) : null}
 
               {/* Forgot password */}
-              {mode === "login" ? (
               <TouchableOpacity className="self-end mt-2">
                 <Text className="text-xs font-semibold text-[#0F6E56]">
                   Forgot Password?
                 </Text>
               </TouchableOpacity>
-              ) : null}
             </View>
 
-            {mode === "signup" ? (
-              <View>
-                <Text className="text-sm font-semibold text-[#374151] mb-1.5">
-                  Zone
-                </Text>
-                <View className="bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl flex-row items-center px-4 h-[52px]">
-                  <Ionicons name="location-outline" size={20} color="#9CA3AF" style={{ marginRight: 12 }} />
-                  <TextInput
-                    className="flex-1 text-sm text-[#101828]"
-                    value={zone}
-                    onChangeText={setZone}
-                    placeholder="Area or branch"
-                    placeholderTextColor="#9CA3AF"
-                    returnKeyType="done"
-                    editable={!isLoading}
-                  />
-                </View>
-              </View>
-            ) : null}
+
           </View>
 
           {/* ── Login button ── */}
           <TouchableOpacity
-            onPress={mode === "login" ? handleLogin : handleSignup}
+            onPress={handleLogin}
             disabled={isLoading}
             className={`w-full rounded-xl items-center justify-center mt-8 h-[52px] ${
               isLoading ? "bg-[#0F6E56]/50" : "bg-[#0F6E56]"
@@ -388,19 +242,9 @@ export default function EmployeeLoginScreen() {
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <Text className="text-white font-semibold text-base">
-                {mode === "login" ? "Login" : "Sign Up"}
+                Login
               </Text>
             )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="mt-5 items-center"
-            disabled={isLoading}
-            onPress={() => toggleMode(mode === "login" ? "signup" : "login")}
-          >
-            <Text className="text-sm font-semibold text-[#0F6E56]">
-              {mode === "login" ? "Create employee account" : "Back to login"}
-            </Text>
           </TouchableOpacity>
 
           {/* ── Error banner ── */}
@@ -422,20 +266,7 @@ export default function EmployeeLoginScreen() {
             </View>
           ) : null}
 
-          {success ? (
-            <View className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex-row items-center mt-4">
-              <Ionicons name="checkmark-circle-outline" size={20} color="#059669" style={{ marginRight: 8 }} />
-              <Text className="flex-1 text-sm text-emerald-700 font-medium" numberOfLines={3}>
-                {success}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setSuccess("")}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Text className="text-emerald-500 text-base font-bold">✕</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
+
 
           {/* ── Spacer ── */}
           <View className="flex-1" />
