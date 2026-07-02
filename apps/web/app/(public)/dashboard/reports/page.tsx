@@ -173,6 +173,31 @@ export default function MyReportsPage() {
           ))}
         </div>
       )}
+
+      {/* ── Download App Banner ── */}
+      <div className="mt-6 rounded-3xl overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-800 p-6 flex flex-col sm:flex-row items-center gap-5 shadow-lg shadow-emerald-100">
+        <div className="h-16 w-16 rounded-2xl bg-white/15 flex items-center justify-center flex-shrink-0">
+          <svg className="h-9 w-9 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M3.18 23.76a1.5 1.5 0 0 0 2.08.55l9.38-5.42-2.57-2.56-8.89 7.43zM20.44 9.64 17.2 7.76 14.37 10.6l3.1 3.1 2.98-1.72a1.5 1.5 0 0 0-.01-2.34zM1.5.9a1.5 1.5 0 0 0-.5 1.13v19.94a1.5 1.5 0 0 0 .5 1.13l.09.08 11.16-11.17v-.26L1.59.82 1.5.9zm12.25 12.87-1.42 1.42L3.26 24l-.09-.08 9.96-9.97 1.42 1.42L3.27 24l9.14-9.14 1.42 1.42z"/>
+          </svg>
+        </div>
+        <div className="flex-1 text-center sm:text-left">
+          <p className="text-white font-black text-lg leading-tight">Get reports on your phone</p>
+          <p className="text-emerald-100 text-sm mt-1">Download the Lab Connect app to view, download and share your reports anytime, anywhere.</p>
+        </div>
+        <a
+          href="https://play.google.com/store/apps/details?id=com.labconnect"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-shrink-0"
+        >
+          <img
+            src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+            alt="Get it on Google Play"
+            className="h-14 w-auto"
+          />
+        </a>
+      </div>
     </div>
   );
 }
