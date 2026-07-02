@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/app/page-header";
 import { useToast } from "@/hooks/use-toast";
 
@@ -175,7 +176,14 @@ export default function AdminTestsPage() {
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="testDesc">Description</Label>
-                  <Input id="testDesc" onChange={(e) => setDescription(e.target.value)} value={description} />
+                  <Textarea
+                    id="testDesc"
+                    onChange={(e) => setDescription(e.target.value)}
+                    value={description}
+                    rows={5}
+                    placeholder="Explain what this test measures, why it's important, what results mean, and who should take it..."
+                    className="resize-none"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="testPrice">Original Price (₹)</Label>
