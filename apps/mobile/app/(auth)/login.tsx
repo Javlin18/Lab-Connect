@@ -466,11 +466,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </Link>
             </View>
-            <Link href="/(auth)/employee-login" asChild>
-              <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text className="text-sm font-semibold text-[#0F6E56] mt-2">Employee Portal</Text>
-              </TouchableOpacity>
-            </Link>
+
             <Text className="text-xs text-[#D1D5DB] mt-2">v{APP_VERSION}</Text>
           </View>
 

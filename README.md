@@ -196,7 +196,7 @@ That script does:
 
 ## PM2 Processes
 
-- `api` -> `apps/api/dist/main.js` on port `3001`
+- `api` -> `apps/api/dist/main.js` on port `4000`
 - `web` -> `next start` in `apps/web` on port `3000`
 
 ## Android Builds

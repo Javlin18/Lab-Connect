@@ -267,7 +267,7 @@ export class AuthService {
           patientName: user.name ?? "Patient",
           otp: code,
         });
-      } catch (e) {
+      } catch (e: any) {
         this.logger.warn(`Failed to send email OTP to ${user.email}: ${e.message}`);
       }
     } else {
@@ -276,7 +276,7 @@ export class AuthService {
 
     try {
       await this.twilioService.sendOtp(dto.phone, code);
-    } catch (e) {
+    } catch (e: any) {
       this.logger.warn(`Failed to send SMS to ${dto.phone}: ${e.message}`);
     }
 

@@ -17,7 +17,7 @@ import RazorpayCheckout from "react-native-razorpay";
 import { Ionicons } from "@expo/vector-icons";
 
 import { createOrder } from "@/api/patient";
-import { createPaymentOrder, verifyRazorpayPayment } from "@/api/payments";
+import { verifyRazorpayPayment } from "@/api/payments";
 import { useServerCart } from "@/hooks/useServerCart";
 import { RAZORPAY_KEY_ID } from "@/lib/env";
 import { useAuthStore } from "@/store/auth-store";
@@ -247,19 +247,14 @@ export default function CheckoutScreen() {
         return;
       }
 
-      // Step 2: Create Razorpay order on backend
-      const payment = await createPaymentOrder({
-        orderId: order.data.orderId,
-        amount: total,
-      });
-
-      // Step 3: Open Razorpay native checkout
+      // Step 2: Open Razorpay native checkout using order data from backend
+      // (createOrder already created the Razorpay order — no second call needed)
       const options = {
         description: "Medical Test Booking",
         currency: "INR",
-        key: RAZORPAY_KEY_ID,
-        amount: String(payment.data.amount),
-        order_id: payment.data.razorpayOrderId,
+        key: order.data.keyId || RAZORPAY_KEY_ID,
+        amount: String(Math.round(order.data.amount * 100)),
+        order_id: order.data.paymentId,
         name: "Labconnect Diagnostics",
         prefill: {
           contact: user?.phone ?? "",
@@ -279,7 +274,7 @@ export default function CheckoutScreen() {
         throw new Error(err?.description ?? "Payment failed. Please try again.");
       }
 
-      // Step 4: Verify signature on backend
+      // Step 3: Verify signature on backend
       await verifyRazorpayPayment({
         orderId: order.data.orderId,
         razorpayOrderId: paymentData.razorpay_order_id,

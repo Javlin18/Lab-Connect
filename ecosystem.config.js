@@ -9,7 +9,7 @@ module.exports = {
         PORT: 4000
       },
       autorestart: true,
-      max_memory_restart: "400M"
+      max_memory_restart: "800M"
     },
     {
       name: "web",
@@ -21,7 +21,7 @@ module.exports = {
         PORT: 3000
       },
       autorestart: true,
-      max_memory_restart: "400M"
+      max_memory_restart: "800M"
     }
   ]
 };

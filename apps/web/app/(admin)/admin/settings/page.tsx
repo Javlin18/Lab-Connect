@@ -38,8 +38,8 @@ export default function SettingsPage() {
 
   // Lab details
   const [labName, setLabName] = useState("Lab Connect Diagnostics");
-  const [labAddress, setLabAddress] = useState("12, Medical Plaza, Sector 15, Gurugram");
-  const [labPhone, setLabPhone] = useState("+91 1800 200 4567");
+  const [labAddress, setLabAddress] = useState("55/18 dada thanthanpal word no.72, Rivjha green city, Jabalpur 482001");
+  const [labPhone, setLabPhone] = useState("+91 7693080021, +91 8602363472");
   const [labEmail, setLabEmail] = useState("care@labconnect.com");
   const [openTime, setOpenTime] = useState("07:00 AM");
   const [closeTime, setCloseTime] = useState("08:00 PM");

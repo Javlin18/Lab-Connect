@@ -40,6 +40,11 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-sm text-slate-500">
               {this.state.error?.message || "An unexpected error occurred."}
             </p>
+            {this.state.error?.stack && (
+              <pre className="text-[10px] text-left bg-slate-100 p-2 rounded overflow-auto max-h-40">
+                {this.state.error.stack}
+              </pre>
+            )}
             <button
               className="px-6 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition shadow-md"
               onClick={() => this.setState({ hasError: false, error: null })}

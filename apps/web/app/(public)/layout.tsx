@@ -65,8 +65,8 @@ function PublicLayoutInner({ children }: { children: React.ReactNode }) {
       <div className="bg-red-700 text-white text-xs">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-between h-9">
           <div className="flex items-center gap-4">
-            <a className="flex items-center gap-1 hover:text-red-200 transition" href="tel:+911800200456">
-              <Phone className="h-3 w-3" /> 1800-200-4567
+            <a className="flex items-center gap-1 hover:text-red-200 transition" href="tel:+917693080021">
+              <Phone className="h-3 w-3" /> 7693080021 / 8602363472
             </a>
             <span className="text-red-400 hidden sm:inline">|</span>
             <span className="hidden sm:inline text-red-200">Mon–Sat: 7 AM – 9 PM</span>
@@ -91,7 +91,7 @@ function PublicLayoutInner({ children }: { children: React.ReactNode }) {
       {/* ── MAIN HEADER ─────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-100 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center gap-4">
+          <div className="flex h-16 items-center justify-between gap-4">
 
             {/* Logo */}
             <Link className="flex items-center gap-2 flex-shrink-0 group" href="/">
@@ -262,7 +262,7 @@ function PublicLayoutInner({ children }: { children: React.ReactNode }) {
               </p>
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <Phone className="h-3.5 w-3.5 text-red-400" />
-                1800-200-4567
+                7693080021 / 8602363472
               </div>
             </div>
             <div>
@@ -287,10 +287,11 @@ function PublicLayoutInner({ children }: { children: React.ReactNode }) {
             <div>
               <h4 className="text-sm font-bold mb-4 text-white">Contact</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                12, Medical Plaza, Sector 15<br />
-                Gurugram, Haryana – 122001<br /><br />
+                55/18 dada thanthanpal word no.72<br />
+                Rivjha green city<br />
+                Jabalpur 482001<br /><br />
                 <span className="text-slate-300 font-semibold">Email:</span> care@labconnect.com<br />
-                <span className="text-slate-300 font-semibold">Phone:</span> +91 1800 200 4567
+                <span className="text-slate-300 font-semibold">Phone:</span> +91 7693080021, +91 8602363472
               </p>
             </div>
           </div>
