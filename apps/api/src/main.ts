@@ -43,15 +43,13 @@ async function bootstrap() {
   }
   app.useStaticAssets(uploadsDir, { prefix: "/uploads/" });
 
-  // Security headers
-  app.use(helmet());
-
-  // CORS — allow known origins + deployed URLs
+  // CORS — allow known origins + deployed URLs (must be before helmet)
   const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:4000",
     "https://labconnect-web.onrender.com",
     "https://labconnect-web-onrender.com",
+    "https://moccasin-eagle-143121.hostingersite.com",
     process.env.WEB_URL,
     process.env.NEXTAUTH_URL,
   ].filter(Boolean) as string[];
@@ -68,7 +66,12 @@ async function bootstrap() {
       return callback(null, true);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
+
+  // Security headers (after CORS so preflight OPTIONS are not blocked)
+  app.use(helmet());
 
   app.setGlobalPrefix("api");
   app.useGlobalPipes(
