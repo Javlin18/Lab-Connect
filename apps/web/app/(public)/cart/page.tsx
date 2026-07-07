@@ -38,11 +38,11 @@ const getNextDays = () => {
 };
 
 const TIME_SLOTS = [
-  "06:00 AM – 08:00 AM",
-  "08:00 AM – 10:00 AM",
-  "10:00 AM – 12:00 PM",
-  "12:00 PM – 02:00 PM",
-  "02:00 PM – 04:00 PM",
+  "06:00 AM", "06:30 AM", "07:00 AM", "07:30 AM", "08:00 AM", "08:30 AM",
+  "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+  "12:00 PM", "12:30 PM", "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM",
+  "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM", "05:00 PM", "05:30 PM",
+  "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM", "08:00 PM",
 ];
 
 export default function CartPage() {
@@ -62,7 +62,7 @@ export default function CartPage() {
 
   const nextDays = getNextDays();
   const [selectedDate, setSelectedDate] = useState(nextDays[0].dateStr);
-  const [selectedSlot, setSelectedSlot] = useState(TIME_SLOTS[0]);
+  const [selectedTime, setSelectedTime] = useState<string>("09:00 AM");
   const [paymentType, setPaymentType] = useState<"online_prepaid" | "pay_on_collection">("online_prepaid");
 
   useEffect(() => {
@@ -153,7 +153,7 @@ export default function CartPage() {
       patientPhone:  phone,
       address:       fullAddress,
       pincode:       location.pincode,
-      slot:          `${selectedDate} ${selectedSlot}`,
+      slot:          `${selectedDate} ${selectedTime}`,
       paymentType:   paymentType,
     });
   };
@@ -276,7 +276,7 @@ export default function CartPage() {
               <div className="px-6 pb-6 border-t border-slate-50 pt-5 space-y-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-red-500" />
-                  <h3 className="font-bold text-slate-800 text-sm">Collection Date & Time Slot</h3>
+                  <h3 className="font-bold text-slate-800 text-sm">Collection Date</h3>
                 </div>
 
                 {/* Date grid */}
@@ -298,22 +298,28 @@ export default function CartPage() {
                   ))}
                 </div>
 
-                {/* Time slots */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {TIME_SLOTS.map((s) => (
-                    <button
-                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition ${
-                        selectedSlot === s
-                          ? "bg-red-50 border-red-500 text-red-600 shadow-sm"
-                          : "bg-slate-50 border-slate-100 text-slate-600 hover:border-red-200 hover:bg-red-50"
-                      }`}
-                      key={s}
-                      onClick={() => setSelectedSlot(s)}
-                      type="button"
-                    >
-                      <Clock className="h-3.5 w-3.5" /> {s}
-                    </button>
-                  ))}
+                {/* Time picker */}
+                <div className="pt-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="h-4 w-4 text-red-500" />
+                    <h3 className="font-bold text-slate-800 text-sm">Select Time</h3>
+                  </div>
+                  <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+                    {TIME_SLOTS.map((time) => (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => setSelectedTime(time)}
+                        className={`flex-shrink-0 px-4 py-2.5 rounded-xl border font-bold text-sm transition ${
+                          selectedTime === time
+                            ? "bg-red-600 border-red-600 text-white shadow-md shadow-red-200"
+                            : "bg-slate-50 border-slate-100 text-slate-600 hover:border-red-200 hover:bg-red-50"
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

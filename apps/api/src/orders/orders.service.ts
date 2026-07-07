@@ -481,4 +481,57 @@ export class OrdersService {
 
     return updated;
   }
+
+  async cancel(orderId: string, adminId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!order) {
+      throw new NotFoundException("Order not found");
+    }
+
+    if (["cancelled", "refunded"].includes(order.paymentStatus)) {
+      throw new BadRequestException(`Cannot cancel an order with status ${order.paymentStatus}`);
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { paymentStatus: "cancelled" }
+    });
+
+    if (order.appointmentId) {
+      // Also cancel the linked appointment
+      await this.prisma.appointment.update({
+        where: { id: order.appointmentId },
+        data: { status: "cancelled" }
+      });
+      
+      const appointment = await this.prisma.appointment.findUnique({
+        where: { id: order.appointmentId }
+      });
+      if (appointment?.employeeId) {
+        await this.prisma.employee.update({
+          where: { userId: appointment.employeeId },
+          data: { isAvailable: true }
+        });
+      }
+    }
+
+    await (this.prisma as any).systemAuditLog.create({
+      data: {
+        action: "ORDER_CANCELLED",
+        actorId: adminId,
+        actorRole: "admin",
+        patientId: order.patientId,
+        appointmentId: order.appointmentId ?? null,
+      }
+    });
+
+    return {
+      success: true,
+      data: updated,
+      message: "Order cancelled successfully"
+    };
+  }
 }

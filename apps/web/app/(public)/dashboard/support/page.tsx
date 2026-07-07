@@ -16,7 +16,7 @@ export default function SupportPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           { icon: Phone,        label: "Call Support",  sub: "1800-200-4567",        color: "bg-blue-50 text-blue-600",   buttonLabel: "Call Now",     href: "tel:+911800200456" },
-          { icon: Mail,         label: "Email Support", sub: "care@labconnect.com",  color: "bg-red-50 text-red-600",     buttonLabel: "Send Email",   href: "mailto:care@labconnect.com" },
+          { icon: Mail,         label: "Email Support", sub: "labconnect.work@gmail.com",  color: "bg-red-50 text-red-600",     buttonLabel: "Send Email",   href: "mailto:labconnect.work@gmail.com" },
           { icon: MessageCircle,label: "WhatsApp",      sub: "Quick chat support",   color: "bg-emerald-50 text-emerald-600", buttonLabel: "Open Chat", href: "#" },
         ].map((item) => (
           <Card className="rounded-2xl border-slate-200 shadow-sm" key={item.label}>

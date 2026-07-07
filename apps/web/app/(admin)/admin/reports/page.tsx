@@ -234,7 +234,7 @@ export default function ReportsPage() {
                       <td className="px-5 py-3 text-slate-400 text-xs">{a.slot?.split(" ")[0]}</td>
                       <td className="px-5 py-3"><StatusBadge status={a.status} /></td>
                       <td className="px-5 py-3">
-                        {a.status === "completed" ? (
+                        {a.report ? (
                           <button
                             className="flex items-center gap-1 text-xs text-blue-600 font-semibold hover:underline"
                             onClick={async () => {

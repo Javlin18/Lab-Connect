@@ -21,3 +21,7 @@ export function formatDateTime(value: string) {
     timeStyle: "short"
   }).format(date);
 }
+
+export function money(value: number) {
+  return `₹${Math.round(value).toLocaleString("en-IN")}`;
+}

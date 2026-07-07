@@ -153,7 +153,7 @@ const sampleTests = [
 ];
 
 async function main() {
-  const email = "admin@labconnect.com";
+  const email = "labconnect.work@gmail.com";
   const password = "Admin@123";
   const phone = "+10000000000";
 

@@ -38,7 +38,8 @@ export interface Appointment {
     | "en_route"
     | "collected"
     | "processing"
-    | "completed";
+    | "completed"
+    | "cancelled";
   notes: string;
   createdAt: string;
   updatedAt: string;
@@ -61,9 +62,54 @@ export interface Employee {
   id: string;
   userId: string;
   zone: string;
+  shift: "shift_1" | "shift_2";
   isAvailable: boolean;
   currentLocation: string;
 }
+
+export interface EmployeePayConfig {
+  id: string;
+  employeeId: string | null;
+  incentivePerSample: number;
+  cancellationDeduction: number;
+  absentDeduction: number;
+  lateArrivalDeduction: number;
+  starBonus40: number;
+  starBonus80: number;
+  starBonus120: number;
+  referralBonus: number;
+}
+
+export interface EmployeeExpenseRecord {
+  id: string;
+  employeeId: string;
+  type: "bonus" | "deduction" | "reimbursement";
+  amount: number;
+  description: string;
+  month: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface EmployeePayrollSummary {
+  employeeId: string;
+  employeeName: string;
+  employeeZone: string;
+  month: string;
+  completedSamples: number;
+  cancellations: number;
+  incentives: number;
+  starBonus: number;
+  referralBonus: number;
+  cancellationDeductions: number;
+  absentDeductions: number;
+  lateArrivalDeductions: number;
+  manualBonuses: number;
+  manualDeductions: number;
+  manualReimbursements: number;
+  netPay: number;
+}
+
 
 export interface Notification {
   id: string;

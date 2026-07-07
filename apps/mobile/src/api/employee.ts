@@ -46,6 +46,13 @@ export async function sendCollectionOtp(id: string) {
   });
 }
 
+export async function verifyCollectionOtp(id: string, otp: string) {
+  return apiFetch<{ source: string }>(`/appointments/${id}/verify-collection-otp`, {
+    method: "POST",
+    body: { otp }
+  });
+}
+
 export async function updateLocation(lat: number, lng: number) {
   return apiFetch<any>("/employees/me/location", {
     method: "PUT",
@@ -80,5 +87,17 @@ export async function verifyOTP(phone: string, otp: string) {
   return apiFetch<any>("/auth/verify-otp", {
     method: "POST",
     body: { phone, otp }
+  });
+}
+
+export async function getMyPayroll(month?: string) {
+  const query = month ? `?month=${month}` : "";
+  return apiFetch<any>(`/payroll/me${query}`);
+}
+
+export async function connectCall(appointmentId: string) {
+  return apiFetch<{ success: boolean; callSid: string; message: string }>("/calls/connect", {
+    method: "POST",
+    body: { appointmentId },
   });
 }

@@ -341,12 +341,14 @@ export class AppointmentsService {
     if (dto.collectionNotes) notes += `\n[Collection Notes: ${dto.collectionNotes}]`;
     if (dto.collectedAt) notes += `\n[Collected At: ${dto.collectedAt}]`;
 
-    const collectionOtpSource = dto.status === "collected"
-      ? await this.verifyCollectionOtp(appointment, employeeId, dto.otp)
-      : null;
-
-    if (collectionOtpSource) {
-      notes += `\n[Collection Verified]\n[OTP Verification: ${collectionOtpSource === "admin" ? "Admin OTP approval" : "Patient OTP"}]`;
+    let collectionOtpSource: string | null = null;
+    if (dto.status === "collected") {
+      if (appointment.notes.includes("[Collection Pre-Verified]")) {
+        collectionOtpSource = appointment.notes.includes("Admin OTP approval") ? "admin" : "patient";
+      } else {
+        collectionOtpSource = await this.verifyCollectionOtp(appointment, employeeId, dto.otp);
+        notes += `\n[Collection Verified]\n[OTP Verification: ${collectionOtpSource === "admin" ? "Admin OTP approval" : "Patient OTP"}]`;
+      }
     }
 
     const updated = await this.prisma.appointment.update({
@@ -432,6 +434,26 @@ export class AppointmentsService {
     };
   }
 
+  async verifyCollectionOtpEndpoint(id: string, employeeId: string, otp: string) {
+    const appointment = await this.assertEmployeeOwnsAppointment(id, employeeId);
+    if (!["accepted", "en_route"].includes(appointment.status)) {
+      throw new BadRequestException("OTP can only be verified for an active visit");
+    }
+
+    const source = await this.verifyCollectionOtp(appointment, employeeId, otp);
+    const updatedNotes = appointment.notes + `\n[Collection Pre-Verified]\n[OTP Verification: ${source === "admin" ? "Admin OTP approval" : "Patient OTP"}]`;
+
+    await this.prisma.appointment.update({
+      where: { id },
+      data: { notes: updatedNotes }
+    });
+
+    return {
+      data: { source },
+      message: "OTP Verified Successfully"
+    };
+  }
+
   async complete(id: string, dto: CompleteAppointmentDto, user?: AuthenticatedUser) {
     const appointment = await this.ensureAppointmentExists(id);
 
@@ -478,6 +500,53 @@ export class AppointmentsService {
     return {
       data: toSharedAppointment(updated),
       message: "Appointment completed"
+    };
+  }
+
+  async cancel(id: string, adminId: string) {
+    const appointment = await this.ensureAppointmentExists(id);
+
+    if (["completed", "cancelled", "collected"].includes(appointment.status)) {
+      throw new BadRequestException(`Cannot cancel an appointment with status ${appointment.status}`);
+    }
+
+    const updated = await this.prisma.appointment.update({
+      where: { id },
+      data: { status: "cancelled" },
+      include: this.appointmentInclude
+    });
+
+    if (appointment.employeeId) {
+      await this.prisma.employee.update({
+        where: { userId: appointment.employeeId },
+        data: { isAvailable: true }
+      });
+      await this.notificationsService.createNotification(
+        appointment.employeeId,
+        "Appointment cancelled",
+        "An appointment assigned to you has been cancelled.",
+        "appointment_cancelled"
+      );
+    }
+
+    await this.notificationsService.createNotification(
+      appointment.patientId,
+      "Appointment cancelled",
+      "Your appointment has been cancelled by the admin.",
+      "appointment_cancelled"
+    );
+
+    await this.audit("APPOINTMENT_CANCELLED", {
+      actorId: adminId,
+      actorRole: "admin",
+      appointmentId: updated.id,
+      patientId: updated.patientId,
+      employeeId: updated.employeeId
+    });
+
+    return {
+      data: toSharedAppointment(updated),
+      message: "Appointment cancelled successfully"
     };
   }
 

@@ -25,7 +25,7 @@ export class EmailService {
   }
 
   private from(): string {
-    return process.env.SMTP_FROM ?? `Lab Connect <${process.env.SMTP_USER ?? "noreply@labconnect.com"}>`;
+    return process.env.SMTP_FROM ?? `Lab Connect <${process.env.SMTP_USER ?? "labconnect.work@gmail.com"}>`;
   }
 
   async send(to: string, subject: string, html: string): Promise<void> {
@@ -74,7 +74,7 @@ export class EmailService {
           <p style="font-size:13px;color:#555">A certified phlebotomist will visit your address at the selected time. Please keep your ID proof ready.</p>
 
           <div style="margin-top:24px;padding-top:20px;border-top:1px solid #f0f0f0;font-size:12px;color:#aaa">
-            <p>Need help? Call <strong>1800-200-4567</strong> or email <strong>care@labconnect.com</strong></p>
+            <p>Need help? Call <strong>1800-200-4567</strong> or email <strong>labconnect.work@gmail.com</strong></p>
           </div>
         </div>
       </div>

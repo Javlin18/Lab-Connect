@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Linking, ScrollView, Text, TouchableOpacity, View, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { getOrderById } from "@/api/patient";
@@ -64,7 +64,18 @@ export default function OrderDetailScreen() {
         <View className="bg-white rounded-2xl p-4 mt-5 border border-gray-100">
           <Text className="font-black">Collector on the way</Text>
           <Text className="text-gray-500 mt-1">{order.appointment.employee?.name ?? "Assigned employee"}</Text>
-          <TouchableOpacity onPress={() => Linking.openURL(`tel:${order.appointment.employee?.phone ?? ""}`)} className="bg-[#0F6E56] rounded-xl py-3 mt-4"><Text className="text-white text-center font-bold">Call Collector</Text></TouchableOpacity>
+          <TouchableOpacity 
+            onPress={async () => {
+              try {
+                await Linking.openURL("tel:7693080021");
+              } catch (err: any) {
+                Alert.alert("Call Failed", err?.message ?? "Could not connect call. Please try again.");
+              }
+            }} 
+            className="bg-[#0F6E56] rounded-xl py-3 mt-4"
+          >
+            <Text className="text-white text-center font-bold">Call Collector</Text>
+          </TouchableOpacity>
         </View>
       ) : null}
       <View className="bg-white rounded-2xl p-4 mt-5 border border-gray-100 gap-2">

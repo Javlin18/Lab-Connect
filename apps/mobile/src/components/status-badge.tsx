@@ -10,8 +10,9 @@ const styles: Record<Appointment["status"], string> = {
   accepted: "bg-amber-100",
   en_route: "bg-sky-100",
   collected: "bg-emerald-100",
-  processing: "bg-violet-100",
-  completed: "bg-emerald-200"
+  processing: "bg-fuchsia-100",
+  completed: "bg-emerald-200",
+  cancelled: "bg-red-100"
 };
 
 export function StatusBadge({ status }: { status: Appointment["status"] }) {

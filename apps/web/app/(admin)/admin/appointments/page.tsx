@@ -18,6 +18,7 @@ import { useMemo, useState } from "react";
 import {
   assignAppointment,
   completeAppointment,
+  cancelAppointment,
   listAppointments
 } from "@/api/appointments";
 import { listUsers } from "@/api/users";
@@ -100,6 +101,15 @@ export default function AppointmentsPage() {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
     },
     onError: (e: Error) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => cancelAppointment(id),
+    onSuccess: () => {
+      toast({ title: "Appointment cancelled" });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    },
+    onError: (e: Error) => toast({ title: "Cancel failed", description: e.message, variant: "destructive" }),
   });
 
   const toggleUrgent = (id: string) => {
@@ -357,7 +367,7 @@ export default function AppointmentsPage() {
                                 Call
                               </a>
                             )}
-                            {a.status !== "completed" && (
+                            {a.status !== "completed" && a.status !== "cancelled" && (
                               <Button
                                 className="h-7 px-2.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
                                 disabled={completeMutation.isPending}
@@ -365,6 +375,20 @@ export default function AppointmentsPage() {
                                 variant="ghost"
                               >
                                 <CheckCircle2 className="h-3 w-3 mr-1" /> Done
+                              </Button>
+                            )}
+                            {!["completed", "cancelled", "collected"].includes(a.status) && (
+                              <Button
+                                className="h-7 px-2.5 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100"
+                                disabled={cancelMutation.isPending}
+                                onClick={() => {
+                                  if (confirm("Are you sure you want to cancel this appointment?")) {
+                                    cancelMutation.mutate(a.id);
+                                  }
+                                }}
+                                variant="ghost"
+                              >
+                                <X className="h-3 w-3 mr-1" /> Cancel
                               </Button>
                             )}
                           </div>

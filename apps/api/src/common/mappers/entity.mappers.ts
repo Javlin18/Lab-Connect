@@ -56,7 +56,8 @@ export function toSharedAppointment(appointment: {
     | "en_route"
     | "collected"
     | "processing"
-    | "completed";
+    | "completed"
+    | "cancelled";
   notes: string;
   createdAt: Date | string;
   updatedAt: Date | string;
@@ -143,6 +144,7 @@ export function toSharedEmployee(employee: {
   id: string;
   userId: string;
   zone: string;
+  shift: string;
   isAvailable: boolean;
   currentLocation: string;
 }): SharedEmployee {
@@ -150,6 +152,7 @@ export function toSharedEmployee(employee: {
     id: employee.id,
     userId: employee.userId,
     zone: employee.zone,
+    shift: employee.shift as "shift_1" | "shift_2",
     isAvailable: employee.isAvailable,
     currentLocation: employee.currentLocation
   };

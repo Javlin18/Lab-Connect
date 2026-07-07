@@ -44,3 +44,9 @@ export async function listMyOrders() {
 export async function listAllOrders() {
   return apiFetch<Order[]>("/orders");
 }
+
+export async function cancelOrder(id: string) {
+  return apiFetch<Order>(`/orders/${id}/cancel`, {
+    method: "PUT"
+  });
+}

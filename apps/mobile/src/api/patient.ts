@@ -117,3 +117,10 @@ export function getEmployeeLocation(employeeId: string) {
 export function downloadReport(appointmentId: string) {
   return apiFetch<{ downloadUrl: string }>(`/reports/${appointmentId}`);
 }
+
+export async function connectPatientCall(appointmentId: string) {
+  return apiFetch<{ success: boolean; callSid: string; message: string }>("/calls/connect-patient", {
+    method: "POST",
+    body: { appointmentId },
+  });
+}

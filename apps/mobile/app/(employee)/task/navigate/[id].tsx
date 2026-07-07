@@ -100,10 +100,12 @@ export default function NavigationScreen() {
     }
   };
 
-  const handleCallPatient = () => {
-    const phone = appointment?.patient?.phone;
-    if (phone) {
-      Linking.openURL(`tel:${phone}`);
+  const handleCallPatient = async () => {
+    if (!appointment) return;
+    try {
+      await Linking.openURL("tel:7693080021");
+    } catch (err: any) {
+      Alert.alert("Call Failed", err?.message ?? "Could not connect call. Please try again.");
     }
   };
 

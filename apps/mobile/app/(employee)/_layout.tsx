@@ -38,6 +38,13 @@ export default function EmployeeLayout() {
           }}
         />
         <Tabs.Screen
+          name="attendance"
+          options={{
+            title: "Attendance",
+            tabBarIcon: ({ color }) => <Ionicons name="camera-outline" size={24} color={color} />
+          }}
+        />
+        <Tabs.Screen
           name="appointments"
           options={{
             title: "Appointments",

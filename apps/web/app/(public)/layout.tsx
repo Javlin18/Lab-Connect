@@ -290,7 +290,7 @@ function PublicLayoutInner({ children }: { children: React.ReactNode }) {
                 55/18 dada thanthanpal word no.72<br />
                 Rivjha green city<br />
                 Jabalpur 482001<br /><br />
-                <span className="text-slate-300 font-semibold">Email:</span> care@labconnect.com<br />
+                <span className="text-slate-300 font-semibold">Email:</span> labconnect.work@gmail.com<br />
                 <span className="text-slate-300 font-semibold">Phone:</span> +91 7693080021, +91 8602363472
               </p>
             </div>

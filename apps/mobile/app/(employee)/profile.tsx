@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/store/auth-store";
-import { getHistory } from "@/api/employee";
+import { getHistory, getMyPayroll } from "@/api/employee";
 import { Screen } from "@/components/screen";
 import type { Appointment } from "@lab-app/shared";
 
@@ -20,18 +20,9 @@ function isSameMonth(date: Date, target: Date) {
   return date.getFullYear() === target.getFullYear() && date.getMonth() === target.getMonth();
 }
 
-const SLOT_RATE = 140;
-const FINES = 870;
-const TDS_RATE = 0.01;
-
-const PERF_STATS = [
-  { label: "Slots Completed", key: "slots", suffix: "" },
-  { label: "Rating",          key: "rating", suffix: " ⭐" },
-  { label: "Incentives",      key: "incentives", prefix: "+ ₹", color: "#16a34a" },
-  { label: "Fines",           key: "fines",      prefix: "− ₹", color: "#dc2626" },
-  { label: "Cancellation",    key: "cancel",     suffix: "%",   color: "#dc2626" },
-  { label: "Late Appts",      key: "late",       suffix: "%" },
-];
+function formatMoney(value: number) {
+  return `₹${Math.round(value).toLocaleString("en-IN")}`;
+}
 
 const MANAGE_ITEMS = [
   { icon: "🕐", label: "Manage Slot\nSchedule" },
@@ -51,6 +42,13 @@ export default function EmployeeProfileScreen() {
   const todayQuery = useQuery({ queryKey: ["history-today"], queryFn: () => getHistory("today") });
   const weekQuery  = useQuery({ queryKey: ["history-week"],  queryFn: () => getHistory("week") });
 
+  const monthStr = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, "0")}`;
+  const payrollQuery = useQuery({
+    queryKey: ["my-payroll", monthStr],
+    queryFn: () => getMyPayroll(monthStr),
+  });
+  const payroll = payrollQuery.data?.data;
+
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "EM";
@@ -58,26 +56,6 @@ export default function EmployeeProfileScreen() {
   const joinedDate = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
     : "—";
-
-  const earnings = useMemo(() => {
-    const completed = (monthQuery.data?.data ?? []).filter((a) =>
-      isSameMonth(parseAppointmentDate(a), selectedMonth)
-    );
-    const slotTotal = completed.length * SLOT_RATE;
-    const gross     = slotTotal + 175; // incentives
-    const tds       = gross * TDS_RATE;
-    const net       = gross - FINES - tds;
-    return { completed, slotTotal, gross, net, tds };
-  }, [monthQuery.data?.data, selectedMonth]);
-
-  const perfValues: Record<string, string> = {
-    slots:      String(earnings.completed.length),
-    rating:     "4.20",
-    incentives: "175.00",
-    fines:      "950",
-    cancel:     "48",
-    late:       "27",
-  };
 
   const monthLabel = selectedMonth.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 
@@ -106,25 +84,25 @@ export default function EmployeeProfileScreen() {
           My Performance this Month
         </Text>
         <View className="flex-row flex-wrap gap-3 mb-6">
-          {PERF_STATS.map((stat) => {
-            const val   = perfValues[stat.key] ?? "—";
-            const color = stat.color ?? "#101828";
-            return (
-              <View
-                key={stat.key}
-                className="bg-white border border-slate-100 rounded-2xl p-4"
-                style={{ width: "47%", shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 }}
-              >
-                <Text className="text-xs text-slate-400 font-semibold mb-1">{stat.label}</Text>
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-lg font-black" style={{ color }}>
-                    {stat.prefix ?? ""}{val}{stat.suffix ?? ""}
-                  </Text>
-                  <Text className="text-slate-300 text-lg">›</Text>
-                </View>
-              </View>
-            );
-          })}
+          {[
+            { label: "Samples Done", value: payroll ? String(payroll.completedSamples) : "—", color: "#101828" },
+            { label: "Orders Done", value: payroll ? String(payroll.completedOrders) : "—", color: "#101828" },
+            { label: "Incentives", value: payroll ? `+ ${formatMoney(payroll.incentives)}` : "—", color: "#16a34a" },
+            { label: "Deductions", value: payroll ? `− ${formatMoney(payroll.cancellationDeductions + payroll.absentDeductions + payroll.lateArrivalDeductions + payroll.manualDeductions)}` : "—", color: "#dc2626" },
+            { label: "Star Bonus", value: payroll ? `+ ${formatMoney(payroll.starBonus)}` : "—", color: "#d97706" },
+            { label: "Referral Bonus", value: payroll ? `+ ${formatMoney(payroll.referralBonus)}` : "—", color: "#7c3aed" },
+          ].map((stat) => (
+            <View
+              key={stat.label}
+              className="bg-white border border-slate-100 rounded-2xl p-4"
+              style={{ width: "47%", shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 }}
+            >
+              <Text className="text-xs text-slate-400 font-semibold mb-1">{stat.label}</Text>
+              <Text className="text-lg font-black" style={{ color: stat.color }}>
+                {stat.value}
+              </Text>
+            </View>
+          ))}
         </View>
 
         {/* ── Manage My Work ──────────────────────────────────────────── */}
@@ -164,9 +142,27 @@ export default function EmployeeProfileScreen() {
             {user?.name?.split(" ")[0] ?? "Collector"}, you earned
           </Text>
           <Text className="text-white text-4xl font-black mt-2">
-            {monthQuery.isLoading ? "…" : `₹${earnings.net.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
+            {payrollQuery.isLoading ? "…" : payroll ? formatMoney(payroll.netPay) : "₹0"}
           </Text>
           <Text className="text-white/70 text-xs mt-1">so far this month · {monthLabel}</Text>
+
+          {/* Breakdown */}
+          {payroll && (
+            <View className="mt-4 bg-white/10 rounded-2xl p-4 gap-2">
+              {[
+                { label: "Completed Slots", value: payroll.completedSamples.toString(), color: "#fff" },
+                { label: "Incentives (₹25/slot)", value: formatMoney(payroll.incentives), color: "#fff" },
+                { label: "Bonuses", value: `+${formatMoney(payroll.starBonus + payroll.referralBonus + payroll.manualBonuses)}`, color: "#fcd34d" },
+                { label: "Deductions", value: `-${formatMoney(payroll.cancellationDeductions + payroll.absentDeductions + payroll.lateArrivalDeductions + payroll.manualDeductions)}`, color: "#fca5a5" },
+              ].map((item) => (
+                <View key={item.label} className="flex-row justify-between items-center">
+                  <Text className="text-white/70 text-xs font-medium">{item.label}</Text>
+                  <Text className="text-xs font-black" style={{ color: item.color }}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
           <View className="flex-row gap-3 mt-4">
             <TouchableOpacity
               className="flex-1 bg-orange-500 rounded-xl py-2 items-center"

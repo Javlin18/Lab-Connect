@@ -69,7 +69,7 @@ export function LoginView({ initialError }: { initialError?: string }) {
               <Input
                 id="email"
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="admin@labconnect.com"
+                placeholder="labconnect.work@gmail.com"
                 type="text"
                 value={email}
               />

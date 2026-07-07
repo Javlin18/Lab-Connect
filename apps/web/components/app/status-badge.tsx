@@ -9,7 +9,8 @@ const badgeMap: Record<Appointment["status"], string> = {
   completed: "border-emerald-300 bg-emerald-100 text-emerald-800",
   en_route: "border-orange-200 bg-orange-50 text-orange-700",
   pending: "border-yellow-200 bg-yellow-50 text-yellow-700",
-  processing: "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700"
+  processing: "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700",
+  cancelled: "border-red-200 bg-red-50 text-red-700"
 };
 
 export function StatusBadge({ status }: { status: Appointment["status"] }) {

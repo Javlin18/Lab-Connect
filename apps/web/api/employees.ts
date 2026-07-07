@@ -28,3 +28,13 @@ export function countEmployeeTasksForDate(appointments: Appointment[], employeeU
     (item) => item.employeeId === employeeUserId && item.slot.startsWith(day)
   ).length;
 }
+
+export async function updateEmployeeShift(
+  id: string,
+  shift: "shift_1" | "shift_2"
+) {
+  return apiFetch<Employee>(`/employees/${id}/shift`, {
+    method: "PUT",
+    body: JSON.stringify({ shift })
+  });
+}

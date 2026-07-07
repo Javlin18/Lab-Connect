@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/store/auth-store";
 
-import { getAssignedAppointments } from "@/api/employee";
+import { getAssignedAppointments, getMyPayroll } from "@/api/employee";
 import { Screen } from "@/components/screen";
 import { TaskCard } from "@/components/employee/TaskCard";
 import { EmptyState } from "@/components/employee/EmptyState";
@@ -50,6 +50,12 @@ export default function EmployeeHomeScreen() {
 
   const appointments = assignedQuery.data?.data ?? [];
 
+  const payrollQuery = useQuery({
+    queryKey: ["my-payroll-home"],
+    queryFn: () => getMyPayroll(),
+  });
+  const payroll = payrollQuery.data?.data;
+
   const pendingTasks = appointments.filter((app) => app.status === "assigned");
   const acceptedTasks = appointments.filter(
     (app) => app.status === "accepted" || app.status === "en_route"
@@ -76,7 +82,7 @@ export default function EmployeeHomeScreen() {
           </Text>
         </View>
 
-        <View className="flex-row gap-3 mb-6">
+        <View className="flex-row gap-3 mb-3">
           <View className="flex-1 bg-amber-50 border border-amber-200/60 p-3.5 rounded-2xl">
             <Text className="text-xs text-amber-500 font-bold">Pending</Text>
             <Text className="text-xl font-black text-amber-700 mt-1">
@@ -93,6 +99,21 @@ export default function EmployeeHomeScreen() {
             <Text className="text-xs text-emerald-500 font-bold">Collected</Text>
             <Text className="text-xl font-black text-emerald-700 mt-1">
               {collectedTasks.length}
+            </Text>
+          </View>
+        </View>
+
+        <View className="flex-row gap-3 mb-6">
+          <View className="flex-1 bg-purple-50 border border-purple-200/60 p-3.5 rounded-2xl">
+            <Text className="text-xs text-purple-500 font-bold">Slots Completed</Text>
+            <Text className="text-xl font-black text-purple-700 mt-1">
+              {payroll?.completedSamples ?? "—"}
+            </Text>
+          </View>
+          <View className="flex-1 bg-rose-50 border border-rose-200/60 p-3.5 rounded-2xl">
+            <Text className="text-xs text-rose-500 font-bold">Slots Cancelled</Text>
+            <Text className="text-xl font-black text-rose-700 mt-1">
+              {payroll?.cancellations ?? "—"}
             </Text>
           </View>
         </View>

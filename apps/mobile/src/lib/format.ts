@@ -5,9 +5,10 @@ const STATUS_LABELS: Record<Appointment["status"], string> = {
   assigned: "Assigned",
   accepted: "Accepted",
   en_route: "On way",
-  collected: "Collected",
-  processing: "Processing",
-  completed: "Done"
+  collected: "Sample Collected",
+  processing: "Processing in Lab",
+  completed: "Report Ready",
+  cancelled: "Cancelled"
 };
 
 export function formatSlot(value: string) {

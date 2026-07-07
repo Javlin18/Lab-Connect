@@ -159,7 +159,6 @@ export default function CheckoutScreen() {
 
       const loc = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.BestForNavigation,
-        maximumAge: 0, // never use a cached position
       });
       const { latitude, longitude } = loc.coords;
 

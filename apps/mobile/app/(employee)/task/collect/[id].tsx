@@ -16,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 
 import { getAppointment } from "@/api/appointments";
-import { sendCollectionOtp, updateStatus } from "@/api/employee";
+import { sendCollectionOtp, updateStatus, verifyCollectionOtp } from "@/api/employee";
 import { createOtpAssistanceRequest, listOtpAssistanceRequests } from "@/api/otp-assistance";
 import { Screen } from "@/components/screen";
 import { StepIndicator } from "@/components/employee/StepIndicator";
@@ -63,7 +63,7 @@ export default function CollectScreen() {
     (appointment?.testTypes ?? []).every((t) => (barcodes[t] ?? "").trim().length > 0);
 
   const assistanceQuery = useQuery({
-    enabled: Boolean(id) && step === 3,
+    enabled: Boolean(id) && step === 1,
     queryKey: ["otp-assistance", id],
     queryFn: () => listOtpAssistanceRequests(id as string),
     refetchInterval: 5000,
@@ -78,7 +78,7 @@ export default function CollectScreen() {
   }, [resendCountdown]);
 
   useEffect(() => {
-    if (step === 4) {
+    if (step === 3) {
       Animated.parallel([
         Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 60, useNativeDriver: true }),
         Animated.timing(opacityAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -93,43 +93,39 @@ export default function CollectScreen() {
   });
 
   const verifyMutation = useMutation({
-    mutationFn: async () => {
-      // Capture high-accuracy GPS at the moment of collection
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      let coords: { latitude: number; longitude: number } | null = null;
-      if (status === "granted") {
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-      }
-      return coords;
-    },
-    onSuccess: (coords) => {
-      const ts = new Date().toISOString();
-      setCollectedAt(ts);
-      confirmMutation.mutate({ ts, otp, coords });
+    mutationFn: async () => verifyCollectionOtp(id as string, otp),
+    onSuccess: (res) => {
+      if (res.data?.source === "admin") setAdminOverrideVerified(true);
+      setStep(2);
     },
     onError: () => setOtpError("Incorrect OTP, please try again"),
   });
 
   const confirmMutation = useMutation({
-    mutationFn: ({ ts, otp, coords }: { ts: string; otp: string; coords: { latitude: number; longitude: number } | null }) =>
-      updateStatus(id as string, "collected", {
+    mutationFn: async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      let coords: { latitude: number; longitude: number } | null = null;
+      if (status === "granted") {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      }
+      const ts = new Date().toISOString();
+      setCollectedAt(ts);
+      
+      return updateStatus(id as string, "collected", {
         sampleId: primaryBarcode,
         collectionNotes: notes,
         collectedAt: ts,
-        otp,
         barcodes: Object.entries(barcodes).map(([testName, barcodeId]) => ({ testName, barcodeId })),
         ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}),
-      }),
+      });
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["appointment", id] });
       await queryClient.invalidateQueries({ queryKey: ["appointments", "assigned"] });
-      setStep(4);
+      setStep(3);
     },
     onError: (err: Error) => {
-      setOtpError(err.message || "OTP verification failed");
       Alert.alert("Error", err.message);
     },
   });
@@ -150,12 +146,11 @@ export default function CollectScreen() {
   useEffect(() => {
     if (assistanceRequest?.status === "verified_by_admin" && !adminOverrideVerified) {
       setAdminOverrideVerified(true);
-      setCollectedAt(assistanceRequest.resolvedAt ?? new Date().toISOString());
       queryClient.invalidateQueries({ queryKey: ["appointment", id] });
       queryClient.invalidateQueries({ queryKey: ["appointments", "assigned"] });
-      setStep(4);
+      setStep(2);
     }
-  }, [adminOverrideVerified, assistanceRequest?.resolvedAt, assistanceRequest?.status, id, queryClient]);
+  }, [adminOverrideVerified, assistanceRequest?.status, id, queryClient]);
 
   if (query.isLoading || !appointment) {
     return (
@@ -167,160 +162,12 @@ export default function CollectScreen() {
     );
   }
 
-  // ─── STEP 1 — Verify Patient ───────────────────────────────────────────────
+  // ─── STEP 1 — OTP Verification ─────────────────────────────────────────────
   if (step === 1) {
+    const isVerifying = verifyMutation.isPending;
     return (
       <Screen title="Sample Collection">
-        <StepIndicator currentStep={1} totalSteps={4} />
-        <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-6" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-          <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
-            Patient Details
-          </Text>
-          <Text className="text-lg font-black text-slate-800">
-            {appointment.patient?.name ?? "Patient"}
-          </Text>
-          <Text className="text-xs text-slate-500 mt-1">Contact via: {companyContact}</Text>
-          <Text className="text-xs text-slate-500 mt-0.5">Address: {appointment.address}</Text>
-        </View>
-        <View className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-8 flex-row items-center justify-center gap-2">
-          <Ionicons name="warning-outline" size={16} color="#92400E" />
-          <Text className="text-xs font-bold text-amber-800 text-center leading-relaxed">
-            Confirm you are at the correct patient's home before proceeding
-          </Text>
-        </View>
-        <TouchableOpacity
-          className="w-full bg-emerald-800 rounded-2xl py-4 items-center justify-center"
-          onPress={() => setStep(2)}
-        >
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="checkmark" size={16} color="white" />
-            <Text className="text-white font-black text-sm">
-              Yes, this is the correct patient
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </Screen>
-    );
-  }
-
-  // ─── STEP 2 — Collect Samples + Barcodes ─────────────────────────────────
-  if (step === 2) {
-    return (
-      <Screen title="Sample Collection" scroll={false}>
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          <StepIndicator currentStep={2} totalSteps={4} />
-
-          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-            <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
-              Mark Samples as Collected
-            </Text>
-            <CollectionChecklist
-              tests={appointment.testTypes}
-              onAllChecked={setAllChecked}
-            />
-          </View>
-
-          {/* Per-test barcode inputs */}
-          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-            <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
-              Sample Barcodes / Tube IDs
-            </Text>
-            {appointment.testTypes.map((test) => (
-              <View key={test} className="mb-3">
-                <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  {test}
-                </Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <TextInput
-                    style={{ flex: 1 }}
-                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium"
-                    onChangeText={(val) =>
-                      setBarcodes((prev) => ({ ...prev, [test]: val }))
-                    }
-                    placeholder="Enter or scan barcode"
-                    placeholderTextColor="#94a3b8"
-                    value={barcodes[test] ?? ""}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setScanningTest(test)}
-                    style={{
-                      width: 46,
-                      height: 46,
-                      borderRadius: 12,
-                      backgroundColor: barcodes[test] ? "#d1fae5" : "#065f46",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {barcodes[test] ? (
-                      <Ionicons name="checkmark" size={24} color="#065f46" />
-                    ) : (
-                      <Ionicons name="camera-outline" size={24} color="white" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          {/* Barcode Scanner Modal */}
-          {scanningTest !== null && (
-            <BarcodeScannerModal
-              visible={true}
-              testName={scanningTest}
-              onScanned={(code) => {
-                setBarcodes((prev) => ({ ...prev, [scanningTest]: code }));
-                setScanningTest(null);
-              }}
-              onClose={() => setScanningTest(null)}
-            />
-          )}
-
-          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-8" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
-            <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
-              Collection Notes (Optional)
-            </Text>
-            <TextInput
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium min-h-[80px]"
-              multiline
-              numberOfLines={3}
-              onChangeText={setNotes}
-              placeholder="e.g. Patient had difficulty, used left arm"
-              placeholderTextColor="#94a3b8"
-              textAlignVertical="top"
-              value={notes}
-            />
-          </View>
-
-          <TouchableOpacity
-            className={`w-full rounded-2xl py-4 items-center justify-center mb-8 ${
-              allChecked && allBarcodesEntered
-                ? "bg-emerald-800"
-                : "bg-slate-200"
-            }`}
-            style={allChecked && allBarcodesEntered ? { shadowColor: '#065f46', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 } : undefined}
-            disabled={!allChecked || !allBarcodesEntered}
-            onPress={() => setStep(3)}
-          >
-            <Text
-              className={`font-black text-sm ${
-                allChecked && allBarcodesEntered ? "text-white" : "text-slate-400"
-              }`}
-            >
-              Proceed to Confirmation →
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </Screen>
-    );
-  }
-
-  // ─── STEP 3 — OTP Verification ─────────────────────────────────────────────
-  if (step === 3) {
-    const isVerifying = verifyMutation.isPending || confirmMutation.isPending;
-    return (
-      <Screen title="Sample Collection">
-        <StepIndicator currentStep={3} totalSteps={4} />
+        <StepIndicator currentStep={1} totalSteps={3} />
 
         {/* ── Info card ── */}
         <View style={{
@@ -352,7 +199,7 @@ export default function CollectScreen() {
                 Confirm with Patient OTP
               </Text>
               <Text style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
-                Step 3 of 4 — Identity Verification
+                Step 1 of 3 — Identity Verification
               </Text>
             </View>
           </View>
@@ -509,7 +356,7 @@ export default function CollectScreen() {
                 fontSize: 14,
                 color: otp.length === 4 ? "white" : "#94A3B8",
               }}>
-                Verify & Confirm Collection
+                Verify Patient
               </Text>
             </View>
           )}
@@ -632,7 +479,123 @@ export default function CollectScreen() {
     );
   }
 
-  // ─── STEP 4 — Success ──────────────────────────────────────────────────────
+  // ─── STEP 2 — Collect Samples + Barcodes ─────────────────────────────────
+  if (step === 2) {
+    return (
+      <Screen title="Sample Collection" scroll={false}>
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <StepIndicator currentStep={2} totalSteps={3} />
+
+          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+            <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
+              Mark Samples as Collected
+            </Text>
+            <CollectionChecklist
+              tests={appointment.testTypes}
+              onAllChecked={setAllChecked}
+            />
+          </View>
+
+          {/* Per-test barcode inputs */}
+          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-4" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+            <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-4">
+              Sample Barcodes / Tube IDs
+            </Text>
+            {appointment.testTypes.map((test) => (
+              <View key={test} className="mb-3">
+                <Text className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  {test}
+                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <TextInput
+                    style={{ flex: 1 }}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium"
+                    onChangeText={(val) =>
+                      setBarcodes((prev) => ({ ...prev, [test]: val }))
+                    }
+                    placeholder="Enter or scan barcode"
+                    placeholderTextColor="#94a3b8"
+                    value={barcodes[test] ?? ""}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setScanningTest(test)}
+                    style={{
+                      width: 46,
+                      height: 46,
+                      borderRadius: 12,
+                      backgroundColor: barcodes[test] ? "#d1fae5" : "#065f46",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {barcodes[test] ? (
+                      <Ionicons name="checkmark" size={24} color="#065f46" />
+                    ) : (
+                      <Ionicons name="camera-outline" size={24} color="white" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Barcode Scanner Modal */}
+          {scanningTest !== null && (
+            <BarcodeScannerModal
+              visible={true}
+              testName={scanningTest}
+              onScanned={(code) => {
+                setBarcodes((prev) => ({ ...prev, [scanningTest]: code }));
+                setScanningTest(null);
+              }}
+              onClose={() => setScanningTest(null)}
+            />
+          )}
+
+          <View className="bg-white border border-slate-100 rounded-3xl p-5 mb-8" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 }}>
+            <Text className="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">
+              Collection Notes (Optional)
+            </Text>
+            <TextInput
+              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 font-medium min-h-[80px]"
+              multiline
+              numberOfLines={3}
+              onChangeText={setNotes}
+              placeholder="e.g. Patient had difficulty, used left arm"
+              placeholderTextColor="#94a3b8"
+              textAlignVertical="top"
+              value={notes}
+            />
+          </View>
+
+            <TouchableOpacity
+              className={`w-full rounded-2xl py-4 items-center justify-center mb-8 ${
+                allChecked && allBarcodesEntered && !confirmMutation.isPending
+                  ? "bg-emerald-800"
+                  : "bg-slate-200"
+              }`}
+              style={allChecked && allBarcodesEntered && !confirmMutation.isPending ? { shadowColor: '#065f46', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 } : undefined}
+              disabled={!allChecked || !allBarcodesEntered || confirmMutation.isPending}
+              onPress={() => confirmMutation.mutate()}
+            >
+              {confirmMutation.isPending ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text
+                  className={`font-black text-sm ${
+                    allChecked && allBarcodesEntered ? "text-white" : "text-slate-400"
+                  }`}
+                >
+                  Complete Collection →
+                </Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </Screen>
+      );
+  }
+
+  // ─── STEP 3 — Success ──────────────────────────────────────────────────────
   return (
     <Screen title="">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>

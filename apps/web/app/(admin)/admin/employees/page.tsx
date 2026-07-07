@@ -32,8 +32,10 @@ import type { LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { listAppointments } from "@/api/appointments";
-import { type EmployeeRecord, listEmployees, updateEmployeeLocation } from "@/api/employees";
+import { type EmployeeRecord, listEmployees, updateEmployeeLocation, updateEmployeeShift } from "@/api/employees";
+import { getPayrollSummary } from "@/api/payroll";
 import { createEmployee } from "@/api/users";
+import type { EmployeePayrollSummary } from "@lab-app/shared";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,9 +44,12 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
-const SAMPLE_REVENUE = 140;
-const BASE_EARNINGS = 18000;
-const PETROL_ALLOWANCE = 2500;
+const SHIFT_LABELS: Record<string, string> = {
+  shift_1: "Shift 1 · 5AM–12PM",
+  shift_2: "Shift 2 · 12PM–6PM"
+};
+
+const SAMPLE_REVENUE = 140; // Still used for estimating company revenue, not employee pay
 const TARGET_DAILY_SAMPLES = 8;
 const today = new Date();
 const todayKey = format(today, "yyyy-MM-dd");
@@ -87,7 +92,7 @@ function employeeAppointments(appointments: Appointment[], employeeUserId: strin
   return appointments.filter((appointment) => appointment.employeeId === employeeUserId);
 }
 
-function employeeAnalytics(record: EmployeeRecord, appointments: Appointment[], revenueRank: number) {
+function employeeAnalytics(record: EmployeeRecord, appointments: Appointment[], revenueRank: number, payroll: EmployeePayrollSummary | undefined) {
   const all = employeeAppointments(appointments, record.user.id);
   const month = all.filter(isThisMonth);
   const todayAppointments = all.filter((appointment) => appointmentDay(appointment) === todayKey);
@@ -115,11 +120,15 @@ function employeeAnalytics(record: EmployeeRecord, appointments: Appointment[], 
   const revenueLost = leaveDays * expectedDailySamples * SAMPLE_REVENUE;
   const potentialRevenue = monthlyRevenue + revenueLost;
 
-  const incentives = monthlySamples * 25;
-  const starRatingBonus = monthlySamples >= 120 ? 1500 : monthlySamples >= 80 ? 900 : monthlySamples >= 40 ? 400 : 0;
-  const referralBonus = monthlySamples >= 100 ? 750 : 0;
-  const deductions = absentDays * 300 + lateArrivals * 100;
-  const netEarnings = BASE_EARNINGS + incentives + PETROL_ALLOWANCE + starRatingBonus + referralBonus - deductions;
+  const incentives = payroll?.incentives || 0;
+  const starRatingBonus = payroll?.starBonus || 0;
+  const referralBonus = payroll?.referralBonus || 0;
+  const manualBonuses = payroll?.manualBonuses || 0;
+  const manualReimbursements = payroll?.manualReimbursements || 0;
+  
+  const deductions = (payroll?.cancellationDeductions || 0) + (payroll?.absentDeductions || 0) + (payroll?.lateArrivalDeductions || 0) + (payroll?.manualDeductions || 0);
+  
+  const netEarnings = payroll?.netPay || 0;
 
   const completionRate = month.length ? (completed.length / month.length) * 100 : 0;
   const acceptanceRate = month.length ? (all.length / month.length) * 100 : 0;
@@ -148,11 +157,10 @@ function employeeAnalytics(record: EmployeeRecord, appointments: Appointment[], 
     monthlySamples,
     netEarnings,
     pendingBookings: pending.length,
-    petrolAllowance: PETROL_ALLOWANCE,
     potentialRevenue,
     presentDays,
     rank: revenueRank,
-    referralBonus,
+    referralBonus: referralBonus + manualBonuses + manualReimbursements, // Combined for simplicity in UI
     revenueLost,
     starRatingBonus,
     status,
@@ -302,8 +310,13 @@ function EmployeeCompactCard({
         </div>
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-          <span className="truncate text-xs font-medium text-slate-500">{record.employee.zone || "No zone assigned"}</span>
-          <Button className="h-8 rounded-xl px-3 text-xs font-bold" type="button" variant="outline">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="truncate text-xs font-medium text-slate-500">{record.employee.zone || "No zone assigned"}</span>
+            <span className="inline-flex shrink-0 items-center rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+              {SHIFT_LABELS[record.employee.shift] || "Shift 1 · 5AM–12PM"}
+            </span>
+          </div>
+          <Button className="h-8 rounded-xl px-3 text-xs font-bold shrink-0" type="button" variant="outline">
             View Details
           </Button>
         </div>
@@ -326,15 +339,19 @@ function EmployeeDetailDrawer({
   analytics,
   appointments,
   onClose,
+  onShiftChange,
   onToggle,
   record,
+  shiftUpdating,
   toggling
 }: {
   analytics: ReturnType<typeof employeeAnalytics>;
   appointments: Appointment[];
   onClose: () => void;
+  onShiftChange: (shift: "shift_1" | "shift_2") => void;
   onToggle: () => void;
   record: EmployeeRecord;
+  shiftUpdating: boolean;
   toggling: boolean;
 }) {
   const initials = record.user.name
@@ -378,6 +395,10 @@ function EmployeeDetailDrawer({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <a href="/admin/payroll" className="flex items-center gap-1.5 h-9 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">
+                <WalletCards className="h-3.5 w-3.5" />
+                Payroll
+              </a>
               <Button
                 className="h-9 rounded-xl border-slate-200 text-xs font-bold"
                 disabled={toggling}
@@ -409,6 +430,19 @@ function EmployeeDetailDrawer({
             <span className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
               <User2 className="h-3.5 w-3.5" /> Field Collection Specialist
             </span>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3">
+            <label className="text-xs font-bold text-indigo-700 shrink-0">Assigned Shift</label>
+            <select
+              className="flex-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm font-semibold text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-400/30"
+              disabled={shiftUpdating}
+              onChange={(e) => onShiftChange(e.target.value as "shift_1" | "shift_2")}
+              value={record.employee.shift || "shift_1"}
+            >
+              <option value="shift_1">Shift 1 · 5:00 AM – 12:00 PM</option>
+              <option value="shift_2">Shift 2 · 12:00 PM – 6:00 PM</option>
+            </select>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -511,9 +545,7 @@ function EmployeeDetailDrawer({
               </div>
               <div className="space-y-2 text-xs">
                 {[
-                  ["Base Earnings", money(BASE_EARNINGS), "text-slate-700"],
-                  ["Incentives", money(analytics.incentives), "text-emerald-700"],
-                  ["Petrol Allowance", money(analytics.petrolAllowance), "text-blue-700"],
+                  ["Incentives (₹25/slot)", money(analytics.incentives), "text-emerald-700"],
                   ["Star Rating Bonus", money(analytics.starRatingBonus), "text-amber-700"],
                   ["Referral Bonus", money(analytics.referralBonus), "text-indigo-700"],
                   ["Deductions", `-${money(analytics.deductions)}`, "text-rose-700"]
@@ -590,12 +622,17 @@ export default function EmployeesPage() {
   const [phone, setPhone] = useState("");
   const [zone, setZone] = useState("");
   const [password, setPassword] = useState("");
+  const [shift, setShift] = useState<"shift_1" | "shift_2">("shift_1");
 
   const employeesQ = useQuery({ queryKey: ["employees"], queryFn: listEmployees });
   const appointmentsQ = useQuery({ queryKey: ["appointments", "emp-page"], queryFn: () => listAppointments() });
+  
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const payrollQ = useQuery({ queryKey: ["payroll-summary", currentMonth], queryFn: () => getPayrollSummary(currentMonth) });
 
   const employees = employeesQ.data?.data ?? [];
   const appointments = appointmentsQ.data?.data ?? [];
+  const payroll = payrollQ.data?.data ?? [];
 
   const rankedRevenue = useMemo(() => {
     const pairs = employees
@@ -613,12 +650,15 @@ export default function EmployeesPage() {
 
   const analyticsByEmployee = useMemo(() => {
     return new Map(
-      employees.map((record) => [
-        record.employee.id,
-        employeeAnalytics(record, appointments, rankedRevenue.get(record.employee.id) ?? employees.length)
-      ])
+      employees.map((record) => {
+        const empPayroll = payroll.find(p => p.employeeId === record.employee.id);
+        return [
+          record.employee.id,
+          employeeAnalytics(record, appointments, rankedRevenue.get(record.employee.id) ?? employees.length, empPayroll)
+        ];
+      })
     );
-  }, [appointments, employees, rankedRevenue]);
+  }, [appointments, employees, rankedRevenue, payroll]);
 
   const selectedEmployee = employees.find((record) => record.employee.id === selectedEmployeeId) ?? null;
   const selectedAnalytics = selectedEmployee ? analyticsByEmployee.get(selectedEmployee.employee.id) ?? null : null;
@@ -652,10 +692,21 @@ export default function EmployeesPage() {
       setPhone("");
       setZone("");
       setPassword("");
+      setShift("shift_1");
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
     onError: (e: Error) => toast({ title: "Create failed", description: e.message, variant: "destructive" })
+  });
+
+  const shiftMutation = useMutation({
+    mutationFn: ({ empId, newShift }: { empId: string; newShift: "shift_1" | "shift_2" }) =>
+      updateEmployeeShift(empId, newShift),
+    onSuccess: () => {
+      toast({ title: "Shift updated" });
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+    },
+    onError: (e: Error) => toast({ title: "Shift update failed", description: e.message, variant: "destructive" })
   });
 
   const toggleAvailability = useMutation({
@@ -675,6 +726,7 @@ export default function EmployeesPage() {
     setPhone("");
     setZone("");
     setPassword("");
+    setShift("shift_1");
   };
 
   const fillRandomPhone = () => {
@@ -708,7 +760,7 @@ export default function EmployeesPage() {
         <StatTile icon={Star} label="Potential Revenue" tone="amber" value={money(summary.totalRevenue + summary.totalRevenueLost)} />
       </div>
 
-      {employeesQ.isLoading || appointmentsQ.isLoading ? (
+      {employeesQ.isLoading || appointmentsQ.isLoading || payrollQ.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
             <Skeleton className="h-64 rounded-2xl" key={index} />
@@ -748,6 +800,12 @@ export default function EmployeesPage() {
           analytics={selectedAnalytics}
           appointments={appointments}
           onClose={() => setSelectedEmployeeId(null)}
+          onShiftChange={(newShift) =>
+            shiftMutation.mutate({
+              empId: selectedEmployee.employee.id,
+              newShift
+            })
+          }
           onToggle={() =>
             toggleAvailability.mutate({
               empId: selectedEmployee.employee.id,
@@ -755,6 +813,7 @@ export default function EmployeesPage() {
             })
           }
           record={selectedEmployee}
+          shiftUpdating={shiftMutation.isPending}
           toggling={toggleAvailability.isPending}
         />
       )}
@@ -773,7 +832,7 @@ export default function EmployeesPage() {
             <div className="grid gap-4 p-6">
               {[
                 { label: "Full Name", placeholder: "Rahul Mehra", setter: setName, type: "text", value: name },
-                { label: "Email", placeholder: "rahul@labconnect.com", setter: setEmail, type: "email", value: email },
+                { label: "Email", placeholder: "labconnect.work@gmail.com", setter: setEmail, type: "email", value: email },
                 { label: "Phone", placeholder: "+91 9876543210", setter: setPhone, type: "tel", value: phone },
                 { label: "Zone / Area", placeholder: "e.g. Bhopal North Zone", setter: setZone, type: "text", value: zone },
                 { label: "Password", placeholder: "Temporary password", setter: setPassword, type: "password", value: password }
@@ -796,6 +855,17 @@ export default function EmployeesPage() {
                   />
                 </div>
               ))}
+              <div className="space-y-1.5">
+                <Label>Shift</Label>
+                <select
+                  className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  onChange={(e) => setShift(e.target.value as "shift_1" | "shift_2")}
+                  value={shift}
+                >
+                  <option value="shift_1">Shift 1 · 5:00 AM – 12:00 PM</option>
+                  <option value="shift_2">Shift 2 · 12:00 PM – 6:00 PM</option>
+                </select>
+              </div>
               <div className="flex gap-3 pt-2">
                 <Button
                   className="flex-1 rounded-xl bg-blue-600 font-bold text-white hover:bg-blue-700"

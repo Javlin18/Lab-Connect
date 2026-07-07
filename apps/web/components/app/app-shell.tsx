@@ -3,6 +3,7 @@
 import {
   Bell,
   Boxes,
+  CalendarCheck,
   ChevronDown,
   Coins,
   FileText,
@@ -19,7 +20,8 @@ import {
   Users,
   UserSquare2,
   X,
-  Activity
+  Activity,
+  WalletCards
 } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -42,6 +44,8 @@ const navItems = [
   { href: "/admin/packages",          icon: Boxes,           label: "Packages",         group: "catalog" },
   { href: "/admin/pricing",           icon: Coins,           label: "Pricing",          group: "catalog" },
   { href: "/admin/employees",         icon: Users,           label: "Employees",        group: "people" },
+  { href: "/admin/attendance",         icon: CalendarCheck,   label: "Attendance",       group: "people" },
+  { href: "/admin/payroll",           icon: WalletCards,     label: "Payroll",          group: "people" },
   { href: "/admin/feedback",          icon: Star,            label: "Feedback",         group: "people" },
   { href: "/admin/patients",          icon: UserSquare2,     label: "Patients",         group: "people" },
   { href: "/admin/settings",          icon: Settings,        label: "Settings",         group: "system" },

@@ -21,6 +21,7 @@ const APP_VERSION = "1.0.0";
 export default function EmployeeLoginScreen() {
   const setSession = useAuthStore((s) => s.setSession);
 
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

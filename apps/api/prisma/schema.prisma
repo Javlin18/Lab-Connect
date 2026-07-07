@@ -21,6 +21,7 @@ enum AppointmentStatus {
   collected
   processing
   completed
+  cancelled
 }
 
 enum OtpAssistanceStatus {
@@ -50,6 +51,7 @@ model User {
   otpAssistanceAsPatient OtpAssistanceRequest[] @relation("OtpAssistancePatient")
   otpAssistanceAsBookingOwner OtpAssistanceRequest[] @relation("OtpAssistanceBookingOwner")
   otpAssistanceAsAdmin OtpAssistanceRequest[] @relation("OtpAssistanceAdmin")
+  expensesCreated     EmployeeExpenseRecord[]
 
   @@index([role])
 }
@@ -97,10 +99,14 @@ model Employee {
   id              String             @id @default(cuid())
   userId          String             @unique
   zone            String
+  shift           String             @default("shift_1")
   isAvailable     Boolean            @default(true)
   currentLocation String             @default("")
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   feedbacks       EmployeeFeedback[]
+  payConfig       EmployeePayConfig?
+  expenses        EmployeeExpenseRecord[]
+  attendances     Attendance[]
 
   @@index([isAvailable])
   @@index([zone])
@@ -337,4 +343,56 @@ model PhoneOtp {
   createdAt DateTime @default(now())
 
   @@index([phone])
+}
+
+model EmployeePayConfig {
+  id                    String   @id @default(cuid())
+  employeeId            String?  @unique // Null means it's the global default config
+  baseSalary            Float    @default(18000)
+  petrolAllowance       Float    @default(2500)
+  incentivePerSample    Float    @default(25)
+  cancellationDeduction Float    @default(100)
+  absentDeduction       Float    @default(300)
+  lateArrivalDeduction  Float    @default(100)
+  starBonus40           Float    @default(400)
+  starBonus80           Float    @default(900)
+  starBonus120          Float    @default(1500)
+  referralBonus         Float    @default(750)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  employee              Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model EmployeeExpenseRecord {
+  id          String   @id @default(cuid())
+  employeeId  String
+  type        String   // "bonus" | "deduction" | "reimbursement"
+  amount      Float
+  description String
+  month       String   // YYYY-MM
+  createdBy   String   // Admin's userId
+  createdAt   DateTime @default(now())
+
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  admin       User     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, month])
+}
+
+model Attendance {
+  id          String    @id @default(cuid())
+  employeeId  String
+  date        String    // YYYY-MM-DD
+  status      String    @default("present") // present | absent
+  checkInAt   DateTime?
+  selfieUrl   String?   @db.Text
+  note        String?
+  createdAt   DateTime  @default(now())
+
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date])
+  @@index([date])
+  @@index([employeeId])
 }

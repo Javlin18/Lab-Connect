@@ -249,9 +249,12 @@ export default function EmployeeTaskDetailScreen() {
           <View className="flex-row gap-3 mt-3">
             <TouchableOpacity
               className="flex-1 bg-slate-50 border border-slate-100 rounded-xl p-2.5 items-center flex-row justify-center gap-1.5"
-              onPress={() => {
-                const phone = appointment.patient?.phone;
-                if (phone) Linking.openURL(`tel:${phone}`);
+              onPress={async () => {
+                try {
+                  await Linking.openURL("tel:7693080021");
+                } catch (err: any) {
+                  Alert.alert("Call Failed", err?.message ?? "Could not connect call. Please try again.");
+                }
               }}
             >
               <Ionicons name="call-outline" size={14} color="#475569" />

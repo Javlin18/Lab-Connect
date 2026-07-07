@@ -18,20 +18,31 @@ export function TaskCard({ appointment, onPress, showDistance = true, distanceTe
   const mockDistance = distanceText ?? `${(Math.random() * 5 + 0.5).toFixed(1)} km away`;
 
   const payment = appointment.payment;
+  const isDone = appointment.status === "completed" || appointment.status === "collected" || appointment.status === "cancelled";
 
   return (
-    <View
+    <TouchableOpacity
       className="bg-white border border-slate-100 rounded-2xl p-4 mb-4"
       style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}
+      activeOpacity={0.7}
+      onPress={onPress}
     >
       <View className="flex-row justify-between items-start mb-2">
         <View className="flex-1 pr-2">
-          <Text className="text-base font-bold text-slate-800">
-            {appointment.patient?.name ?? "Patient Name"}
-          </Text>
-          <Text className="text-xs text-slate-400 mt-0.5 line-clamp-1">
-            <Ionicons name="location-outline" size={12} color="#94A3B8" /> {firstLineAddress}
-          </Text>
+          {isDone ? (
+            <Text className="text-base font-bold text-slate-800">
+              Task {appointment.status === "cancelled" ? "Cancelled" : "Completed"}
+            </Text>
+          ) : (
+            <>
+              <Text className="text-base font-bold text-slate-800">
+                {appointment.patient?.name ?? "Patient Name"}
+              </Text>
+              <Text className="text-xs text-slate-400 mt-0.5 line-clamp-1">
+                <Ionicons name="location-outline" size={12} color="#94A3B8" /> {firstLineAddress}
+              </Text>
+            </>
+          )}
         </View>
         <StatusBadge status={appointment.status} />
       </View>
@@ -74,7 +85,7 @@ export function TaskCard({ appointment, onPress, showDistance = true, distanceTe
       )}
 
       <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-slate-100">
-        {showDistance && (
+        {showDistance && !isDone && (
           <View className="flex-row items-center gap-1">
             <Ionicons name="car-outline" size={12} color="#047857" />
             <Text className="text-[11px] font-bold text-emerald-700">
@@ -82,13 +93,21 @@ export function TaskCard({ appointment, onPress, showDistance = true, distanceTe
             </Text>
           </View>
         )}
-        <TouchableOpacity
-          className="bg-emerald-800 px-3.5 py-1.5 rounded-lg"
-          onPress={onPress}
-        >
-          <Text className="text-white text-xs font-bold">View Details</Text>
-        </TouchableOpacity>
+        <View className="flex-1" />
+        {!isDone ? (
+          <View className="bg-emerald-800 px-3.5 py-1.5 rounded-lg">
+            <Text className="text-white text-xs font-bold">View Details</Text>
+          </View>
+        ) : payment?.paymentType === "pay_on_collection" && payment?.paymentStatus === "pending" ? (
+          <View className="bg-orange-600 px-3.5 py-1.5 rounded-lg">
+            <Text className="text-white text-xs font-bold">Collect Payment</Text>
+          </View>
+        ) : (
+          <View className="bg-slate-100 px-3.5 py-1.5 rounded-lg">
+            <Text className="text-slate-500 text-xs font-bold">View Summary</Text>
+          </View>
+        )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }

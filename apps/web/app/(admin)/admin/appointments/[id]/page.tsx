@@ -16,7 +16,7 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 
-const timeline = ["pending", "assigned", "accepted", "en_route", "collected", "processing", "completed"] as const;
+const timeline = ["pending", "assigned", "accepted", "en_route", "collected", "processing", "completed", "cancelled"] as const;
 
 export default function AppointmentDetailPage() {
   const params = useParams<{ id: string }>();

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { Public } from "../common/decorators/public.decorator";
@@ -47,5 +47,11 @@ export class OrdersController {
       data: order,
       message: "Order fetched"
     };
+  }
+
+  @Roles("admin")
+  @Put(":id/cancel")
+  cancel(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.ordersService.cancel(id, user.sub);
   }
 }

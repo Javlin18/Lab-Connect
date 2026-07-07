@@ -50,4 +50,13 @@ export class EmployeesController {
       data: { token: dto.token }
     };
   }
+
+  @Roles("admin")
+  @Put(":id/shift")
+  updateShift(
+    @Param("id") id: string,
+    @Body() dto: { shift: string }
+  ) {
+    return this.employeesService.updateShift(id, dto.shift);
+  }
 }

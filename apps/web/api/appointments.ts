@@ -64,6 +64,12 @@ export async function completeAppointment(id: string, notes?: string) {
   });
 }
 
+export async function cancelAppointment(id: string) {
+  return apiFetch<Appointment>(`/appointments/${id}/cancel`, {
+    method: "PUT"
+  });
+}
+
 export async function getAppointmentById(id: string) {
   const response = await listAppointments();
   const appointment = response.data.find((item) => item.id === id);

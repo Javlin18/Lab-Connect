@@ -92,4 +92,28 @@ export class EmployeesService {
       message: "Location updated"
     };
   }
+
+  async updateShift(id: string, shift: string) {
+    if (!["shift_1", "shift_2"].includes(shift)) {
+      throw new NotFoundException("Invalid shift value. Use 'shift_1' or 'shift_2'.");
+    }
+
+    const employee = await this.prisma.employee.findUnique({
+      where: { id }
+    });
+
+    if (!employee) {
+      throw new NotFoundException("Employee not found");
+    }
+
+    const updated = await this.prisma.employee.update({
+      where: { id },
+      data: { shift }
+    });
+
+    return {
+      data: toSharedEmployee(updated),
+      message: "Shift updated"
+    };
+  }
 }

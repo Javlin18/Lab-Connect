@@ -22,6 +22,8 @@ import { OrdersModule } from "./orders/orders.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { FeedbackModule } from "./feedback/feedback.module";
 import { OtpAssistanceModule } from "./otp-assistance/otp-assistance.module";
+import { AttendanceModule } from "./attendance/attendance.module";
+import { PayrollModule } from "./payroll/payroll.module";
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { OtpAssistanceModule } from "./otp-assistance/otp-assistance.module";
     PaymentsModule,
     FeedbackModule,
     OtpAssistanceModule,
+    PayrollModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [

@@ -4,12 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
   Clock,
-  CreditCard,
-  Eye,
-  EyeOff,
   Shield,
-  User2,
-  AlertTriangle
+  User2
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
@@ -40,14 +36,11 @@ export default function SettingsPage() {
   const [labName, setLabName] = useState("Lab Connect Diagnostics");
   const [labAddress, setLabAddress] = useState("55/18 dada thanthanpal word no.72, Rivjha green city, Jabalpur 482001");
   const [labPhone, setLabPhone] = useState("+91 7693080021, +91 8602363472");
-  const [labEmail, setLabEmail] = useState("care@labconnect.com");
+  const [labEmail, setLabEmail] = useState("labconnect.work@gmail.com");
   const [openTime, setOpenTime] = useState("07:00 AM");
   const [closeTime, setCloseTime] = useState("08:00 PM");
 
-  // Razorpay
-  const [rzpKeyId, setRzpKeyId] = useState("");
-  const [rzpSecret, setRzpSecret] = useState("");
-  const [showSecret, setShowSecret] = useState(false);
+
 
   const employeesQ = useQuery({ queryKey: ["users", "employees"], queryFn: () => listUsers("employee") });
 
@@ -190,55 +183,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* ── Razorpay Settings ─────────────────────────────────────────────── */}
-      <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden">
-        <CardHeader className="px-6 py-4 border-b border-slate-50">
-          <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-blue-500" /> Razorpay Payment Gateway
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700 font-medium flex items-center gap-1.5">
-            <AlertTriangle className="h-4 w-4" /> These values must also be set in your <code className="bg-amber-100 px-1 rounded">.env</code> file as <code className="bg-amber-100 px-1 rounded">RAZORPAY_KEY_ID</code> and <code className="bg-amber-100 px-1 rounded">RAZORPAY_KEY_SECRET</code> for the backend to use them.
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
-            <div className="space-y-1.5">
-              <Label>Key ID</Label>
-              <Input
-                className={inputClass}
-                onChange={(e) => setRzpKeyId(e.target.value)}
-                placeholder="rzp_test_XXXXXXXXXX"
-                value={rzpKeyId}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Key Secret</Label>
-              <div className="relative">
-                <Input
-                  className={`${inputClass} pr-10`}
-                  onChange={(e) => setRzpSecret(e.target.value)}
-                  placeholder="••••••••••••••••"
-                  type={showSecret ? "text" : "password"}
-                  value={rzpSecret}
-                />
-                <button
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  onClick={() => setShowSecret(!showSecret)}
-                  type="button"
-                >
-                  {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-          </div>
-          <Button
-            className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold"
-            onClick={() => toast({ title: "Razorpay keys noted", description: "Update your .env file with these values." })}
-          >
-            Save Gateway Settings
-          </Button>
-        </CardContent>
-      </Card>
+
 
       {/* ── Employee Accounts ─────────────────────────────────────────────── */}
       <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden">

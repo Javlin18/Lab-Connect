@@ -1,18 +1,31 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Receipt } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { listAllOrders } from "@/api/orders";
+import { listAllOrders, cancelOrder } from "@/api/orders";
 import { listUsers } from "@/api/users";
 import { PageHeader } from "@/components/app/page-header";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminOrdersPage() {
   const [search, setSearch] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => cancelOrder(id),
+    onSuccess: () => {
+      toast({ title: "Order cancelled" });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+    },
+    onError: (e: Error) => toast({ title: "Cancel failed", description: e.message, variant: "destructive" }),
+  });
 
   const ordersQuery = useQuery({
     queryKey: ["admin-orders"],
@@ -112,6 +125,7 @@ export default function AdminOrdersPage() {
                     <th className="px-6 py-4">Amount</th>
                     <th className="px-6 py-4">Payment</th>
                     <th className="px-6 py-4">Date</th>
+                    <th className="px-6 py-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 text-sm">
@@ -146,6 +160,22 @@ export default function AdminOrdersPage() {
                             month: "short",
                             year: "numeric"
                           })}
+                        </td>
+                        <td className="px-6 py-4">
+                          {!["cancelled", "refunded"].includes(order.paymentStatus) && (
+                            <Button
+                              className="h-7 px-2.5 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100"
+                              disabled={cancelMutation.isPending}
+                              onClick={() => {
+                                if (confirm("Are you sure you want to cancel this order?")) {
+                                  cancelMutation.mutate(order.id);
+                                }
+                              }}
+                              variant="ghost"
+                            >
+                              Cancel
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))

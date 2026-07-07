@@ -87,6 +87,16 @@ export class AppointmentsController {
     return this.appointmentsService.sendCollectionOtp(id, user.sub);
   }
 
+  @Roles("employee")
+  @Post(":id/verify-collection-otp")
+  verifyCollectionOtp(
+    @Param("id") id: string,
+    @Body("otp") otp: string,
+    @CurrentUser() user: AuthenticatedUser
+  ) {
+    return this.appointmentsService.verifyCollectionOtpEndpoint(id, user.sub, otp);
+  }
+
   @Roles("admin")
   @Put(":id/complete")
   complete(
@@ -95,6 +105,12 @@ export class AppointmentsController {
     @CurrentUser() user: AuthenticatedUser
   ) {
     return this.appointmentsService.complete(id, dto, user);
+  }
+
+  @Roles("admin")
+  @Put(":id/cancel")
+  cancel(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.appointmentsService.cancel(id, user.sub);
   }
 
   @Roles("employee")
