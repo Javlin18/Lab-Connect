@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 
@@ -114,6 +114,7 @@ export default function EmployeeProfileScreen() {
             <TouchableOpacity
               key={item.label}
               className="flex-1 bg-white border border-slate-100 rounded-2xl p-4 items-center gap-2"
+              onPress={() => Alert.alert("Coming Soon", `The ${item.label.replace('\n', ' ')} feature is currently under development. Please contact your manager directly for now.`)}
               style={{ shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 }}
             >
               <Text className="text-3xl">{item.icon}</Text>
