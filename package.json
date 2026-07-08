@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@11.8.0",
   "scripts": {
-    "build": "./node_modules/.bin/prisma generate --schema apps/api/prisma/schema.prisma && ./node_modules/.bin/tsc -p apps/api/tsconfig.json && npm run build --prefix apps/web && cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static && cp -r apps/web/public apps/web/.next/standalone/apps/web/public",
+    "build": "bash scripts/hostinger-build.sh",
     "build:mobile": "pnpm --filter @lab-app/mobile build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
