@@ -3,13 +3,13 @@
   "private": true,
   "packageManager": "pnpm@11.8.0",
   "scripts": {
-    "build": "cd apps/api && npx -y prisma@5 generate --schema prisma/schema.prisma && npx tsc -p tsconfig.json && cd ../web && npx next build && cp -r .next/static .next/standalone/apps/web/.next/static && cp -r public .next/standalone/apps/web/public",
+    "build": "prisma generate --schema apps/api/prisma/schema.prisma && tsc -p apps/api/tsconfig.json && npm run build --prefix apps/web && cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static && cp -r apps/web/public apps/web/.next/standalone/apps/web/public",
     "build:mobile": "pnpm --filter @lab-app/mobile build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "db:migrate": "npx -y prisma@5 migrate dev --schema apps/api/prisma/schema.prisma",
-    "db:push": "npx -y prisma@5 db push --schema apps/api/prisma/schema.prisma",
-    "prisma:generate": "npx -y prisma@5 generate --schema apps/api/prisma/schema.prisma"
+    "db:migrate": "prisma migrate dev --schema apps/api/prisma/schema.prisma",
+    "db:push": "prisma db push --schema apps/api/prisma/schema.prisma",
+    "prisma:generate": "prisma generate --schema apps/api/prisma/schema.prisma"
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
