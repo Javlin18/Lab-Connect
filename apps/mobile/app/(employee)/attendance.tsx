@@ -94,8 +94,9 @@ export default function AttendanceScreen() {
     try {
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
-        quality: 0.5,
+        quality: 0.1,
         exif: false,
+        imageType: "jpg",
       });
       if (photo?.base64) {
         const dataUrl = `data:image/jpeg;base64,${photo.base64}`;

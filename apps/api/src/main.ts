@@ -36,6 +36,10 @@ async function bootstrap() {
     rawBody: true,
   });
 
+  // Increase body-parser limits for base64 selfie uploads
+  app.useBodyParser("json", { limit: "10mb" });
+  app.useBodyParser("urlencoded", { limit: "10mb", extended: true });
+
   // Ensure uploads dir exists (Render's filesystem is ephemeral)
   const uploadsDir = join(process.cwd(), "uploads");
   if (!existsSync(uploadsDir)) {
