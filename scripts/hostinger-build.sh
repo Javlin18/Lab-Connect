@@ -3,30 +3,43 @@ set -e
 
 echo "=== Hostinger Build Script ==="
 
-# 1. Install API dependencies (skip workspace refs)
+# 1. Setup shared package symlinks first
+echo "--- Setting up shared package ---"
+mkdir -p node_modules/@lab-app
+ln -sf "$(pwd)/packages/shared" node_modules/@lab-app/shared
+
+# 2. Install API dependencies
 echo "--- Installing API dependencies ---"
 cd apps/api
-# Temporarily replace workspace:* with * so npm can handle it
-sed -i.bak 's/"workspace:\*"/"*"/g' package.json
-npm install --legacy-peer-deps 2>/dev/null || npm install
+# Remove workspace dependency before npm install, then restore
+cp package.json package.json.bak
+node -e "
+const pkg = require('./package.json');
+delete pkg.dependencies['@lab-app/shared'];
+require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+"
+npm install --legacy-peer-deps
 mv package.json.bak package.json
+# Symlink shared into api
+mkdir -p node_modules/@lab-app
+ln -sf "$(pwd)/../../../packages/shared" node_modules/@lab-app/shared
 cd ../..
 
-# 2. Install Web dependencies
+# 3. Install Web dependencies
 echo "--- Installing Web dependencies ---"
 cd apps/web
-sed -i.bak 's/"workspace:\*"/"*"/g' package.json
-npm install --legacy-peer-deps 2>/dev/null || npm install
+cp package.json package.json.bak
+node -e "
+const pkg = require('./package.json');
+delete pkg.dependencies['@lab-app/shared'];
+require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+"
+npm install --legacy-peer-deps
 mv package.json.bak package.json
+# Symlink shared into web
+mkdir -p node_modules/@lab-app
+ln -sf "$(pwd)/../../../packages/shared" node_modules/@lab-app/shared
 cd ../..
-
-# 3. Build shared package (just needs to be accessible)
-echo "--- Setting up shared package ---"
-# Link shared package for both api and web
-mkdir -p apps/api/node_modules/@lab-app
-mkdir -p apps/web/node_modules/@lab-app
-ln -sf "$(pwd)/packages/shared" apps/api/node_modules/@lab-app/shared
-ln -sf "$(pwd)/packages/shared" apps/web/node_modules/@lab-app/shared
 
 # 4. Generate Prisma client
 echo "--- Generating Prisma client ---"
