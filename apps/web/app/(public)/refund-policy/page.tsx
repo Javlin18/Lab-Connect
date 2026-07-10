@@ -48,10 +48,10 @@ export default function RefundPolicyPage() {
           </a>{" "}
           or{" "}
           <a
-            href="mailto:support@labconnect.co.in"
+            href="mailto:labconnect.work@gmail.com"
             className="text-[#C41E3A] hover:underline font-medium"
           >
-            support@labconnect.co.in
+            labconnect.work@gmail.com
           </a>
           .
         </p>
@@ -87,8 +87,8 @@ export default function RefundPolicyPage() {
           </p>
           <p>
             <span className="font-semibold text-gray-700">Email:</span>{" "}
-            <a href="mailto:support@labconnect.co.in" className="text-[#0F6E56] hover:underline">
-              support@labconnect.co.in
+            <a href="mailto:labconnect.work@gmail.com" className="text-[#0F6E56] hover:underline">
+              labconnect.work@gmail.com
             </a>
           </p>
           <p>

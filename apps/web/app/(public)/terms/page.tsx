@@ -173,8 +173,8 @@ export default function TermsPage() {
           </p>
           <p>
             <span className="font-semibold text-gray-700">Email:</span>{" "}
-            <a href="mailto:support@labconnect.co.in" className="text-[#0F6E56] hover:underline">
-              support@labconnect.co.in
+            <a href="mailto:labconnect.work@gmail.com" className="text-[#0F6E56] hover:underline">
+              labconnect.work@gmail.com
             </a>
           </p>
           <p>
