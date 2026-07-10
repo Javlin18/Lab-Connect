@@ -162,7 +162,7 @@ export default function PrivacyPolicyPage() {
         <div className="bg-[#E8F5F1] border-l-4 border-[#0F6E56] rounded-r-xl p-5 space-y-1.5 mt-3">
           <p>
             <span className="font-semibold text-gray-700">Name:</span>{" "}
-            <span className="text-gray-600">[Grievance Officer Name]</span>
+            <span className="text-gray-600">Chandrabhan Prajapati</span>
           </p>
           <p>
             <span className="font-semibold text-gray-700">Designation:</span> Founder, LabConnect
@@ -180,8 +180,8 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             <span className="font-semibold text-gray-700">Email:</span>{" "}
-            <a href="mailto:support@labconnect.co.in" className="text-[#0F6E56] hover:underline">
-              support@labconnect.co.in
+            <a href="mailto:labconnect.work@gmail.com" className="text-[#0F6E56] hover:underline">
+              labconnect.work@gmail.com
             </a>
           </p>
           <p>
