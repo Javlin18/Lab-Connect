@@ -17,7 +17,7 @@ import { RegisterEmployeeDto } from "./dto/register-employee.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { SendOtpDto } from "./dto/send-otp.dto";
 import { VerifyOtpDto } from "./dto/verify-otp.dto";
-import { TwilioService } from "./twilio.service";
+import { SmsService } from "./sms.service";
 
 @Injectable()
 export class AuthService {
@@ -26,7 +26,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly twilioService: TwilioService,
+    private readonly smsService: SmsService,
     private readonly emailService: EmailService
   ) {}
 
@@ -275,7 +275,7 @@ export class AuthService {
     }
 
     try {
-      await this.twilioService.sendOtp(dto.phone, code);
+      await this.smsService.sendOtp(dto.phone, code);
     } catch (e: any) {
       this.logger.warn(`Failed to send SMS to ${dto.phone}: ${e.message}`);
     }
