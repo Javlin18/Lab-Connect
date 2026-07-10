@@ -15,7 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 
 import { getAppointment } from "@/api/appointments";
-import { acceptAppointment, claimAppointment, updateStatus } from "@/api/employee";
+import { acceptAppointment, claimAppointment, connectCall, updateStatus } from "@/api/employee";
 import { apiFetch } from "@/api/client";
 import { Screen } from "@/components/screen";
 import { StatusBadge } from "@/components/employee/StatusBadge";
@@ -251,7 +251,8 @@ export default function EmployeeTaskDetailScreen() {
               className="flex-1 bg-slate-50 border border-slate-100 rounded-xl p-2.5 items-center flex-row justify-center gap-1.5"
               onPress={async () => {
                 try {
-                  await Linking.openURL("tel:7693080021");
+                  const res = await connectCall(appointment.id);
+                  Alert.alert("Call Initiated", res.message || "Connecting... Please wait for your phone to ring.");
                 } catch (err: any) {
                   Alert.alert("Call Failed", err?.message ?? "Could not connect call. Please try again.");
                 }
