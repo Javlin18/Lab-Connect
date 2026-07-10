@@ -249,7 +249,7 @@ function PublicLayoutInner({ children }: { children: React.ReactNode }) {
       {/* ── FOOTER ──────────────────────────────────────────────────────────── */}
       <footer className="bg-slate-900 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-600">
@@ -285,6 +285,26 @@ function PublicLayoutInner({ children }: { children: React.ReactNode }) {
               </ul>
             </div>
             <div>
+              <h4 className="text-sm font-bold mb-4 text-white">Legal</h4>
+              <ul className="space-y-2.5 text-xs">
+                <li>
+                  <Link href="/terms" className="text-slate-400 hover:text-white transition">
+                    Terms and Conditions
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy-policy" className="text-slate-400 hover:text-white transition">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/refund-policy" className="text-slate-400 hover:text-white transition">
+                    Refund Policy
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
               <h4 className="text-sm font-bold mb-4 text-white">Contact</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
                 55/18 dada thanthanpal word no.72<br />
@@ -296,10 +316,11 @@ function PublicLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="mt-10 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-            <p>&copy; {new Date().getFullYear()} Labconnect. All rights reserved.</p>
+            <p>&copy; 2026 LabConnect Diagnostics. All rights reserved. | Jabalpur, Madhya Pradesh</p>
             <div className="flex gap-4">
-              <span className="hover:text-slate-300 cursor-pointer transition">Privacy Policy</span>
-              <span className="hover:text-slate-300 cursor-pointer transition">Terms of Service</span>
+              <Link href="/privacy-policy" className="hover:text-slate-300 transition">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-slate-300 transition">Terms of Service</Link>
+              <Link href="/refund-policy" className="hover:text-slate-300 transition">Refund Policy</Link>
             </div>
           </div>
         </div>
