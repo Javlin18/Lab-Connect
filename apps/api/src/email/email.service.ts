@@ -31,7 +31,8 @@ export class EmailService {
   async send(to: string, subject: string, html: string): Promise<void> {
     if (!this.transporter) {
       this.logger.error(`[EMAIL SKIPPED — no SMTP] To: ${to} | Subject: ${subject}`);
-      throw new Error("SMTP credentials are not configured on the server.");
+      // Skip throwing error so local development works without SMTP
+      return;
     }
     try {
       await this.transporter.sendMail({ from: this.from(), to, subject, html });
