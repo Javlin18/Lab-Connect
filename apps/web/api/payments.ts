@@ -1,25 +1,21 @@
 import { apiFetch } from "./client";
 
-export async function createRazorpayOrder(data: {
+export async function createPaymentOrder(data: {
   orderId: string;
   amount: number;
 }) {
   return apiFetch<{
-    razorpayOrderId: string;
+    phonepeOrderId: string;
     amount: number;
-    currency: string;
-    keyId: string;
+    redirectUrl: string;
   }>("/payments/create-order", {
     method: "POST",
     body: JSON.stringify(data)
   });
 }
 
-export async function verifyRazorpayPayment(data: {
+export async function verifyPaymentStatus(data: {
   orderId: string;
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
 }) {
   return apiFetch<{ success: boolean; message: string }>(
     "/payments/verify-payment",

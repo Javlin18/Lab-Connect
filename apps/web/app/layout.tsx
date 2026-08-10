@@ -7,7 +7,7 @@ import { Providers } from "@/components/app/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Labconnect Admin",
+  title: "Labconnect: NABL ACCREDITED",
   description: "Admin panel for lab operations"
 };
 
