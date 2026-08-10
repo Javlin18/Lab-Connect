@@ -50,29 +50,33 @@ export class PaymentsController {
     };
   }
 
-  // Called by frontend after PhonePe redirects back
+  // Called by frontend after Razorpay payment popup closes successfully
   @Roles("patient", "admin")
   @Post("verify-payment")
   async verifyPayment(
     @Body()
     body: {
       orderId: string;
+      razorpayOrderId: string;
+      razorpayPaymentId: string;
+      razorpaySignature: string;
     },
     @CurrentUser() user: AuthenticatedUser
   ) {
-    const result = await this.paymentsService.verifyPayment(
-      body.orderId
+    const isValid = this.paymentsService.verifyPayment(
+      body.razorpayOrderId,
+      body.razorpayPaymentId,
+      body.razorpaySignature
     );
-    
-    if (!result.isValid) {
+    if (!isValid) {
       throw new BadRequestException(
-        "Payment verification failed — not completed"
+        "Payment verification failed — invalid signature"
       );
     }
 
     await this.ordersService.confirmPaidOrder(body.orderId, {
-      razorpayOrderId: body.orderId, // storing in the same column for now
-      razorpayPaymentId: result.phonepePaymentId,
+      razorpayOrderId: body.razorpayOrderId,
+      razorpayPaymentId: body.razorpayPaymentId,
       paymentMethod: "online"
     });
 
@@ -86,7 +90,7 @@ export class PaymentsController {
     return { success: true, message: "Payment verified successfully" };
   }
 
-  // Called by employee app to generate payment link
+  // Called by employee app to generate QR payment link
   @Roles("employee", "admin")
   @Post("create-payment-link")
   async createPaymentLink(
@@ -102,16 +106,13 @@ export class PaymentsController {
     );
 
     await this.ordersService.savePaymentLink(body.orderId, {
-      paymentLinkId: order.id,
-      paymentLinkUrl: result.redirectUrl
+      paymentLinkId: result.paymentLinkId,
+      paymentLinkUrl: result.paymentUrl
     });
 
     return {
       success: true,
-      data: {
-        paymentLinkId: order.id,
-        paymentUrl: result.redirectUrl
-      },
+      data: result,
       message: "Payment link created"
     };
   }
@@ -130,20 +131,17 @@ export class PaymentsController {
     };
   }
 
-  // PhonePe webhook — called by PhonePe servers automatically
+  // Razorpay webhook — called by Razorpay servers automatically
+  // NO auth guard — Razorpay calls this directly
   @Public()
   @Post("webhook")
   async handleWebhook(
-    @Body() body: any,
-    @Headers("x-verify") signature: string
+    @Req() req: any,
+    @Headers("x-razorpay-signature") signature: string
   ) {
-    const base64Payload = body?.response;
-    if (!base64Payload || !signature) {
-      throw new BadRequestException("Missing webhook signature or payload");
-    }
-
-    const isValid = this.paymentsService.verifyWebhookPayload(
-      base64Payload,
+    const rawBody = req.rawBody?.toString() ?? JSON.stringify(req.body);
+    const isValid = this.paymentsService.verifyWebhookSignature(
+      rawBody,
       signature
     );
 
@@ -151,16 +149,28 @@ export class PaymentsController {
       throw new BadRequestException("Invalid webhook signature");
     }
 
-    const payloadStr = Buffer.from(base64Payload, 'base64').toString('utf8');
-    const data = JSON.parse(payloadStr);
+    const event = req.body.event;
 
-    if (data.code === "PAYMENT_SUCCESS") {
-      const orderId = data.data?.merchantTransactionId;
-      if (orderId && !orderId.startsWith("REF-")) {
+    if (event === "payment.captured") {
+      const payment = req.body.payload.payment.entity;
+      const orderId = payment.notes?.orderId;
+      if (orderId) {
         await this.ordersService.markAsPaid(orderId, {
-          razorpayPaymentId: data.data.transactionId,
+          razorpayPaymentId: payment.id,
           paidAt: new Date(),
           paymentStatus: "paid",
+          paymentMethod: "online"
+        });
+      }
+    }
+
+    if (event === "payment_link.paid") {
+      const paymentLink = req.body.payload.payment_link.entity;
+      const orderId = paymentLink.notes?.orderId;
+      if (orderId) {
+        await this.ordersService.markAsPaid(orderId, {
+          paymentStatus: "paid",
+          paidAt: new Date(),
           paymentMethod: "online"
         });
 
@@ -169,10 +179,18 @@ export class PaymentsController {
           await this.notificationsService.createNotification(
             order.employeeId,
             "Payment Received",
-            `Patient has paid ₹${data.data.amount / 100} for Order #${orderId}`,
+            `Patient has paid ₹${paymentLink.amount / 100} for Order #${orderId}`,
             "payment"
           );
         }
+      }
+    }
+
+    if (event === "refund.created") {
+      const refund = req.body.payload.refund.entity;
+      const orderId = refund.notes?.orderId;
+      if (orderId) {
+        await this.ordersService.updatePaymentStatus(orderId, "refunded");
       }
     }
 
@@ -192,11 +210,10 @@ export class PaymentsController {
     await this.ordersService.updatePaymentStatus(body.orderId, "refunded");
     return {
       success: true,
-      data: refund,
+      data: { refundId: (refund as any).id },
       message: "Refund issued"
     };
   }
-
   // Employee marks payment as collected (cash or manual UPI)
   @Roles("employee")
   @Post("manual-confirm")

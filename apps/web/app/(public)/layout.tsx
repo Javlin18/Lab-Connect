@@ -302,11 +302,6 @@ function PublicLayoutInner({ children }: { children: React.ReactNode }) {
                     Refund Policy
                   </Link>
                 </li>
-                <li>
-                  <Link href="/contact-us" className="text-slate-400 hover:text-white transition">
-                    Contact Us
-                  </Link>
-                </li>
               </ul>
             </div>
             <div>

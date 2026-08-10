@@ -1,10 +1,11 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle, CreditCard, Loader2, ShieldCheck, Zap } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { createPaymentOrder } from "@/api/payments";
+import { createRazorpayOrder, verifyRazorpayPayment } from "@/api/payments";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,45 +17,115 @@ function CheckoutPageInner() {
   const orderId = searchParams.get("orderId");
   const amount  = parseFloat(searchParams.get("amount") || "0");
 
-  const [pgOrderId, setPgOrderId] = useState<string | null>(null);
-  const [pgRedirectUrl, setPgRedirectUrl] = useState<string>("");
-  const [pgError, setPgError] = useState<string | null>(null);
-  const [pgLoading, setPgLoading] = useState(true);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [scriptLoaded,  setScriptLoaded]  = useState(false);
+  const [scriptLoading, setScriptLoading] = useState(true);
 
-  // ── Create PhonePe order via backend ──────────────────────────────────────
+  // Real Razorpay order (from /payments/create-order)
+  const [rzpOrderId, setRzpOrderId] = useState<string | null>(null);
+  const [rzpAmount,  setRzpAmount]  = useState<number>(0);
+  const [rzpKeyId,   setRzpKeyId]   = useState<string>("");
+  const [rzpError,   setRzpError]   = useState<string | null>(null);
+  const [rzpLoading, setRzpLoading] = useState(true);
+
+  // ── Load Razorpay script ───────────────────────────────────────────────────
   useEffect(() => {
-    if (!orderId || !amount) {
-      if (!orderId) router.push("/cart");
+    if (!orderId) { router.push("/cart"); return; }
+
+    if (document.querySelector('script[src*="checkout.razorpay.com"]')) {
+      setScriptLoaded(true);
+      setScriptLoading(false);
       return;
     }
-    
-    setPgLoading(true);
-    setPgError(null);
 
-    createPaymentOrder({ orderId, amount })
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload  = () => { setScriptLoaded(true); setScriptLoading(false); };
+    script.onerror = () => setScriptLoading(false);
+    document.body.appendChild(script);
+    return () => {
+      if (document.body.contains(script)) document.body.removeChild(script);
+    };
+  }, [orderId, router]);
+
+  // ── Create Razorpay order via backend ──────────────────────────────────────
+  useEffect(() => {
+    if (!orderId || !amount) return;
+    setRzpLoading(true);
+    setRzpError(null);
+
+    createRazorpayOrder({ orderId, amount })
       .then((res) => {
-        setPgOrderId(res.data.phonepeOrderId);
-        setPgRedirectUrl(res.data.redirectUrl);
+        setRzpOrderId(res.data.razorpayOrderId);
+        setRzpAmount(res.data.amount as number);
+        setRzpKeyId(res.data.keyId);
       })
       .catch((err) => {
-        setPgError(err.message ?? "Failed to initialize payment");
+        setRzpError(err.message ?? "Failed to initialize payment");
       })
-      .finally(() => setPgLoading(false));
-  }, [orderId, amount, router]);
+      .finally(() => setRzpLoading(false));
+  }, [orderId, amount]);
 
-  // ── Redirect to PhonePe ──────────────────────────────────────────────────
+  // ── Verify via /payments/verify-payment ────────────────────────────────────
+  const verifyMutation = useMutation({
+    mutationFn: (data: {
+      razorpayOrderId: string;
+      razorpayPaymentId: string;
+      razorpaySignature: string;
+    }) =>
+      verifyRazorpayPayment({
+        orderId: orderId!,
+        razorpayOrderId:   data.razorpayOrderId,
+        razorpayPaymentId: data.razorpayPaymentId,
+        razorpaySignature: data.razorpaySignature,
+      }),
+    onSuccess: () => {
+      toast({ title: "Payment Confirmed", description: "Booking confirmed!" });
+      router.push(`/order-success?id=${orderId}`);
+    },
+    onError: (err: any) => {
+      toast({ title: "Verification failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // ── Open Razorpay ─────────────────────────────────────────────────────────
   const handlePay = () => {
-    if (!pgOrderId || !pgRedirectUrl) {
-      toast({ title: "Not ready", description: pgError ?? "Please wait.", variant: "destructive" });
+    if (!scriptLoaded || !rzpOrderId || !rzpKeyId) {
+      toast({ title: "Not ready", description: rzpError ?? "Please wait.", variant: "destructive" });
       return;
     }
-    setIsRedirecting(true);
-    window.location.href = pgRedirectUrl;
+    try {
+      const rzp = new (window as any).Razorpay({
+        key:         rzpKeyId,
+        amount:      rzpAmount,
+        currency:    "INR",
+        name:        "Labconnect Diagnostics",
+        description: "Home Sample Collection Booking",
+        order_id:    rzpOrderId,
+        theme:       { color: "#dc2626" },
+        handler: (response: any) => {
+          verifyMutation.mutate({
+            razorpayOrderId:   response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+          });
+        },
+        modal: {
+          ondismiss: () => toast({ title: "Payment cancelled", variant: "destructive" }),
+        },
+      });
+      rzp.on("payment.failed", (resp: any) => {
+        toast({ title: "Payment failed", description: resp.error?.description, variant: "destructive" });
+      });
+      rzp.open();
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
   };
 
-  const isInit  = pgLoading;
-  const isReady = !!pgOrderId && !!pgRedirectUrl;
+  const isInit  = scriptLoading || rzpLoading;
+  const isReady = scriptLoaded && !!rzpOrderId && !!rzpKeyId;
+  const isBusy  = verifyMutation.isPending;
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12 bg-slate-50">
@@ -87,28 +158,25 @@ function CheckoutPageInner() {
                 <Loader2 className="h-5 w-5 animate-spin text-red-500" />
                 Initialising payment gateway...
               </div>
-            ) : pgError ? (
+            ) : rzpError ? (
               <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left">
                 <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-bold text-amber-800">Payment gateway unavailable</p>
-                  <p className="text-xs text-amber-600 mt-1">{pgError}</p>
+                  <p className="text-xs text-amber-600 mt-1">{rzpError}</p>
                   <p className="text-xs text-amber-600 mt-2">
-                    Check the PhonePe credentials on the API server and restart the backend.
+                    Check the Razorpay credentials on the API server and restart the backend.
                   </p>
                 </div>
               </div>
             ) : (
               <Button
                 className="w-full h-13 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-200 flex items-center justify-center gap-2 py-4"
-                disabled={!isReady || isRedirecting}
+                disabled={!isReady || isBusy}
                 onClick={handlePay}
               >
-                {isRedirecting ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Redirecting...</>
-                ) : (
-                  <><Zap className="h-4 w-4" /> Pay ₹{amount} Securely</>
-                )}
+                <Zap className="h-4 w-4" />
+                Pay ₹{amount} via Razorpay
               </Button>
             )}
           </div>
