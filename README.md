@@ -243,3 +243,4 @@ Add these GitHub secrets:
 - `VPS_APP_DIR`
 
 Push to `main`, workflow SSHes into VPS and runs `scripts/deploy.sh`.
+# Lab-Connect
